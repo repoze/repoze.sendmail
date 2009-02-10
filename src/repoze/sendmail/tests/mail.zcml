@@ -1,5 +1,5 @@
-<configure xmlns="http://namespaces.zope.org/zope"
-           xmlns:mail="http://namespaces.zope.org/mail">
+<configure xmlns="http://namespaces.repoze.org/bfg"
+           xmlns:mail="http://namespaces.repoze.org/mail">
 
   <include package="repoze.sendmail" file="meta.zcml"/>
 
@@ -24,3 +24,4 @@
       hostname="smarthost"/>
  
 </configure>
+

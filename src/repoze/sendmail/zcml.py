@@ -26,12 +26,12 @@ from zope.schema import TextLine
 from zope.schema import BytesLine
 from zope.schema import Int
 
-from zope.sendmail.delivery import QueuedMailDelivery
-from zope.sendmail.delivery import DirectMailDelivery
-from zope.sendmail.delivery import QueueProcessorThread
-from zope.sendmail.interfaces import IMailer
-from zope.sendmail.interfaces import IMailDelivery
-from zope.sendmail.mailer import SMTPMailer
+from repoze.sendmail.delivery import QueuedMailDelivery
+from repoze.sendmail.delivery import DirectMailDelivery
+from repoze.sendmail.delivery import QueueProcessorThread
+from repoze.sendmail.interfaces import IMailer
+from repoze.sendmail.interfaces import IMailDelivery
+from repoze.sendmail.mailer import SMTPMailer
 
 def handler(methodName, *args, **kwargs):
     method = getattr(getSiteManager(), methodName)
