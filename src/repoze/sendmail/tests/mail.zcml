@@ -1,4 +1,4 @@
-<configure xmlns="http://namespaces.repoze.org/bfg"
+<configure xmlns="http://namespaces.zope.org/zope"
            xmlns:mail="http://namespaces.repoze.org/mail">
 
   <include package="repoze.sendmail" file="meta.zcml"/>
