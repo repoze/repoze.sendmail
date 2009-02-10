@@ -1,0 +1,26 @@
+<configure 
+    xmlns="http://namespaces.repoze.org/bfg"
+    xmlns:meta="http://namespaces.zope.org/meta">
+
+  <meta:directive 
+      namespace="http://namespaces.repoze.org/mail"
+      name="queuedDelivery" 
+      schema=".zcml.IQueuedDeliveryDirective"
+      handler=".zcml.queuedDelivery"
+      />
+
+  <meta:directive 
+      namespace="http://namespaces.repoze.org/mail"
+      name="directDelivery" 
+      schema=".zcml.IDirectDeliveryDirective"
+      handler=".zcml.directDelivery"
+      />
+
+  <meta:directive 
+      namespace="http://namespaces.repoze.org/mail"
+      name="smtpMailer" 
+      schema=".zcml.ISMTPMailerDirective"
+      handler=".zcml.smtpMailer"
+      />
+
+</configure>

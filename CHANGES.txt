@@ -1,0 +1,9 @@
+Change history
+~~~~~~~~~~~~~~
+
+1.0.0
+------------------
+
+- Initial release
+
+- Copy of zope.sendmail with dependency on security removed.
