@@ -1,7 +1,0 @@
-setuptools
-zope.component
-zope.configuration
-zope.i18nmessageid
-zope.interface
-zope.schema
-transaction
