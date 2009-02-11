@@ -5,7 +5,7 @@ Summary: Repoze Sendmail
 Home-page: http://www.repoze.org
 Author: Chris Rossi
 Author-email: repoze-dev@lists.repoze.org
-License: BSD-derived (http://www.repoze.org/LICENSE.txt)
+License: ZPL 2.1
 Description: =============
         repoze.sendmail
         =============

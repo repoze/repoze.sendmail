@@ -213,7 +213,6 @@ class QueueProcessorThread(threading.Thread):
 
     log = logging.getLogger("QueueProcessorThread")
     __stopped = False
-    interval = 3.0   # process queue every X second
 
     def __init__(self, interval=3.0):
         threading.Thread.__init__(self)
