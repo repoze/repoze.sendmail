@@ -331,17 +331,21 @@ class QueueProcessorThread(threading.Thread):
                     # creating this hard link will fail if another process is
                     # also sending this message
                     try:
-                        #os.link(filename, tmp_filename)
                         _os_link(filename, tmp_filename)
                     except OSError, e:
                         if e.errno == 17: # file exists, *nix
                             # it looks like someone else is sending this
                             # message too; we'll try again later
                             continue
-                    except error, e:
-                        if e[0] == 183 and e[1] == 'CreateHardLink':
-                            # file exists, win32
-                            continue
+                        
+                    # FIXME: Need to test in Windows.  If 
+                    # test_concurrent_delivery passes, this stanza can be
+                    # deleted.  Otherwise we probably need to catch 
+                    # WindowsError and check for corresponding error code.
+                    #except error, e:
+                    #    if e[0] == 183 and e[1] == 'CreateHardLink':
+                    #        # file exists, win32
+                    #        continue
 
                     # read message file and send contents
                     file = open(filename)
