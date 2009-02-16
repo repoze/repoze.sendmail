@@ -8,6 +8,12 @@
       queuePath="path/to/tmp/mailbox"
       mailer="test.smtp" />
   
+  <mail:queuedDelivery
+      name="MailWithProcessorThread"
+      queuePath="path/to/tmp/mailbox"
+      mailer="test.smtp" 
+      processorThread="True" />
+      
   <mail:directDelivery 
       name="Mail2"
       mailer="test.mailer"/>

@@ -25,10 +25,11 @@ from zope.interface import Interface
 from zope.schema import TextLine
 from zope.schema import BytesLine
 from zope.schema import Int
+from zope.schema import Bool
 
 from repoze.sendmail.delivery import QueuedMailDelivery
 from repoze.sendmail.delivery import DirectMailDelivery
-from repoze.sendmail.delivery import QueueProcessorThread
+from repoze.sendmail.delivery import QueueProcessor
 from repoze.sendmail.interfaces import IMailer
 from repoze.sendmail.interfaces import IMailDelivery
 from repoze.sendmail.mailer import SMTPMailer
@@ -63,7 +64,16 @@ class IQueuedDeliveryDirective(IDeliveryDirective):
         description=u"Defines the path for the queue directory.",
         required=True)
 
-def queuedDelivery(_context, queuePath, mailer, name="Mail"):
+    processorThread = Bool(
+        title=u"Run Queue Processor Thread",
+        description=u"""Indicates whether to run queue processor in a thread
+                     in this process.
+                     """,
+        required=False,
+        default=False)
+    
+def queuedDelivery(_context, queuePath, mailer, 
+                   processorThread=False, name="Mail"):
 
     def createQueuedDelivery():
         delivery = QueuedMailDelivery(queuePath)
@@ -74,11 +84,12 @@ def queuedDelivery(_context, queuePath, mailer, name="Mail"):
         if mailerObject is None:
             raise ConfigurationError("Mailer %r is not defined" %mailer)
 
-        thread = QueueProcessorThread()
-        thread.setMailer(mailerObject)
-        thread.setQueuePath(queuePath)
-        thread.start()
-
+        if processorThread:
+            qp = QueueProcessor()
+            qp.mailer = mailerObject
+            qp.queue_path = queuePath
+            delivery.processor_thread = qp.send_messages_thread()
+            
     _context.action(
             discriminator = ('delivery', name),
             callable = createQueuedDelivery,

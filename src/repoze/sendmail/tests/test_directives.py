@@ -29,7 +29,7 @@ from zope.interface import implements
 
 from repoze.sendmail.interfaces import \
      IMailDelivery, IMailer, ISMTPMailer
-from repoze.sendmail.delivery import QueueProcessorThread
+from repoze.sendmail.delivery import QueueProcessor
 from repoze.sendmail import delivery
 import repoze.sendmail.tests
 
@@ -80,8 +80,9 @@ class DirectivesTest(PlacelessSetup, unittest.TestCase):
         time.sleep(0.001)
         threads = list(threading.enumerate())
         for thread in threads:
-            if isinstance(thread, QueueProcessorThread):
-                thread.stop()
+            name = getattr(thread, "name", None)
+            if name == "repoze.sendmail.QueueProcessorThread":
+                thread.queue_processor.stop()
                 thread.join()
 
         shutil.rmtree(self.mailbox, True)
@@ -91,7 +92,15 @@ class DirectivesTest(PlacelessSetup, unittest.TestCase):
         delivery = zope.component.getUtility(IMailDelivery, "Mail")
         self.assertEqual('QueuedMailDelivery', delivery.__class__.__name__)
         self.assertEqual(self.mailbox, delivery.queuePath)
-
+        self.assertEquals(None, delivery.processor_thread)
+        
+    def testQueuedDeliveryWithProcessorThread(self):
+        delivery = zope.component.getUtility(IMailDelivery, 
+                                              "MailWithProcessorThread")
+        self.assertEqual("QueuedMailDelivery", delivery.__class__.__name__)
+        self.assertEqual(self.mailbox, delivery.queuePath)
+        self.assertNotEqual(None, delivery.processor_thread)
+        
     def testDirectDelivery(self):
         delivery = zope.component.getUtility(IMailDelivery, "Mail2")
         self.assertEqual('DirectMailDelivery', delivery.__class__.__name__)
