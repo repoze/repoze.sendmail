@@ -330,7 +330,7 @@ class TestQueueProcessorThread(TestCase):
         self.assertEquals(t, ('bar@example.com', 'baz@example.com'))
         self.assertEquals(m, msg)
 
-    def test_deliveration(self):
+    def test_delivery(self):
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
         temp.write('X-Zope-From: foo@example.com\n'
