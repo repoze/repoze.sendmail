@@ -18,6 +18,7 @@ Simple implementation of the MailDelivery, Mailers and MailEvents.
 $Id: test_delivery.py 82358 2007-12-19 15:47:43Z alga $
 """
 
+import errno
 import os.path
 import shutil
 import smtplib
@@ -28,6 +29,8 @@ import transaction
 from zope.testing import doctest
 from zope.interface import implements
 from zope.interface.verify import verifyObject
+
+from repoze.sendmail import delivery
 from repoze.sendmail.interfaces import IMailer
 
 
@@ -410,6 +413,33 @@ class TestQueueProcessorThread(TestCase):
                              "(550, 'Serious Error')"), {})])
 
 
+    def test_concurrent_delivery(self):
+        # Attempt to send message
+        self.filename = os.path.join(self.dir, 'message')
+
+        temp = open(self.filename, "w+b")
+        temp.write('X-Zope-From: foo@example.com\n'
+                   'X-Zope-To: bar@example.com, baz@example.com\n'
+                   'Header: value\n\nBody\n')
+        temp.close()
+        
+        self.md.files.append(self.filename)
+
+        # Trick processor thread into thinking message is being delivered by
+        # another process.
+        head, tail = os.path.split(self.filename)
+        tmp_filename = os.path.join(head, '.sending-' + tail)
+        delivery._os_link(self.filename, tmp_filename)
+        try:
+            self.thread.run(forever=False)
+    
+            self.assertEquals(self.mailer.sent_messages, [])
+            self.failUnless(os.path.exists(self.filename), 
+                            'File does not exist')
+            self.assertEquals(self.thread.log.infos, [])
+        finally:
+            os.unlink(tmp_filename)
+            
 def test_suite():
     return TestSuite((
         makeSuite(TestMailDataManager),
