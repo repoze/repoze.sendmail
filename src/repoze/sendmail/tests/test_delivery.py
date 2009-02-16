@@ -18,7 +18,6 @@ Simple implementation of the MailDelivery, Mailers and MailEvents.
 $Id: test_delivery.py 82358 2007-12-19 15:47:43Z alga $
 """
 
-import errno
 import os.path
 import shutil
 import smtplib

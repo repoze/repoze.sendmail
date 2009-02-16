@@ -20,6 +20,7 @@ $Id: delivery.py 92774 2008-11-04 12:46:08Z adamg $
 __docformat__ = 'restructuredtext'
 
 import atexit
+import errno
 import logging
 import os
 import os.path
@@ -283,7 +284,7 @@ class QueueProcessorThread(threading.Thread):
                         mtime = os.stat(tmp_filename)[stat.ST_MTIME]
                         age = time.time() - mtime
                     except OSError, e:
-                        if e.errno == 2: # file does not exist
+                        if e.errno == errno.ENOENT: # file does not exist
                             # the tmp file could not be stated because it
                             # doesn't exist, that's fine, keep going
                             pass
@@ -308,7 +309,7 @@ class QueueProcessorThread(threading.Thread):
                             # if we get here, the file existed, but was too
                             # old, so it was unlinked
                         except OSError, e:
-                            if e.errno == 2: # file does not exist
+                            if e.errno == errno.ENOENT: # file does not exist
                                 # it looks like someone else removed the tmp
                                 # file, that's fine, we'll try to deliver the
                                 # message again later
@@ -322,7 +323,7 @@ class QueueProcessorThread(threading.Thread):
                     try:
                         os.utime(filename, None)
                     except OSError, e:
-                        if e.errno == 2: # file does not exist
+                        if e.errno == errno.ENOENT: # file does not exist
                             # someone removed the message before we could
                             # touch it, no need to complain, we'll just keep
                             # going
@@ -333,7 +334,7 @@ class QueueProcessorThread(threading.Thread):
                     try:
                         _os_link(filename, tmp_filename)
                     except OSError, e:
-                        if e.errno == 17: # file exists, *nix
+                        if e.errno == errno.EEXIST: # file exists, *nix
                             # it looks like someone else is sending this
                             # message too; we'll try again later
                             continue
@@ -370,7 +371,7 @@ class QueueProcessorThread(threading.Thread):
                     try:
                         os.unlink(filename)
                     except OSError, e:
-                        if e.errno == 2: # file does not exist
+                        if e.errno == errno.ENOENT: # file does not exist
                             # someone else unlinked the file; oh well
                             pass
                         else:
@@ -380,7 +381,7 @@ class QueueProcessorThread(threading.Thread):
                     try:
                         os.unlink(tmp_filename)
                     except OSError, e:
-                        if e.errno == 2: # file does not exist
+                        if e.errno == errno.ENOENT: # file does not exist
                             # someone else unlinked the file; oh well
                             pass
                         else:
