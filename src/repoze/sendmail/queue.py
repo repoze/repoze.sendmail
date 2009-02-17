@@ -412,9 +412,14 @@ class ConsoleApp(object):
         if not self.queue_path:
             self._error_usage()
             
-        if (self.username or self.password 
+        if ((self.username or self.password) 
             and not (self.username and self.password)):
             print >>sys.stderr, "Must use username and password together."
+            self._error = True
+            
+        if self.force_tls and self.no_tls:
+            print >>sys.stderr, \
+                  "--force-tls and --no-tls are mutually exclusive."
             self._error = True
             
     def _error_usage(self):

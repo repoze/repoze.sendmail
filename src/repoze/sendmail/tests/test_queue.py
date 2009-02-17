@@ -9,6 +9,7 @@ from zope.interface import implements
 
 from repoze.sendmail import queue
 from repoze.sendmail.interfaces import IMailer
+from repoze.sendmail.queue import ConsoleApp
 
 from repoze.sendmail.tests.test_delivery import MailerStub
 from repoze.sendmail.tests.test_delivery import MaildirStub
@@ -183,9 +184,75 @@ class TestQueueProcessor(TestCase):
         finally:
             os.unlink(tmp_filename)
             
+class TestConsoleApp(TestCase):
+    def setUp(self):
+        self.dir = mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.dir)
+
+    def test_args_processing(self):
+        # Simplest case that works
+        cmdline = "qp %s" % self.dir
+        app = ConsoleApp(cmdline.split())
+        self.assertEquals("qp", app.script_name)
+        self.assertFalse(app._error)
+        self.assertEquals(self.dir, app.queue_path)
+        self.assertFalse(app.daemon)
+        self.assertEquals(3, app.interval)
+        self.assertEquals("localhost", app.hostname)
+        self.assertEquals(25, app.port)
+        self.assertEquals(None, app.username)
+        self.assertEquals(None, app.password)
+        self.assertFalse(app.force_tls)
+        self.assertFalse(app.no_tls)
+        
+        # Simplest case that doesn't work
+        cmdline = "qp"
+        app = ConsoleApp(cmdline.split())
+        self.assertEquals("qp", app.script_name)
+        self.assertTrue(app._error)
+        self.assertEquals(None, app.queue_path)
+        self.assertFalse(app.daemon)
+        self.assertEquals(3, app.interval)
+        self.assertEquals("localhost", app.hostname)
+        self.assertEquals(25, app.port)
+        self.assertEquals(None, app.username)
+        self.assertEquals(None, app.password)
+        self.assertFalse(app.force_tls)
+        self.assertFalse(app.no_tls)
+              
+        # Use (almost) all of the options
+        cmdline = """qp --daemon --interval 7 --hostname foo --port 75 
+                        --username chris --password rossi --force-tls 
+                        %s""" % self.dir
+        app = ConsoleApp(cmdline.split())
+        self.assertEquals("qp", app.script_name)
+        self.assertFalse(app._error)
+        self.assertEquals(self.dir, app.queue_path)
+        self.assertTrue(app.daemon)
+        self.assertEquals(7, app.interval)
+        self.assertEquals("foo", app.hostname)
+        self.assertEquals(75, app.port)
+        self.assertEquals("chris", app.username)
+        self.assertEquals("rossi", app.password)
+        self.assertTrue(app.force_tls)
+        self.assertFalse(app.no_tls)
+        
+        # Test username without password
+        cmdline = "qp --username chris %s" % self.dir
+        app = ConsoleApp(cmdline.split())
+        self.assertTrue(app._error)
+        
+        # Test force_tls and no_tls
+        comdline = "qp --force-tls --no-tls %s" % self.dir
+        self.assertTrue(app._error)
+        
+        
 def test_suite():
     return TestSuite((
         makeSuite(TestQueueProcessor),
+        makeSuite(TestConsoleApp),
         ))
 
 if __name__ == '__main__':
