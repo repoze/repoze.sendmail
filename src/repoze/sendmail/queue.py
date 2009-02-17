@@ -91,7 +91,7 @@ class QueueProcessor(object):
 
     queue_path = property(None, setQueuePath)
 
-    def __init__(self, mailer, queue_path=None, maildir=None):
+    def __init__(self, mailer=None, queue_path=None, maildir=None):
         self.mailer = mailer
         self.maildir = maildir
         if queue_path:
