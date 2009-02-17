@@ -46,4 +46,8 @@ setup(name='repoze.sendmail',
       test_suite="repoze.sendmail",
       include_package_data = True,
       zip_safe = False,
+      entry_points = """
+          [console_scripts]
+          qp = repoze.sendmail.queue:run_console
+          """,
       )

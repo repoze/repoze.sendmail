@@ -29,7 +29,7 @@ from zope.interface import implements
 
 from repoze.sendmail.interfaces import \
      IMailDelivery, IMailer, ISMTPMailer
-from repoze.sendmail.delivery import QueueProcessor
+from repoze.sendmail.queue import QueueProcessor
 from repoze.sendmail import delivery
 import repoze.sendmail.tests
 

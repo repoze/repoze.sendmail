@@ -29,7 +29,7 @@ from zope.schema import Bool
 
 from repoze.sendmail.delivery import QueuedMailDelivery
 from repoze.sendmail.delivery import DirectMailDelivery
-from repoze.sendmail.delivery import QueueProcessor
+from repoze.sendmail.queue import QueueProcessor
 from repoze.sendmail.interfaces import IMailer
 from repoze.sendmail.interfaces import IMailDelivery
 from repoze.sendmail.mailer import SMTPMailer
