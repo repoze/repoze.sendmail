@@ -186,8 +186,14 @@ class TestQueueProcessor(TestCase):
             
 class TestConsoleApp(TestCase):
     def setUp(self):
+        from repoze.sendmail.delivery import QueuedMailDelivery
+        from repoze.sendmail.maildir import Maildir
         self.dir = mkdtemp()
-
+        self.queue_dir = os.path.join(self.dir, "queue")
+        self.delivery = QueuedMailDelivery(self.queue_dir)
+        self.maildir = Maildir(self.queue_dir, True)
+        self.mailer = MailerStub()
+        
     def tearDown(self):
         shutil.rmtree(self.dir)
 
@@ -248,6 +254,31 @@ class TestConsoleApp(TestCase):
         comdline = "qp --force-tls --no-tls %s" % self.dir
         self.assertTrue(app._error)
         
+    def test_delivery(self):
+        from_addr = "foo@bar.foo"
+        to_addr = "bar@foo.bar"
+        message = """Subject: Pants
+        
+            Nice pants, mister!
+            """
+        import transaction
+        transaction.manager.begin()
+        self.delivery.send(from_addr, to_addr, message)
+        self.delivery.send(from_addr, to_addr, message)
+        transaction.manager.commit()
+
+        queued_messages = [m for m in self.maildir]
+        self.assertEqual(2, len(queued_messages))
+        self.assertEqual(0, len(self.mailer.sent_messages))
+
+        cmdline = "qp %s" % self.queue_dir
+        app = ConsoleApp(cmdline.split())
+        app.mailer = self.mailer
+        app.main()
+        
+        queued_messages = [m for m in self.maildir]
+        self.assertEqual(0, len(queued_messages))
+        self.assertEqual(2, len(self.mailer.sent_messages))
         
 def test_suite():
     return TestSuite((

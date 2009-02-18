@@ -347,18 +347,17 @@ class ConsoleApp(object):
     def __init__(self, argv=sys.argv):
         self.script_name = argv[0]
         self._process_args(argv[1:])
-        
+        self.mailer = SMTPMailer(self.hostname,
+                                 self.port,
+                                 self.username,
+                                 self.password,
+                                 self.no_tls,
+                                 self.force_tls)        
     def main(self):
         if self._error:
             return
         
-        mailer = SMTPMailer(self.hostname,
-                            self.port,
-                            self.username,
-                            self.password,
-                            self.no_tls,
-                            self.force_tls)
-        qp = QueueProcessor(mailer, self.queue_path)
+        qp = QueueProcessor(self.mailer, self.queue_path)
         if self.daemon:
             qp.send_messages_daemon()
         else:
