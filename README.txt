@@ -8,6 +8,11 @@ handled by caller, not by this library, which simply provides a means to send
 email.  This fork is meant to be usable with repoze.bfg and other non-Zope3
 frameworks.
 
+We have also made optional, for queued delivery, the running of the queue 
+processor thread.  We have added a console script, qp, which can process queued
+mail and either exit after one pass or continue to run daemonically, checking
+the queue periodically.  
+
 You probably want to take a look at the documentation for zope.sendmail:
 
 http://pypi.python.org/pypi/zope.sendmail
@@ -38,6 +43,7 @@ something like this to your project's zcml:
     name="myapp.mailer"
     mailer="smtp"
     queuePath="/my/var/mailqueue"
+    processorThread="False"
     />
 
 </configure>
@@ -74,4 +80,3 @@ try:
 except e:
     transaction.manager.abort()
     raise e
-    
