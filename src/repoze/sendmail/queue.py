@@ -1,4 +1,5 @@
 import atexit
+import ConfigParser
 import errno
 import logging
 import os
@@ -76,6 +77,15 @@ else:
 # very large files or using very slow mail servers could result in duplicate
 # messages sent.
 MAX_SEND_TIME = 60*60*3
+
+def boolean(s):
+    s = str(s).lower()
+    return s.startswith("t") or s.startswith("y") or s.startswith("1")
+
+def string_or_none(s):
+    if s == 'None':
+        return None
+    return s
 
 class QueueProcessor(object):
     log = logging.getLogger("QueueProcessor")
@@ -332,6 +342,14 @@ class ConsoleApp(object):
                             
         --no-tls            Do not use TLS even if is available.  Not enabled
                             by default.
+                            
+        --config <inifile>  Get configuration from specificed ini file.  Will 
+                            look for etc/qp.ini, by default, where etc is 
+                            parallel to the bin directory where the python
+                            executable is found.  If this option is not 
+                            specified and etc/qp.ini is not in filesystem, no
+                            config file will be read and default values will be
+                            used for all options.
     """
     _error = False
     daemon = False
@@ -346,6 +364,7 @@ class ConsoleApp(object):
     
     def __init__(self, argv=sys.argv):
         self.script_name = argv[0]
+        self._load_config()
         self._process_args(argv[1:])
         self.mailer = SMTPMailer(self.hostname,
                                  self.port,
@@ -402,6 +421,11 @@ class ConsoleApp(object):
             elif arg == "--no-tls":
                 self.no_tls = True
                 
+            elif arg == "--config":
+                if not args:
+                    self._error_usage()
+                self._load_config(args.pop(0))
+                
             elif arg.startswith("-") or self.queue_path:
                 self._error_usage()
                 
@@ -420,7 +444,42 @@ class ConsoleApp(object):
             print >>sys.stderr, \
                   "--force-tls and --no-tls are mutually exclusive."
             self._error = True
+    
+    def _load_config(self, path=None):
+        if path is None:
+            # Look in etc directory relative to bin directory of current
+            # Python executable for "qp.ini".
+            exe = sys.executable
+            root = os.path.dirname(os.path.dirname(exe))
+            path = os.path.join(root, "etc", "qp.ini")
+            if not os.path.exists(path):
+                return
             
+        section = "app:qp"
+        names = [
+            "interval",
+            "hostname",
+            "port",
+            "username",
+            "password",
+            "force_tls",
+            "no_tls",
+            "queue_path",
+        ]
+        defaults = dict([(name, str(getattr(self, name))) for name in names])
+        config = ConfigParser.ConfigParser(defaults)
+        config.read(path)
+        
+        self.interval = float(config.get(section, "interval"))
+        self.hostname = config.get(section, "hostname")
+        self.port = int(config.get(section, "port"))
+        self.username = string_or_none(config.get(section, "username"))
+        self.password = string_or_none(config.get(section, "password"))
+        self.force_tls = boolean(config.get(section, "force_tls"))
+        self.no_tls = boolean(config.get(section, "no_tls"))
+        self.queue_path = string_or_none(config.get(section, "queue_path"))
+        
+        
     def _error_usage(self):
         print >>sys.stderr, self._usage % {"script_name": self.script_name,}
         self._error = True

@@ -254,7 +254,47 @@ class TestConsoleApp(TestCase):
         comdline = "qp --force-tls --no-tls %s" % self.dir
         self.assertTrue(app._error)
         
-    def test_delivery(self):
+    def test_ini_parse(self):
+        ini_path = os.path.join(self.dir, "qp.ini")
+        f = open(ini_path, "w")
+        f.write(test_ini)
+        f.close()
+        
+        # Override most everything
+        cmdline = """qp --config %s""" % ini_path
+        app = ConsoleApp(cmdline.split())
+        self.assertEquals("qp", app.script_name)
+        self.assertFalse(app._error)
+        self.assertEquals("hammer/dont/hurt/em", app.queue_path)
+        self.assertFalse(app.daemon)
+        self.assertEquals(33, app.interval)
+        self.assertEquals("testhost", app.hostname)
+        self.assertEquals(2525, app.port)
+        self.assertEquals("Chris", app.username)
+        self.assertEquals("Rossi", app.password)
+        self.assertFalse(app.force_tls)
+        self.assertTrue(app.no_tls)
+
+        # Override nothing, make sure defaults come through
+        f = open(ini_path, "w")
+        f.write("[app:qp]\n\n")
+        f.close()
+        
+        cmdline = """qp --config %s %s""" % (ini_path, self.dir)
+        app = ConsoleApp(cmdline.split())
+        self.assertEquals("qp", app.script_name)
+        self.assertFalse(app._error)
+        self.assertEquals(self.dir, app.queue_path)
+        self.assertFalse(app.daemon)
+        self.assertEquals(3, app.interval)
+        self.assertEquals("localhost", app.hostname)
+        self.assertEquals(25, app.port)
+        self.assertEquals(None, app.username)
+        self.assertEquals(None, app.password)
+        self.assertFalse(app.force_tls)
+        self.assertFalse(app.no_tls)
+         
+def test_delivery(self):
         from_addr = "foo@bar.foo"
         to_addr = "bar@foo.bar"
         message = """Subject: Pants
@@ -288,3 +328,14 @@ def test_suite():
 
 if __name__ == '__main__':
     unittest.main()
+
+test_ini = """[app:qp]
+interval = 33
+hostname = testhost
+port = 2525
+username = Chris
+password = Rossi
+force_tls = False
+no_tls = True
+queue_path = hammer/dont/hurt/em
+"""
