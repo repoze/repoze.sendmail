@@ -277,7 +277,7 @@ class TestConsoleApp(TestCase):
 
         # Override nothing, make sure defaults come through
         f = open(ini_path, "w")
-        f.write("[app:qp]\n\n")
+        f.write("[app:qp]\n\nqueue_path=foo\n")
         f.close()
         
         cmdline = """qp --config %s %s""" % (ini_path, self.dir)

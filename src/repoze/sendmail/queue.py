@@ -383,6 +383,7 @@ class ConsoleApp(object):
             qp.send_messages()
         
     def _process_args(self, args):
+        got_queue_path = False
         while args:
             arg = args.pop(0)
             if arg == "--daemon":
@@ -426,11 +427,12 @@ class ConsoleApp(object):
                     self._error_usage()
                 self._load_config(args.pop(0))
                 
-            elif arg.startswith("-") or self.queue_path:
+            elif arg.startswith("-") or got_queue_path:
                 self._error_usage()
                 
             else:
                 self.queue_path = arg
+                got_queue_path = True
         
         if not self.queue_path:
             self._error_usage()
