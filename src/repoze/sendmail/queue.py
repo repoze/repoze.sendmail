@@ -426,6 +426,7 @@ class ConsoleApp(object):
         self._error = True
         
 def run_console():
+    logging.basicConfig()
     app = ConsoleApp()
     app.main()
     
