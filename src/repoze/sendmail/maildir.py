@@ -71,7 +71,13 @@ class Maildir(object):
                         if not x.startswith('.')]
         cur_messages = [join(subdir_cur, x) for x in os.listdir(subdir_cur)
                         if not x.startswith('.')]
-        return iter(new_messages + cur_messages)
+        
+        # Sort by modification time so earlier messages are sent before
+        # later messages during queue processing.
+        msgs_sorted = [(m, os.path.getmtime(m)) for m 
+                      in new_messages + cur_messages]
+        msgs_sorted.sort(key=lambda x: x[1])
+        return iter([m[0] for m in msgs_sorted])
 
     def newMessage(self):
         "See `repoze.sendmail.interfaces.IMaildir`"
