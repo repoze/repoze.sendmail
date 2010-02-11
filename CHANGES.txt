@@ -14,8 +14,8 @@ Change history
 
 - Added ini config parsing to queue processor console app.
 
-1.0.0
------
+1.0 (2009-02-24)
+----------------
 
 - Initial release
 
