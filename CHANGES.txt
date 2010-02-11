@@ -8,14 +8,14 @@ Change history
   to/from addresses.
 
 1.1 (2009-02-24)
--------------
+----------------
 
 - Added logging to queue processor console app.
 
 - Added ini config parsing to queue processor console app.
 
 1.0.0
-------------------
+-----
 
 - Initial release
 
