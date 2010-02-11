@@ -1,6 +1,6 @@
-=============
+===============
 repoze.sendmail
-=============
+===============
 
 repoze.sendmail is a fork of zope.sendmail with dependency on zope security
 framework removed.  The idea being that in this case authorization should be
@@ -19,16 +19,19 @@ http://pypi.python.org/pypi/zope.sendmail
 
 See also src/repoze/sendmail/README.txt
 
-========
+==============
 Basic Tutorial
-========
+==============
 
 To use repoze.sendmail using the component architecture, you'll need to add
 something like this to your project's zcml:
 
-<configure xmlns="..."
-           xmlns:mail="http://namespaces.repoze.org/mail"
->
+.. code-block: xml
+   :linenos:
+
+  <configure xmlns="..."
+             xmlns:mail="http://namespaces.repoze.org/mail"
+  >
   ...
   
   <include package="repoze.sendmail" file="meta.zcml"/>
@@ -46,37 +49,37 @@ something like this to your project's zcml:
     processorThread="False"
     />
 
-</configure>
+  </configure>
 
 Note that the queuePath in the queuedDelivery must exist on the filesystem.  
 This creates two utilities, a mailer, named smtp, and a delivery, named 
 myapp.mailer.  The mailer is used by the delivery mechanism, so generally in 
-your code you need only look up the delivery utility:
+your code you need only look up the delivery utility::
 
-def send_email(msg):
-    mailer = getUtility(IMailDelivery, 'bfgtest.mailer')
-    mailer.send(sender, [recipient], msg.as_string())
+  def send_email(msg):
+      mailer = getUtility(IMailDelivery, 'bfgtest.mailer')
+      mailer.send(sender, [recipient], msg.as_string())
 
-The message is an instance of email.MIMEText.MIMEText:
+The message is an instance of email.MIMEText.MIMEText::
 
-import email.MIMEText
-def create_message(sender, recipient, subject, body):
-    msg = email.MIMEText.MIMEText(body.encode('UTF-8'), 'plain', 'UTF-8')
-    msg["From"] = sender
-    msg["To"] = recipient
-    msg["Subject"] = email.Header.Header(subject, 'UTF-8')
-    return msg
+  import email.MIMEText
+  def create_message(sender, recipient, subject, body):
+      msg = email.MIMEText.MIMEText(body.encode('UTF-8'), 'plain', 'UTF-8')
+      msg["From"] = sender
+      msg["To"] = recipient
+      msg["Subject"] = email.Header.Header(subject, 'UTF-8')
+      return msg
     
 repoze.sendmail hooks into the transaction system and only sends queued 
 messages on transaction commit.  If you are using a framework which, like 
 repoze.bfg, does not use transactions by default, you will need to begin and
-commit a transaction of your own in order for mail to be sent:
+commit a transaction of your own in order for mail to be sent::
 
-import transaction
-transaction.manager.begin()
-try:
-    my_code_here()
-    transaction.manager.commit()
-except e:
-    transaction.manager.abort()
-    raise e
+  import transaction
+  transaction.manager.begin()
+  try:
+      my_code_here()
+      transaction.manager.commit()
+  except e:
+      transaction.manager.abort()
+      raise e
