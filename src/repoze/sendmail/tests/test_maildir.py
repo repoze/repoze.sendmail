@@ -48,7 +48,7 @@ class FakeOsPathModule(object):
         for t,f in enumerate(files):
             mtimes[f] = 9999 - t
         self._mtimes = mtimes
-        
+
     def join(self, *args):
         return '/'.join(args)
 
@@ -57,7 +57,7 @@ class FakeOsPathModule(object):
 
     def getmtime(self, f):
         return self._mtimes.get(f, 10000)
-    
+
 class FakeOsModule(object):
 
     F_OK = 0
@@ -294,6 +294,19 @@ class TestMaildir(unittest.TestCase):
         writer.abort()
         self.assertEquals(self.fake_os_module._renamed_files, ())
 
+    def test_message_writer_unicode(self):
+        from repoze.sendmail.maildir import MaildirMessageWriter
+        filename1 = '/path/to/maildir/tmp/1234500002.4242.myhostname'
+        filename2 = '/path/to/maildir/new/1234500002.4242.myhostname'
+        fd = FakeFile(filename1, 'w')
+        writer = MaildirMessageWriter(fd, filename1, filename2)
+        self.assertEquals(writer._fd._filename, filename1)
+        self.assertEquals(writer._fd._mode, 'w')  # TODO or 'wb'?
+        print >> writer, u'fe\xe8',
+        writer.write(u' fi\xe8')
+        writer.writelines([u' fo\xe8', u' fo\xf2'])
+        self.assertEquals(writer._fd._written,
+                          'fe\xc3\xa8 fi\xc3\xa8 fo\xc3\xa8 fo\xc3\xb2')
 
 def test_suite():
     suite = unittest.TestSuite()

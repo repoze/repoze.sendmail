@@ -71,10 +71,10 @@ class Maildir(object):
                         if not x.startswith('.')]
         cur_messages = [join(subdir_cur, x) for x in os.listdir(subdir_cur)
                         if not x.startswith('.')]
-        
+
         # Sort by modification time so earlier messages are sent before
         # later messages during queue processing.
-        msgs_sorted = [(m, os.path.getmtime(m)) for m 
+        msgs_sorted = [(m, os.path.getmtime(m)) for m
                       in new_messages + cur_messages]
         msgs_sorted.sort(key=lambda x: x[1])
         return iter([m[0] for m in msgs_sorted])
@@ -115,6 +115,11 @@ class Maildir(object):
                                     join(subdir_new, unique))
 
 
+def _encode_utf8(s):
+    if isinstance(s, unicode):
+        s = s.encode('utf-8')
+    return s
+
 class MaildirMessageWriter(object):
     """See `repoze.sendmail.interfaces.IMaildirMessageWriter`"""
 
@@ -128,9 +133,10 @@ class MaildirMessageWriter(object):
         self._aborted = False
 
     def write(self, data):
-        self._fd.write(data)
+        self._fd.write(_encode_utf8(data))
 
     def writelines(self, lines):
+        lines = map(_encode_utf8, lines)
         self._fd.writelines(lines)
 
     def close(self):
