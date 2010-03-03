@@ -294,7 +294,7 @@ class TestConsoleApp(TestCase):
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
          
-def test_delivery(self):
+    def test_delivery(self):
         from_addr = "foo@bar.foo"
         to_addr = "bar@foo.bar"
         message = """Subject: Pants
