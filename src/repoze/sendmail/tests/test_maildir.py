@@ -58,6 +58,9 @@ class FakeOsPathModule(object):
     def getmtime(self, f):
         return self._mtimes.get(f, 10000)
 
+    def exists(self, path):
+        return path in self.dirs or path in self.files
+
 class FakeOsModule(object):
 
     F_OK = 0
@@ -121,7 +124,7 @@ class FakeOsModule(object):
     def getpid(self):
         return 4242
 
-    def unlink(self, path):
+    def remove(self, path):
         self._removed_files += (path, )
 
     def rename(self, old, new):
@@ -174,6 +177,12 @@ class FakeFile(object):
 
     def writelines(self, lines):
         self._written += ''.join(lines)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
 
 
 class TestMaildir(unittest.TestCase):
@@ -234,85 +243,61 @@ class TestMaildir(unittest.TestCase):
                                      '/path/to/maildir/new/2',
                                      '/path/to/maildir/new/1'])
 
-    def test_newMessage(self):
+    def test_add(self):
+        from email.message import Message
         from repoze.sendmail.maildir import Maildir
-        from repoze.sendmail.interfaces import IMaildirMessageWriter
+        from repoze.sendmail.interfaces import ITransactionalMessage
         m = Maildir('/path/to/maildir')
-        fd = m.newMessage()
-        verifyObject(IMaildirMessageWriter, fd)
-        self.assert_(fd._filename.startswith(
-                     '/path/to/maildir/tmp/1234500002.4242.myhostname.'))
+        tx_message = m.add(Message())
+        verifyObject(ITransactionalMessage, tx_message)
+        self.assert_(tx_message._pending_path,
+                     '/path/to/maildir/tmp/1234500002.4242.myhostname.')
 
-    def test_newMessage_never_loops(self):
+    def test_add_no_good_filenames(self):
+        from email.message import Message
         from repoze.sendmail.maildir import Maildir
-        from repoze.sendmail.interfaces import IMaildirMessageWriter
+        from repoze.sendmail.interfaces import ITransactionalMessage
         self.fake_os_module._all_files_exist = True
         m = Maildir('/path/to/maildir')
-        self.assertRaises(RuntimeError, m.newMessage)
+        self.assertRaises(RuntimeError, m.add, Message())
 
-    def test_message_writer_and_abort(self):
-        from repoze.sendmail.maildir import MaildirMessageWriter
+    def test_tx_msg_abort(self):
+        from repoze.sendmail.maildir import MaildirTransactionalMessage
         filename1 = '/path/to/maildir/tmp/1234500002.4242.myhostname'
         filename2 = '/path/to/maildir/new/1234500002.4242.myhostname'
-        fd = FakeFile(filename1, 'w')
-        writer = MaildirMessageWriter(fd, filename1, filename2)
-        self.assertEquals(writer._fd._filename, filename1)
-        self.assertEquals(writer._fd._mode, 'w')  # TODO or 'wb'?
-        print >> writer, 'fee',
-        writer.write(' fie')
-        writer.writelines([' foe', ' foo'])
-        self.assertEquals(writer._fd._written, 'fee fie foe foo')
+        tx_msg = MaildirTransactionalMessage(filename1, filename2)
+        self.assertEquals(tx_msg._pending_path, filename1)
 
-        writer.abort()
-        self.assertEquals(writer._fd._closed, True)
+        tx_msg.abort()
+        self.assertEquals(tx_msg._aborted, True)
+        self.assertEquals(tx_msg._committed, False)
         self.assert_(filename1 in self.fake_os_module._removed_files)
-        # Once aborted, abort does nothing
-        self.fake_os_module._removed_files = ()
-        writer.abort()
-        writer.abort()
-        self.assertEquals(self.fake_os_module._removed_files, ())
-        # Once aborted, commit fails
-        self.assertRaises(RuntimeError, writer.commit)
 
-    def test_message_writer_commit(self):
-        from repoze.sendmail.maildir import MaildirMessageWriter
+        self.assertRaises(RuntimeError, tx_msg.abort)
+        self.assertRaises(RuntimeError, tx_msg.commit)
+
+    def test_tx_msg_commit(self):
+        from repoze.sendmail.maildir import MaildirTransactionalMessage
         filename1 = '/path/to/maildir/tmp/1234500002.4242.myhostname'
         filename2 = '/path/to/maildir/new/1234500002.4242.myhostname'
-        fd = FakeFile(filename1, 'w')
-        writer = MaildirMessageWriter(fd, filename1, filename2)
-        writer.commit()
-        self.assertEquals(writer._fd._closed, True)
+        tx_msg = MaildirTransactionalMessage(filename1, filename2)
+        self.assertEquals(tx_msg._pending_path, filename1)
+
+        tx_msg.commit()
+        self.assertEquals(tx_msg._aborted, False)
+        self.assertEquals(tx_msg._committed, True)
         self.assert_((filename1, filename2)
                        in self.fake_os_module._renamed_files)
-        # Once commited, commit does nothing
-        self.fake_os_module._renamed_files = ()
-        writer.commit()
-        writer.commit()
-        self.assertEquals(self.fake_os_module._renamed_files, ())
-        # Once commited, abort does nothing
-        writer.abort()
-        writer.abort()
-        self.assertEquals(self.fake_os_module._renamed_files, ())
 
-    def test_message_writer_unicode(self):
-        from repoze.sendmail.maildir import MaildirMessageWriter
+        self.assertRaises(RuntimeError, tx_msg.abort)
+        self.assertRaises(RuntimeError, tx_msg.commit)
+
+    def test_mx_msg_delete(self):
+        from repoze.sendmail.maildir import MaildirTransactionalMessage
         filename1 = '/path/to/maildir/tmp/1234500002.4242.myhostname'
         filename2 = '/path/to/maildir/new/1234500002.4242.myhostname'
-        fd = FakeFile(filename1, 'w')
-        writer = MaildirMessageWriter(fd, filename1, filename2)
-        self.assertEquals(writer._fd._filename, filename1)
-        self.assertEquals(writer._fd._mode, 'w')  # TODO or 'wb'?
-        print >> writer, u'fe\xe8',
-        writer.write(u' fi\xe8')
-        writer.writelines([u' fo\xe8', u' fo\xf2'])
-        self.assertEquals(writer._fd._written,
-                          'fe\xc3\xa8 fi\xc3\xa8 fo\xc3\xa8 fo\xc3\xb2')
-
-def test_suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestMaildir))
-    return suite
-
-
-if __name__ == '__main__':
-    unittest.main()
+        self.fake_os_module.path.files[filename1] = 1
+        tx_msg = MaildirTransactionalMessage(filename1, filename2)
+        tx_msg.debug = True
+        del tx_msg
+        self.assertEqual(self.fake_os_module._removed_files, (filename1,))

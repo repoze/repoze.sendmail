@@ -12,12 +12,7 @@
 #
 ##############################################################################
 
-"""These are classes which abstract different channels an email
-message could be sent out by.
-
-$Id: mailer.py 92747 2008-11-01 19:51:58Z adamg $
-"""
-__docformat__ = 'restructuredtext'
+from email.message import Message
 
 import socket
 from smtplib import SMTP
@@ -28,7 +23,6 @@ from repoze.sendmail.interfaces import ISMTPMailer
 have_ssl = hasattr(socket, 'ssl')
 
 class SMTPMailer(object):
-
     implements(ISMTPMailer)
 
     smtp = SMTP
@@ -43,6 +37,9 @@ class SMTPMailer(object):
         self.no_tls = no_tls
 
     def send(self, fromaddr, toaddrs, message):
+        if isinstance(message, Message):
+            message = message.as_string()
+
         connection = self.smtp(self.hostname, str(self.port))
 
         # send EHLO

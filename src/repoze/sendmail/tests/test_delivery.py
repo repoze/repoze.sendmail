@@ -103,25 +103,26 @@ class TestDirectMailDelivery(TestCase):
 
     def testSend(self):
         from repoze.sendmail.delivery import DirectMailDelivery
+        from email.message import Message
         mailer = MailerStub()
         delivery = DirectMailDelivery(mailer)
         fromaddr = 'Jim <jim@example.com'
         toaddrs = ('Guido <guido@example.com>',
                    'Steve <steve@examplecom>')
-        opt_headers = ('From: Jim <jim@example.org>\n'
-                       'To: some-zope-coders:;\n'
-                       'Date: Mon, 19 May 2003 10:17:36 -0400\n'
-                       'Message-Id: <20030519.1234@example.org>\n')
-        message =     ('Subject: example\n'
-                       '\n'
-                       'This is just an example\n')
+        message = Message()
+        message['From'] = 'Jim <jim@example.org>'
+        message['To'] = 'some-zope-coders:;'
+        message['Date'] = 'Date: Mon, 19 May 2003 10:17:36 -0400'
+        message['Message-Id'] = '<20030519.1234@example.org>'
+        message['Subject'] = 'example'
+        message.set_payload('This is just an example\n')
 
-        msgid = delivery.send(fromaddr, toaddrs, opt_headers + message)
-        self.assertEquals(msgid, '20030519.1234@example.org')
+        msgid = delivery.send(fromaddr, toaddrs, message)
+        self.assertEquals(msgid, '<20030519.1234@example.org>')
         self.assertEquals(mailer.sent_messages, [])
         transaction.commit()
         self.assertEquals(mailer.sent_messages,
-                          [(fromaddr, toaddrs, opt_headers + message)])
+                          [(fromaddr, toaddrs, message)])
 
         mailer.sent_messages = []
         msgid = delivery.send(fromaddr, toaddrs, message)
@@ -131,50 +132,33 @@ class TestDirectMailDelivery(TestCase):
         self.assertEquals(len(mailer.sent_messages), 1)
         self.assertEquals(mailer.sent_messages[0][0], fromaddr)
         self.assertEquals(mailer.sent_messages[0][1], toaddrs)
-        self.assert_(mailer.sent_messages[0][2].endswith(message))
-        new_headers = mailer.sent_messages[0][2][:-len(message)]
-        self.assert_(new_headers.find('Message-Id: <%s>' % msgid) != -1)
+        self.assertEquals(mailer.sent_messages[0][2].get_payload(),
+                          'This is just an example\n')
+        self.assertEqual(message['Message-Id'],  msgid)
 
         mailer.sent_messages = []
-        msgid = delivery.send(fromaddr, toaddrs, opt_headers + message)
+        msgid = delivery.send(fromaddr, toaddrs, message)
         self.assertEquals(mailer.sent_messages, [])
         transaction.abort()
         self.assertEquals(mailer.sent_messages, [])
 
 
-class MaildirWriterStub(object):
-
-    data = ''
+class MaildirMessageStub(object):
+    message = None
     commited_messages = []  # this list is shared among all instances
     aborted_messages = []   # this one too
     _closed = False
 
-    def write(self, str):
-        if self._closed:
-            raise AssertionError('already closed')
-        self.data += str
-
-    def writelines(self, seq):
-        if self._closed:
-            raise AssertionError('already closed')
-        self.data += ''.join(seq)
-
-    def close(self):
-        self._closed = True
+    def __init__(self, message):
+        self.message = message
 
     def commit(self):
-        if not self._closed:
-            raise AssertionError('for this test we want the message explicitly'
-                                 ' closed before it is committed')
         self._commited = True
-        self.commited_messages.append(self.data)
+        self.commited_messages.append(self.message)
 
     def abort(self):
-        if not self._closed:
-            raise AssertionError('for this test we want the message explicitly'
-                                 ' closed before it is committed')
         self._aborted = True
-        self.aborted_messages.append(self.data)
+        self.aborted_messages.append(self.message)
 
 
 class MaildirStub(object):
@@ -188,12 +172,10 @@ class MaildirStub(object):
     def __iter__(self):
         return iter(self.files)
 
-    def newMessage(self):
-        m = MaildirWriterStub()
+    def add(self, message):
+        m = MaildirMessageStub(message)
         self.msgs.append(m)
         return m
-
-
 
 
 class TestQueuedMailDelivery(TestCase):
@@ -206,8 +188,8 @@ class TestQueuedMailDelivery(TestCase):
 
     def tearDown(self):
         self.mail_delivery_module.Maildir = self.old_Maildir
-        MaildirWriterStub.commited_messages = []
-        MaildirWriterStub.aborted_messages = []
+        MaildirMessageStub.commited_messages = []
+        MaildirMessageStub.aborted_messages = []
 
     def testInterface(self):
         from repoze.sendmail.interfaces import IQueuedMailDelivery
@@ -217,52 +199,50 @@ class TestQueuedMailDelivery(TestCase):
         self.assertEqual(delivery.queuePath, '/path/to/mailbox')
 
     def testSend(self):
+        from email.message import Message
         from repoze.sendmail.delivery import QueuedMailDelivery
         delivery = QueuedMailDelivery('/path/to/mailbox')
         fromaddr = 'jim@example.com'
         toaddrs = ('guido@example.com',
-                   'steve@examplecom')
-        zope_headers = ('X-Zope-From: jim@example.com\n'
-                       'X-Zope-To: guido@example.com, steve@examplecom\n')
-        opt_headers = ('From: Jim <jim@example.org>\n'
-                       'To: some-zope-coders:;\n'
-                       'Date: Mon, 19 May 2003 10:17:36 -0400\n'
-                       'Message-Id: <20030519.1234@example.org>\n')
-        message =     ('Subject: example\n'
-                       '\n'
-                       'This is just an example\n')
+                   'steve@example.com')
+        message = Message()
+        message['From'] = 'Jim <jim@example.org>'
+        message['To'] = 'some-zope-coders:;'
+        message['Date'] = 'Date: Mon, 19 May 2003 10:17:36 -0400'
+        message['Message-Id'] = '<20030519.1234@example.org>'
+        message['Subject'] = 'example'
+        message.set_payload('This is just an example\n')
 
-        msgid = delivery.send(fromaddr, toaddrs, opt_headers + message)
-        self.assertEquals(msgid, '20030519.1234@example.org')
-        self.assertEquals(MaildirWriterStub.commited_messages, [])
-        self.assertEquals(MaildirWriterStub.aborted_messages, [])
+        msgid = delivery.send(fromaddr, toaddrs, message)
+        self.assertEquals(msgid, '<20030519.1234@example.org>')
+        self.assertEquals(MaildirMessageStub.commited_messages, [])
+        self.assertEquals(MaildirMessageStub.aborted_messages, [])
         transaction.commit()
-        self.assertEquals(MaildirWriterStub.commited_messages,
-                          [zope_headers + opt_headers + message])
-        self.assertEquals(MaildirWriterStub.aborted_messages, [])
+        self.assertEquals(MaildirMessageStub.commited_messages, [message])
+        self.assertEquals(MaildirMessageStub.aborted_messages, [])
+        self.assertEqual(message['X-Actually-From'], fromaddr)
+        self.assertEqual(message['X-Actually-To'], ','.join(toaddrs))
 
-        MaildirWriterStub.commited_messages = []
+        MaildirMessageStub.commited_messages = []
         msgid = delivery.send(fromaddr, toaddrs, message)
         self.assert_('@' in msgid)
-        self.assertEquals(MaildirWriterStub.commited_messages, [])
-        self.assertEquals(MaildirWriterStub.aborted_messages, [])
+        self.assertEquals(MaildirMessageStub.commited_messages, [])
+        self.assertEquals(MaildirMessageStub.aborted_messages, [])
         transaction.commit()
-        self.assertEquals(len(MaildirWriterStub.commited_messages), 1)
-        self.assert_(MaildirWriterStub.commited_messages[0].endswith(message))
-        new_headers = MaildirWriterStub.commited_messages[0][:-len(message)]
-        self.assert_(new_headers.find('Message-Id: <%s>' % msgid) != -1)
-        self.assert_(new_headers.find('X-Zope-From: %s' % fromaddr) != 1)
-        self.assert_(new_headers.find('X-Zope-To: %s' % ", ".join(toaddrs)) != 1)
-        self.assertEquals(MaildirWriterStub.aborted_messages, [])
+        self.assertEquals(len(MaildirMessageStub.commited_messages), 1)
+        self.assertEqual(MaildirMessageStub.commited_messages[0].get_payload(),
+                         'This is just an example\n')
+        self.assertEqual(message['Message-Id'], msgid)
+        self.assertEquals(MaildirMessageStub.aborted_messages, [])
 
-        MaildirWriterStub.commited_messages = []
-        msgid = delivery.send(fromaddr, toaddrs, opt_headers + message)
-        self.assertEquals(MaildirWriterStub.commited_messages, [])
-        self.assertEquals(MaildirWriterStub.aborted_messages, [])
+        MaildirMessageStub.commited_messages = []
+        msgid = delivery.send(fromaddr, toaddrs, message)
+        self.assertEquals(MaildirMessageStub.commited_messages, [])
+        self.assertEquals(MaildirMessageStub.aborted_messages, [])
         transaction.abort()
-        self.assertEquals(MaildirWriterStub.commited_messages, [])
-        self.assertEquals(len(MaildirWriterStub.aborted_messages), 1)
-            
+        self.assertEquals(MaildirMessageStub.commited_messages, [])
+        self.assertEquals(len(MaildirMessageStub.aborted_messages), 1)
+
 def test_suite():
     return TestSuite((
         makeSuite(TestMailDataManager),

@@ -174,28 +174,6 @@ class ISMTPMailer(IMailer):
         description=_(u"Use TLS always for sending email."))
 
 
-class IMailEvent(Interface):
-    """Generic mail event."""
-
-    messageId = Attribute("Message id according to RFC 2822")
-
-
-class IMailSentEvent(IMailEvent):
-    """Event that is fired when a message is succesfully sent.
-
-    This does not mean that all the recipients have received it, it only
-    means that the message left this system successfully.  It is possible
-    that a bounce message will arrive later from some remote mail server.
-    """
-
-
-class IMailErrorEvent(IMailEvent):
-    """Event that is fired when a message cannot be delivered."""
-
-    errorMessage = Attribute("Error message")
-
-
-
 class IMaildirFactory(Interface):
 
     def __call__(dirname, create=False):
@@ -222,59 +200,23 @@ class IMaildir(Interface):
         """Returns an iterator over the pathnames of messages in this folder.
         """
 
-    def newMessage():
-        """Creates a new message in the `maildir`.
+    def add(message):
+        """Add a new message to the `maildir`.
 
-        Returns a file-like object for a new file in the ``tmp`` subdirectory
-        of the `Maildir`.  After writing message contents to it, call the
-        ``commit()`` or ``abort()`` method on it.
-
-        The returned object implements `IMaildirMessageWriter`.
+        Returns an instance of ITransactionalMessage.
         """
 
 
-class IMaildirMessageWriter(Interface):
-    """A file-like object to a new message in a `Maildir`."""
-
-    def write(str):
-        """Writes a string to the file.
-
-        There is no return value. Due to buffering, the string may not actually
-        show up in the file until the ``commit()`` method is called.
-        """
-
-    def writelines(sequence):
-        """Writes a sequence of strings to the file.
-
-        The sequence can be any iterable object producing strings, typically a
-        list of strings. There is no return value.  ``writelines`` does not add
-        any line separators.
-        """
-
-    def close():
-        """Closes the message file.
-
-        No further writes are allowed.  You can call ``close()`` before calling
-        ``commit()`` or ``abort()`` to avoid having too many open files.
-
-        Calling ``close()`` more than once is allowed.
-        """
+class ITransactionalMessage(Interface):
+    """Used to hook the sending of a message into a transaction manager."""
 
     def commit():
-        """Commits the new message using the `Maildir` protocol.
-
-        First, the message file is flushed, closed, then it is moved from
-        ``tmp`` into ``new`` subdirectory of the maildir.
-
-        Calling ``commit()`` more than once is allowed.
+        """
+        Causes the message to be sent.
         """
 
     def abort():
-        """Aborts the new message.
-
-        The message file is closed and removed from the ``tmp`` subdirectory
-        of the `maildir`.
-
-        Calling ``abort()`` more than once is allowed.
+        """
+        Causes the message to be aborted.
         """
 

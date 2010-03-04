@@ -10,6 +10,8 @@ import sys
 import threading
 import time
 
+from email.parser import Parser
+
 from repoze.sendmail.maildir import Maildir
 from repoze.sendmail.mailer import SMTPMailer
 
@@ -18,9 +20,9 @@ if sys.platform == 'win32':
     _os_link = lambda src, dst: win32file.CreateHardLink(dst, src, None)
 else:
     _os_link = os.link
-    
-# The below diagram depicts the operations performed while sending a message.  
-# This sequence of operations will be performed for each file in the maildir 
+
+# The below diagram depicts the operations performed while sending a message.
+# This sequence of operations will be performed for each file in the maildir
 # on which ``send_message`` is called.
 #
 # Any error conditions not depected on the diagram will provoke the catch-all
@@ -91,7 +93,7 @@ class QueueProcessor(object):
     log = logging.getLogger("QueueProcessor")
 
     __stopped = False
- 
+
     maildir = None
 
     mailer = None
@@ -106,7 +108,7 @@ class QueueProcessor(object):
         self.maildir = maildir
         if queue_path:
             self.setQueuePath(queue_path)
-            
+
     def send_messages_thread(self, interval=3.0):
         thread = threading.Thread(target=self.send_messages_daemon,
                                   name="repoze.sendmail.QueueProcessorThread")
@@ -118,7 +120,7 @@ class QueueProcessor(object):
         thread.queue_processor = self
 
         return thread
-    
+
     def send_messages_daemon(self, interval=3.0):
         atexit.register(self.stop)
         while not self.__stopped:
@@ -132,33 +134,20 @@ class QueueProcessor(object):
             if self.__stopped:
                 break
             self._send_message(filename)
-            
-    def _parseMessage(self, message):
-        """Extract fromaddr and toaddrs from the first two lines of
-        the `message`.
 
-        Returns a fromaddr string, a toaddrs tuple and the message
-        string.
+    def _parseMessage(self, fp):
         """
-
-        fromaddr = ""
-        toaddrs = ()
-        rest = ""
-
-        try:
-            first, second, rest = message.split('\n', 2)
-        except ValueError:
-            return fromaddr, toaddrs, message
-
-        if first.startswith("X-Zope-From: "):
-            i = len("X-Zope-From: ")
-            fromaddr = first[i:]
-
-        if second.startswith("X-Zope-To: "):
-            i = len("X-Zope-To: ")
-            toaddrs = tuple(second[i:].split(", "))
-
-        return fromaddr, toaddrs, rest
+        Extract fromaddr and toaddrs from the X-Actually-{To,From} headers.
+        Returns message string which has those headers stripped.
+        """
+        parser = Parser()
+        message = parser.parse(fp)
+        fromaddr = message['X-Actually-From']
+        del message['X-Actually-From']
+        toaddrs = tuple([a.strip() for a in
+                         message['X-Actually-To'].split(',')])
+        del message['X-Actually-To']
+        return fromaddr, toaddrs, message.as_string()
 
     def _send_message(self, filename):
         fromaddr = ''
@@ -196,7 +185,7 @@ class QueueProcessor(object):
                         # that during an attemt to send it, the
                         # process died; remove the tmp file so we
                         # can try again
-                        os.unlink(tmp_filename)
+                        os.remove(tmp_filename)
                     else:
                         # the tmp file is "new", so someone else may
                         # be sending this message, try again later
@@ -223,11 +212,11 @@ class QueueProcessor(object):
                     # touch it, no need to complain, we'll just keep
                     # going
                     return
-                
+
                 else:
                     # Some other error, propogate it
                     raise
-                
+
             # creating this hard link will fail if another process is
             # also sending this message
             try:
@@ -241,10 +230,10 @@ class QueueProcessor(object):
                 else:
                     # Some other error, propogate it
                     raise
-                
-            # FIXME: Need to test in Windows.  If 
+
+            # FIXME: Need to test in Windows.  If
             # test_concurrent_delivery passes, this stanza can be
-            # deleted.  Otherwise we probably need to catch 
+            # deleted.  Otherwise we probably need to catch
             # WindowsError and check for corresponding error code.
             #except error, e:
             #    if e[0] == 183 and e[1] == 'CreateHardLink':
@@ -252,10 +241,7 @@ class QueueProcessor(object):
             #        return
 
             # read message file and send contents
-            file = open(filename)
-            message = file.read()
-            file.close()
-            fromaddr, toaddrs, message = self._parseMessage(message)
+            fromaddr, toaddrs, message = self._parseMessage(open(filename))
             try:
                 self.mailer.send(fromaddr, toaddrs, message)
             except smtplib.SMTPResponseException, e:
@@ -271,7 +257,7 @@ class QueueProcessor(object):
                     raise
 
             try:
-                os.unlink(filename)
+                os.remove(filename)
             except OSError, e:
                 if e.errno == errno.ENOENT: # file does not exist
                     # someone else unlinked the file; oh well
@@ -281,7 +267,7 @@ class QueueProcessor(object):
                     raise
 
             try:
-                os.unlink(tmp_filename)
+                os.remove(tmp_filename)
             except OSError, e:
                 if e.errno == errno.ENOENT: # file does not exist
                     # someone else unlinked the file; oh well
@@ -293,7 +279,7 @@ class QueueProcessor(object):
             # TODO: maybe log the Message-Id of the message sent
             self.log.info("Mail from %s to %s sent.",
                           fromaddr, ", ".join(toaddrs))
-        
+
         # Catch errors and log them here
         except:
             if fromaddr != '' or toaddrs != ():
@@ -310,43 +296,43 @@ class QueueProcessor(object):
 
 class ConsoleApp(object):
     """Allows running of Queue Processor from the console.
-    
+
     Currently this is hardcoded to use an SMTPMailer to deliver messages.  I am
     still contemplating what a better configuration story for this might be.
-    
+
     """
     _usage = """%(script_name)s [OPTIONS] path/to/maildir
-    
+
     OPTIONS:
-        --daemon            Run in daemon mode, periodically checking queue 
-                            and sending messages.  Default is to send all 
+        --daemon            Run in daemon mode, periodically checking queue
+                            and sending messages.  Default is to send all
                             messages in queue once and exit.
-                     
+
         --interval <#secs>  How often to check queue when in daemon mode.
                             Default is 3 seconds.
-                               
+
         --hostname          Name of smtp host to use for delivery.  Default is
                             localhost.
-                            
-        --port              Which port on smtp server to deliver mail to.  
+
+        --port              Which port on smtp server to deliver mail to.
                             Default is 25.
-                            
+
         --username          Username to use to log in to smtp server.  Default
                             is none.
-                            
+
         --password          Password to use to log in to smtp server.  Must be
                             specified if username is specified.
-                            
-        --force-tls         Do not connect if TLS is not available.  Not 
+
+        --force-tls         Do not connect if TLS is not available.  Not
                             enabled by default.
-                            
+
         --no-tls            Do not use TLS even if is available.  Not enabled
                             by default.
-                            
-        --config <inifile>  Get configuration from specificed ini file.  Will 
-                            look for etc/qp.ini, by default, where etc is 
+
+        --config <inifile>  Get configuration from specificed ini file.  Will
+                            look for etc/qp.ini, by default, where etc is
                             parallel to the bin directory where the python
-                            executable is found.  If this option is not 
+                            executable is found.  If this option is not
                             specified and etc/qp.ini is not in filesystem, no
                             config file will be read and default values will be
                             used for all options.
@@ -361,7 +347,7 @@ class ConsoleApp(object):
     force_tls = False
     no_tls = False
     queue_path = None
-    
+
     def __init__(self, argv=sys.argv):
         self.script_name = argv[0]
         self._load_config()
@@ -371,24 +357,24 @@ class ConsoleApp(object):
                                  self.username,
                                  self.password,
                                  self.no_tls,
-                                 self.force_tls)        
+                                 self.force_tls)
     def main(self):
         if self._error:
             return
-        
+
         qp = QueueProcessor(self.mailer, self.queue_path)
         if self.daemon:
             qp.send_messages_daemon()
         else:
             qp.send_messages()
-        
+
     def _process_args(self, args):
         got_queue_path = False
         while args:
             arg = args.pop(0)
             if arg == "--daemon":
                 self.daemon = True
-                
+
             elif arg == "--interval":
                 try:
                     self.interval = float(args.pop(0))
@@ -399,13 +385,13 @@ class ConsoleApp(object):
                 if not args:
                     self._error_usage()
                 self.hostname = args.pop(0)
-                
+
             elif arg == "--port":
                 try:
                     self.port = int(args.pop(0))
                 except:
                     self._error_usage()
-                    
+
             elif arg == "--username":
                 if not args:
                     self._error_usage()
@@ -415,38 +401,38 @@ class ConsoleApp(object):
                 if not args:
                     self._error_usage()
                 self.password = args.pop(0)
-                
+
             elif arg == "--force-tls":
                 self.force_tls = True
-                
+
             elif arg == "--no-tls":
                 self.no_tls = True
-                
+
             elif arg == "--config":
                 if not args:
                     self._error_usage()
                 self._load_config(args.pop(0))
-                
+
             elif arg.startswith("-") or got_queue_path:
                 self._error_usage()
-                
+
             else:
                 self.queue_path = arg
                 got_queue_path = True
-        
+
         if not self.queue_path:
             self._error_usage()
-            
-        if ((self.username or self.password) 
+
+        if ((self.username or self.password)
             and not (self.username and self.password)):
             print >>sys.stderr, "Must use username and password together."
             self._error = True
-            
+
         if self.force_tls and self.no_tls:
             print >>sys.stderr, \
                   "--force-tls and --no-tls are mutually exclusive."
             self._error = True
-    
+
     def _load_config(self, path=None):
         if path is None:
             # Look in etc directory relative to bin directory of current
@@ -456,7 +442,7 @@ class ConsoleApp(object):
             path = os.path.join(root, "etc", "qp.ini")
             if not os.path.exists(path):
                 return
-            
+
         section = "app:qp"
         names = [
             "interval",
@@ -471,7 +457,7 @@ class ConsoleApp(object):
         defaults = dict([(name, str(getattr(self, name))) for name in names])
         config = ConfigParser.ConfigParser(defaults)
         config.read(path)
-        
+
         self.interval = float(config.get(section, "interval"))
         self.hostname = config.get(section, "hostname")
         self.port = int(config.get(section, "port"))
@@ -480,17 +466,16 @@ class ConsoleApp(object):
         self.force_tls = boolean(config.get(section, "force_tls"))
         self.no_tls = boolean(config.get(section, "no_tls"))
         self.queue_path = string_or_none(config.get(section, "queue_path"))
-        
-        
+
+
     def _error_usage(self):
         print >>sys.stderr, self._usage % {"script_name": self.script_name,}
         self._error = True
-        
+
 def run_console():
     logging.basicConfig()
     app = ConsoleApp()
     app.main()
-    
+
 if __name__ == "__main__":
     run_console()
-    

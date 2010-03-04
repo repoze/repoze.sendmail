@@ -11,20 +11,17 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-"""Mail Delivery utility implementation
-
-This module contains various implementations of `MailDeliverys`.
-
-$Id: delivery.py 92774 2008-11-04 12:46:08Z adamg $
 """
-__docformat__ = 'restructuredtext'
+Mail Delivery utility implementation
 
+This module contains various implementations of Mail Deliveries.
+"""
+
+from email.message import Message
 import os
-import rfc822
-from cStringIO import StringIO
 from random import randrange
-from time import strftime
 from socket import gethostname
+from time import strftime
 
 from zope.interface import implements
 from repoze.sendmail.interfaces import IDirectMailDelivery, IQueuedMailDelivery
@@ -86,23 +83,17 @@ class AbstractMailDelivery(object):
         return "%s@%s" % (left_part, gethostname())
 
     def send(self, fromaddr, toaddrs, message):
-        parser = rfc822.Message(StringIO(message))
-        messageid = parser.getheader('Message-Id')
-        if messageid:
-            if not messageid.startswith('<') or not messageid.endswith('>'):
-                raise ValueError('Malformed Message-Id header')
-            messageid = messageid[1:-1]
-        else:
-            messageid = self.newMessageId()
-            message = 'Message-Id: <%s>\n%s' % (messageid, message)
+        assert isinstance(message, Message), \
+               'Message must be instance of email.message.Message'
+        messageid = message['Message-Id']
+        if messageid is None:
+            messageid = message['Message-Id:'] = self.newMessageId()
         transaction.get().join(
             self.createDataManager(fromaddr, toaddrs, message))
         return messageid
 
 
 class DirectMailDelivery(AbstractMailDelivery):
-    __doc__ = IDirectMailDelivery.__doc__
-
     implements(IDirectMailDelivery)
 
     def __init__(self, mailer):
@@ -123,12 +114,10 @@ class QueuedMailDelivery(AbstractMailDelivery):
 
     queuePath = property(lambda self: self._queuePath)
     processor_thread = None
-    
+
     def createDataManager(self, fromaddr, toaddrs, message):
+        message['X-Actually-From'] = fromaddr
+        message['X-Actually-To'] = ','.join(toaddrs)
         maildir = Maildir(self.queuePath, True)
-        msg = maildir.newMessage()
-        msg.write('X-Zope-From: %s\n' % fromaddr)
-        msg.write('X-Zope-To: %s\n' % ", ".join(toaddrs))
-        msg.write(message)
-        msg.close()
-        return MailDataManager(msg.commit, onAbort=msg.abort)
+        tx_message = maildir.add(message)
+        return MailDataManager(tx_message.commit, onAbort=tx_message.abort)

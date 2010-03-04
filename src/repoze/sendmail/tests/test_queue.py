@@ -67,12 +67,13 @@ class TestQueueProcessor(TestCase):
         shutil.rmtree(self.dir)
 
     def test_parseMessage(self):
-        hdr = ('X-Zope-From: foo@example.com\n'
-               'X-Zope-To: bar@example.com, baz@example.com\n')
+        from cStringIO import StringIO
+        hdr = ('X-Actually-From: foo@example.com\n'
+               'X-Actually-To: bar@example.com, baz@example.com\n')
         msg = ('Header: value\n'
                '\n'
                'Body\n')
-        f, t, m = self.qp._parseMessage(hdr + msg)
+        f, t, m = self.qp._parseMessage(StringIO(hdr + msg))
         self.assertEquals(f, 'foo@example.com')
         self.assertEquals(t, ('bar@example.com', 'baz@example.com'))
         self.assertEquals(m, msg)
@@ -80,8 +81,8 @@ class TestQueueProcessor(TestCase):
     def test_delivery(self):
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write('X-Zope-From: foo@example.com\n'
-                   'X-Zope-To: bar@example.com, baz@example.com\n'
+        temp.write('X-Actually-From: foo@example.com\n'
+                   'X-Actually-To: bar@example.com, baz@example.com\n'
                    'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
@@ -101,8 +102,8 @@ class TestQueueProcessor(TestCase):
         self.qp.mailer = BrokenMailerStub()
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write('X-Zope-From: foo@example.com\n'
-                   'X-Zope-To: bar@example.com, baz@example.com\n'
+        temp.write('X-Actually-From: foo@example.com\n'
+                   'X-Actually-To: bar@example.com, baz@example.com\n'
                    'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
@@ -118,8 +119,8 @@ class TestQueueProcessor(TestCase):
         self.qp.mailer = SMTPResponseExceptionMailerStub(451)
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write('X-Zope-From: foo@example.com\n'
-                   'X-Zope-To: bar@example.com, baz@example.com\n'
+        temp.write('X-Actually-From: foo@example.com\n'
+                   'X-Actually-To: bar@example.com, baz@example.com\n'
                    'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
@@ -138,13 +139,13 @@ class TestQueueProcessor(TestCase):
         self.qp.mailer = SMTPResponseExceptionMailerStub(550)
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write('X-Zope-From: foo@example.com\n'
-                   'X-Zope-To: bar@example.com, baz@example.com\n'
+        temp.write('X-Actually-From: foo@example.com\n'
+                   'X-Actually-To: bar@example.com, baz@example.com\n'
                    'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
-        
+
         # File must be moved aside
         self.failIf(os.path.exists(self.filename))
         self.failUnless(os.path.exists(os.path.join(self.dir,
@@ -162,11 +163,11 @@ class TestQueueProcessor(TestCase):
         self.filename = os.path.join(self.dir, 'message')
 
         temp = open(self.filename, "w+b")
-        temp.write('X-Zope-From: foo@example.com\n'
-                   'X-Zope-To: bar@example.com, baz@example.com\n'
+        temp.write('X-Actually-From: foo@example.com\n'
+                   'X-Actually-To: bar@example.com, baz@example.com\n'
                    'Header: value\n\nBody\n')
         temp.close()
-        
+
         self.qp.maildir.files.append(self.filename)
 
         # Trick processor into thinking message is being delivered by
@@ -176,14 +177,14 @@ class TestQueueProcessor(TestCase):
         queue._os_link(self.filename, tmp_filename)
         try:
             self.qp.send_messages()
-    
+
             self.assertEquals(self.qp.mailer.sent_messages, [])
-            self.failUnless(os.path.exists(self.filename), 
+            self.failUnless(os.path.exists(self.filename),
                             'File does not exist')
             self.assertEquals(self.qp.log.infos, [])
         finally:
             os.unlink(tmp_filename)
-            
+
 class TestConsoleApp(TestCase):
     def setUp(self):
         from repoze.sendmail.delivery import QueuedMailDelivery
@@ -193,7 +194,7 @@ class TestConsoleApp(TestCase):
         self.delivery = QueuedMailDelivery(self.queue_dir)
         self.maildir = Maildir(self.queue_dir, True)
         self.mailer = MailerStub()
-        
+
     def tearDown(self):
         shutil.rmtree(self.dir)
 
@@ -212,7 +213,7 @@ class TestConsoleApp(TestCase):
         self.assertEquals(None, app.password)
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
-        
+
         # Simplest case that doesn't work
         cmdline = "qp"
         app = ConsoleApp(cmdline.split())
@@ -227,10 +228,10 @@ class TestConsoleApp(TestCase):
         self.assertEquals(None, app.password)
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
-              
+
         # Use (almost) all of the options
-        cmdline = """qp --daemon --interval 7 --hostname foo --port 75 
-                        --username chris --password rossi --force-tls 
+        cmdline = """qp --daemon --interval 7 --hostname foo --port 75
+                        --username chris --password rossi --force-tls
                         %s""" % self.dir
         app = ConsoleApp(cmdline.split())
         self.assertEquals("qp", app.script_name)
@@ -244,22 +245,22 @@ class TestConsoleApp(TestCase):
         self.assertEquals("rossi", app.password)
         self.assertTrue(app.force_tls)
         self.assertFalse(app.no_tls)
-        
+
         # Test username without password
         cmdline = "qp --username chris %s" % self.dir
         app = ConsoleApp(cmdline.split())
         self.assertTrue(app._error)
-        
+
         # Test force_tls and no_tls
         comdline = "qp --force-tls --no-tls %s" % self.dir
         self.assertTrue(app._error)
-        
+
     def test_ini_parse(self):
         ini_path = os.path.join(self.dir, "qp.ini")
         f = open(ini_path, "w")
         f.write(test_ini)
         f.close()
-        
+
         # Override most everything
         cmdline = """qp --config %s""" % ini_path
         app = ConsoleApp(cmdline.split())
@@ -279,7 +280,7 @@ class TestConsoleApp(TestCase):
         f = open(ini_path, "w")
         f.write("[app:qp]\n\nqueue_path=foo\n")
         f.close()
-        
+
         cmdline = """qp --config %s %s""" % (ini_path, self.dir)
         app = ConsoleApp(cmdline.split())
         self.assertEquals("qp", app.script_name)
@@ -293,14 +294,15 @@ class TestConsoleApp(TestCase):
         self.assertEquals(None, app.password)
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
-         
+
     def test_delivery(self):
+        from email.message import Message
         from_addr = "foo@bar.foo"
         to_addr = "bar@foo.bar"
-        message = """Subject: Pants
-        
-            Nice pants, mister!
-            """
+        message = Message()
+        message['Subject'] = 'Pants'
+        message.set_payload('Nice pants, mister!')
+
         import transaction
         transaction.manager.begin()
         self.delivery.send(from_addr, to_addr, message)
@@ -315,11 +317,11 @@ class TestConsoleApp(TestCase):
         app = ConsoleApp(cmdline.split())
         app.mailer = self.mailer
         app.main()
-        
+
         queued_messages = [m for m in self.maildir]
         self.assertEqual(0, len(queued_messages))
         self.assertEqual(2, len(self.mailer.sent_messages))
-        
+
 def test_suite():
     return TestSuite((
         makeSuite(TestQueueProcessor),
