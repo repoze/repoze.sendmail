@@ -109,25 +109,6 @@ class QueueProcessor(object):
         if queue_path:
             self.setQueuePath(queue_path)
 
-    def send_messages_thread(self, interval=3.0):
-        thread = threading.Thread(target=self.send_messages_daemon,
-                                  name="repoze.sendmail.QueueProcessorThread")
-        thread.start()
-
-        # Python versions <2.6 don't respect name argument on constructor
-        if not hasattr(thread, "name"):
-            thread.name = "repoze.sendmail.QueueProcessorThread"
-        thread.queue_processor = self
-
-        return thread
-
-    def send_messages_daemon(self, interval=3.0):
-        atexit.register(self.stop)
-        while not self.__stopped:
-            self.send_messages()
-            if not self.__stopped:
-                time.sleep(interval)
-
     def send_messages(self):
         for filename in self.maildir:
             # if we are asked to stop while sending messages, do so
@@ -304,13 +285,6 @@ class ConsoleApp(object):
     _usage = """%(script_name)s [OPTIONS] path/to/maildir
 
     OPTIONS:
-        --daemon            Run in daemon mode, periodically checking queue
-                            and sending messages.  Default is to send all
-                            messages in queue once and exit.
-
-        --interval <#secs>  How often to check queue when in daemon mode.
-                            Default is 3 seconds.
-
         --hostname          Name of smtp host to use for delivery.  Default is
                             localhost.
 
@@ -338,8 +312,6 @@ class ConsoleApp(object):
                             used for all options.
     """
     _error = False
-    daemon = False
-    interval = 3
     hostname = "localhost"
     port = 25
     username = None
@@ -363,25 +335,13 @@ class ConsoleApp(object):
             return
 
         qp = QueueProcessor(self.mailer, self.queue_path)
-        if self.daemon:
-            qp.send_messages_daemon()
-        else:
-            qp.send_messages()
+        qp.send_messages()
 
     def _process_args(self, args):
         got_queue_path = False
         while args:
             arg = args.pop(0)
-            if arg == "--daemon":
-                self.daemon = True
-
-            elif arg == "--interval":
-                try:
-                    self.interval = float(args.pop(0))
-                except:
-                    self._error_usage()
-
-            elif arg == "--hostname":
+            if arg == "--hostname":
                 if not args:
                     self._error_usage()
                 self.hostname = args.pop(0)
@@ -445,7 +405,6 @@ class ConsoleApp(object):
 
         section = "app:qp"
         names = [
-            "interval",
             "hostname",
             "port",
             "username",
@@ -458,7 +417,6 @@ class ConsoleApp(object):
         config = ConfigParser.ConfigParser(defaults)
         config.read(path)
 
-        self.interval = float(config.get(section, "interval"))
         self.hostname = config.get(section, "hostname")
         self.port = int(config.get(section, "port"))
         self.username = string_or_none(config.get(section, "username"))

@@ -205,8 +205,6 @@ class TestConsoleApp(TestCase):
         self.assertEquals("qp", app.script_name)
         self.assertFalse(app._error)
         self.assertEquals(self.dir, app.queue_path)
-        self.assertFalse(app.daemon)
-        self.assertEquals(3, app.interval)
         self.assertEquals("localhost", app.hostname)
         self.assertEquals(25, app.port)
         self.assertEquals(None, app.username)
@@ -220,8 +218,6 @@ class TestConsoleApp(TestCase):
         self.assertEquals("qp", app.script_name)
         self.assertTrue(app._error)
         self.assertEquals(None, app.queue_path)
-        self.assertFalse(app.daemon)
-        self.assertEquals(3, app.interval)
         self.assertEquals("localhost", app.hostname)
         self.assertEquals(25, app.port)
         self.assertEquals(None, app.username)
@@ -230,15 +226,13 @@ class TestConsoleApp(TestCase):
         self.assertFalse(app.no_tls)
 
         # Use (almost) all of the options
-        cmdline = """qp --daemon --interval 7 --hostname foo --port 75
+        cmdline = """qp --hostname foo --port 75
                         --username chris --password rossi --force-tls
                         %s""" % self.dir
         app = ConsoleApp(cmdline.split())
         self.assertEquals("qp", app.script_name)
         self.assertFalse(app._error)
         self.assertEquals(self.dir, app.queue_path)
-        self.assertTrue(app.daemon)
-        self.assertEquals(7, app.interval)
         self.assertEquals("foo", app.hostname)
         self.assertEquals(75, app.port)
         self.assertEquals("chris", app.username)
@@ -267,8 +261,6 @@ class TestConsoleApp(TestCase):
         self.assertEquals("qp", app.script_name)
         self.assertFalse(app._error)
         self.assertEquals("hammer/dont/hurt/em", app.queue_path)
-        self.assertFalse(app.daemon)
-        self.assertEquals(33, app.interval)
         self.assertEquals("testhost", app.hostname)
         self.assertEquals(2525, app.port)
         self.assertEquals("Chris", app.username)
@@ -286,8 +278,6 @@ class TestConsoleApp(TestCase):
         self.assertEquals("qp", app.script_name)
         self.assertFalse(app._error)
         self.assertEquals(self.dir, app.queue_path)
-        self.assertFalse(app.daemon)
-        self.assertEquals(3, app.interval)
         self.assertEquals("localhost", app.hostname)
         self.assertEquals(25, app.port)
         self.assertEquals(None, app.username)
