@@ -97,6 +97,7 @@ class FakeOsModule(object):
     _renamed_files = ()
 
     _all_files_exist = False
+    _exception = None
 
     def __init__(self):
         self._descriptors = {}
@@ -131,6 +132,8 @@ class FakeOsModule(object):
         self._renamed_files += ((old, new), )
 
     def open(self, filename, flags, mode=0777):
+        if self._exception is not None:
+            raise self._exception
         if (flags & os.O_EXCL and flags & os.O_CREAT
             and self.access(filename, 0)):
             raise OSError(errno.EEXIST, 'file already exists')
@@ -260,6 +263,14 @@ class TestMaildir(unittest.TestCase):
         self.fake_os_module._all_files_exist = True
         m = Maildir('/path/to/maildir')
         self.assertRaises(RuntimeError, m.add, Message())
+
+    def test_add_os_error(self):
+        from email.message import Message
+        from repoze.sendmail.maildir import Maildir
+        from repoze.sendmail.interfaces import ITransactionalMessage
+        self.fake_os_module._exception = OSError('test')
+        m = Maildir('/path/to/maildir')
+        self.assertRaises(OSError, m.add, Message())
 
     def test_tx_msg_abort(self):
         from repoze.sendmail.maildir import MaildirTransactionalMessage

@@ -51,12 +51,12 @@ class MailDataManager(object):
 
     # No subtransaction support.
     def abort_sub(self, transaction):
-        pass
+        pass  #pragma NO COVERAGE
 
     commit_sub = abort_sub
 
     def beforeCompletion(self, transaction):
-        pass
+        pass  #pragma NO COVERAGE
 
     afterCompletion = beforeCompletion
 

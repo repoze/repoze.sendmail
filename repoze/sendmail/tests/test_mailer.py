@@ -27,9 +27,10 @@ import unittest
 class TestSMTPMailer(unittest.TestCase):
 
     def setUp(self, port=None):
+        self.ehlo_status = 200
+        self.extns = set(['starttls',])
         global SMTP
         class SMTP(object):
-
             fail_on_quit = False
 
             def __init__(myself, h, p):
@@ -37,8 +38,6 @@ class TestSMTPMailer(unittest.TestCase):
                 myself.port = p
                 myself.quitted = False
                 myself.closed = False
-                if type(p) == type(u""):
-                    raise socket.error("Int or String expected")
                 self.smtp = myself
 
             def sendmail(self, f, t, m):
@@ -59,12 +58,14 @@ class TestSMTPMailer(unittest.TestCase):
             def close(self):
                 self.closed = True
 
-            def has_extn(self, ext):
-                return True
+            def has_extn(myself, ext):
+                return ext in self.extns
 
-            def ehlo(self):
-                self.does_esmtp = True
-                return (200, 'Hello, I am your stupid MTA mock')
+            def ehlo(myself):
+                myself.does_esmtp = True
+                return (self.ehlo_status, 'Hello, I am your stupid MTA mock')
+
+            helo = ehlo
 
             def starttls(self):
                 pass
@@ -80,18 +81,40 @@ class TestSMTPMailer(unittest.TestCase):
         verifyObject(ISMTPMailer, self.mailer)
 
     def test_send(self):
+        from email.message import Message
         for run in (1,2):
             if run == 2:
                 self.setUp(u'25')
             fromaddr = 'me@example.com'
             toaddrs = ('you@example.com', 'him@example.com')
-            msgtext = 'Headers: headers\n\nbodybodybody\n-- \nsig\n'
-            self.mailer.send(fromaddr, toaddrs, msgtext)
+            msg = Message()
+            msg['Headers'] = 'headers'
+            msg.set_payload('bodybodybody\n-- \nsig\n')
+            self.mailer.send(fromaddr, toaddrs, msg)
             self.assertEquals(self.smtp.fromaddr, fromaddr)
             self.assertEquals(self.smtp.toaddrs, toaddrs)
-            self.assertEquals(self.smtp.msgtext, msgtext)
+            self.assertEquals(self.smtp.msgtext, msg.as_string())
             self.assert_(self.smtp.quitted)
             self.assert_(self.smtp.closed)
+
+    def test_fail_ehlo(self):
+        from email.message import Message
+        fromaddr = 'me@example.com'
+        toaddrs = ('you@example.com', 'him@example.com')
+        msg = Message()
+        self.ehlo_status = 100
+        self.assertRaises(RuntimeError, self.mailer.send,
+                          fromaddr, toaddrs, msg)
+
+    def test_tls_required_not_available(self):
+        from email.message import Message
+        fromaddr = 'me@example.com'
+        toaddrs = ('you@example.com', 'him@example.com')
+        msg = Message()
+        self.extns.remove('starttls')
+        self.mailer.force_tls = True
+        self.assertRaises(RuntimeError, self.mailer.send,
+                          fromaddr, toaddrs, msg)
 
     def test_send_auth(self):
         fromaddr = 'me@example.com'
@@ -131,6 +154,7 @@ class TestSMTPMailer(unittest.TestCase):
 class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
 
     def setUp(self, port=None):
+        self.extns = set(['starttls',])
 
         class SMTPWithNoEHLO(SMTP):
             does_esmtp = False
@@ -140,8 +164,6 @@ class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
                 myself.port = p
                 myself.quitted = False
                 myself.closed = False
-                if type(p) == type(u""):
-                    raise socket.error("Int or String expected")
                 self.smtp = myself
 
             def helo(self):
@@ -158,6 +180,18 @@ class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
         self.mailer.smtp = SMTPWithNoEHLO
 
     def test_send_auth(self):
+        from email.message import Message
+        fromaddr = 'me@example.com'
+        toaddrs = ('you@example.com', 'him@example.com')
+        msg = Message()
+        self.mailer.username = 'foo'
+        self.mailer.password = 'evil'
+        self.mailer.hostname = 'spamrelay'
+        self.mailer.port = 31337
+        self.assertRaises(RuntimeError, self.mailer.send,
+                          fromaddr, toaddrs, msg)
+
+    def test_fail_ehlo(self):
         # This test requires ESMTP, which we're intentionally not enabling
         # here, so pass.
         pass
@@ -167,7 +201,3 @@ def test_suite():
     suite.addTest(unittest.makeSuite(TestSMTPMailer))
     suite.addTest(unittest.makeSuite(TestSMTPMailerWithNoEHLO))
     return suite
-
-
-if __name__ == '__main__':
-    unittest.main()

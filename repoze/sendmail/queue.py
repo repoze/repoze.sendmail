@@ -15,7 +15,7 @@ from email.parser import Parser
 from repoze.sendmail.maildir import Maildir
 from repoze.sendmail.mailer import SMTPMailer
 
-if sys.platform == 'win32':
+if sys.platform == 'win32': #pragma NO COVERAGE
     import win32file
     _os_link = lambda src, dst: win32file.CreateHardLink(dst, src, None)
 else:
