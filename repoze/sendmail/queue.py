@@ -91,11 +91,7 @@ def string_or_none(s):
 
 class QueueProcessor(object):
     log = logging.getLogger("QueueProcessor")
-
-    __stopped = False
-
     maildir = None
-
     mailer = None
 
     def setQueuePath(self, path):
@@ -111,9 +107,6 @@ class QueueProcessor(object):
 
     def send_messages(self):
         for filename in self.maildir:
-            # if we are asked to stop while sending messages, do so
-            if self.__stopped:
-                break
             self._send_message(filename)
 
     def _parseMessage(self, fp):
@@ -271,9 +264,6 @@ class QueueProcessor(object):
                 self.log.error(
                     "Error while sending mail : %s ",
                     filename, exc_info=True)
-
-    def stop(self):
-        self.__stopped = True
 
 class ConsoleApp(object):
     """Allows running of Queue Processor from the console.
