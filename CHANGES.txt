@@ -23,6 +23,8 @@ module.  A few changes have been made solely to reduce internal complexity.
 - Events were removed entirely.  There was nothing in the code actually
   performing a notify anyway.  Removes dependency on zope.event.
 
+- Normalized directory structure.  (Got rid of 'src' directory.)
+
 1.2 (2010-02-11)
 ----------------
 

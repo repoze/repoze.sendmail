@@ -29,10 +29,7 @@ setup(name='repoze.sendmail',
           open('README.txt').read(),
           open('CHANGES.txt').read(),
           ]),
-
-      packages=find_packages('src'),
-      package_dir = {'': 'src'},
-
+      packages=find_packages(),
       namespace_packages=['repoze',],
       tests_require = ['zope.testing'],
       install_requires=['setuptools',

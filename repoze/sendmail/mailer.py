@@ -41,6 +41,7 @@ class SMTPMailer(object):
             message = message.as_string()
 
         connection = self.smtp(self.hostname, str(self.port))
+        connection.debuglevel = 10
 
         # send EHLO
         code, response = connection.ehlo()
