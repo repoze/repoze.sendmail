@@ -64,16 +64,7 @@ class IQueuedDeliveryDirective(IDeliveryDirective):
         description=u"Defines the path for the queue directory.",
         required=True)
 
-    processorThread = Bool(
-        title=u"Run Queue Processor Thread",
-        description=u"""Indicates whether to run queue processor in a thread
-                     in this process.
-                     """,
-        required=False,
-        default=False)
-    
-def queuedDelivery(_context, queuePath, mailer, 
-                   processorThread=False, name="Mail"):
+def queuedDelivery(_context, queuePath, mailer, name="Mail"):
 
     def createQueuedDelivery():
         delivery = QueuedMailDelivery(queuePath)
@@ -84,12 +75,6 @@ def queuedDelivery(_context, queuePath, mailer,
         if mailerObject is None:
             raise ConfigurationError("Mailer %r is not defined" %mailer)
 
-        if processorThread:
-            qp = QueueProcessor()
-            qp.mailer = mailerObject
-            qp.queue_path = queuePath
-            delivery.processor_thread = qp.send_messages_thread()
-            
     _context.action(
             discriminator = ('delivery', name),
             callable = createQueuedDelivery,
