@@ -28,6 +28,9 @@ module.  A few changes have been made solely to reduce internal complexity.
 - Got rid of functions to send queued mail from a thread or a daemon process.
   These are more appropriately handled in the calling code.
 
+- Removed vocabulary.  It was a fossil from its days as zope.sendmail and was
+  not used by anything.
+
 1.2 (2010-02-11)
 ----------------
 
