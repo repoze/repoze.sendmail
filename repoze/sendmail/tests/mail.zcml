@@ -3,31 +3,25 @@
 
   <include package="repoze.sendmail" file="meta.zcml"/>
 
-  <mail:queuedDelivery 
+  <mail:queuedDelivery
       name="Mail"
       queuePath="path/to/tmp/mailbox"
       mailer="test.smtp" />
-  
-  <mail:queuedDelivery
-      name="MailWithProcessorThread"
-      queuePath="path/to/tmp/mailbox"
-      mailer="test.smtp" 
-      processorThread="True" />
-      
-  <mail:directDelivery 
+
+  <mail:directDelivery
       name="Mail2"
       mailer="test.mailer"/>
 
-  <mail:smtpMailer 
+  <mail:smtpMailer
       name="smtp"
       hostname="localhost"
       port="25"
       username="zope3"
       password="xyzzy"/>
-  
-  <mail:smtpMailer 
+
+  <mail:smtpMailer
       name="smtp2"
       hostname="smarthost"/>
- 
+
 </configure>
 

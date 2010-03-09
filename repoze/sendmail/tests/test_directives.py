@@ -18,7 +18,6 @@ $Id: test_directives.py 80961 2007-10-23 14:54:54Z fdrake $
 import os
 import shutil
 import unittest
-import threading
 import tempfile
 import time
 
@@ -75,16 +74,6 @@ class DirectivesTest(PlacelessSetup, unittest.TestCase):
     def tearDown(self):
         delivery.Maildir = self.orig_maildir
 
-        # Tear down the mail queue processor thread.
-        # Give the other thread a chance to start:
-        time.sleep(0.001)
-        threads = list(threading.enumerate())
-        for thread in threads:
-            name = getattr(thread, "name", None)
-            if name == "repoze.sendmail.QueueProcessorThread":
-                thread.queue_processor.stop()
-                thread.join()
-
         shutil.rmtree(self.mailbox, True)
         super(DirectivesTest, self).tearDown()
 
@@ -92,15 +81,7 @@ class DirectivesTest(PlacelessSetup, unittest.TestCase):
         delivery = zope.component.getUtility(IMailDelivery, "Mail")
         self.assertEqual('QueuedMailDelivery', delivery.__class__.__name__)
         self.assertEqual(self.mailbox, delivery.queuePath)
-        self.assertEquals(None, delivery.processor_thread)
-        
-    def testQueuedDeliveryWithProcessorThread(self):
-        delivery = zope.component.getUtility(IMailDelivery, 
-                                              "MailWithProcessorThread")
-        self.assertEqual("QueuedMailDelivery", delivery.__class__.__name__)
-        self.assertEqual(self.mailbox, delivery.queuePath)
-        self.assertNotEqual(None, delivery.processor_thread)
-        
+
     def testDirectDelivery(self):
         delivery = zope.component.getUtility(IMailDelivery, "Mail2")
         self.assertEqual('DirectMailDelivery', delivery.__class__.__name__)
