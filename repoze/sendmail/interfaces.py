@@ -52,11 +52,6 @@ Email sending from Zope 3 applications works as follows:
 """
 
 from zope.interface import Interface, Attribute
-from zope.schema import TextLine, Int, Password, Bool
-
-from zope.i18nmessageid import MessageFactory
-_ = MessageFactory('zope')
-
 
 class IMailDelivery(Interface):
     """A mail delivery utility allows someone to send an email to a group of
@@ -82,45 +77,6 @@ class IMailDelivery(Interface):
         """
 
 
-class IDirectMailDelivery(IMailDelivery):
-    """A mail delivery utility that delivers messages synchronously during
-    transaction commit.
-
-    Not useful for production use, but simpler to set up and use.
-    """
-
-    mailer = Attribute("IMailer that is used for message delivery")
-
-
-class IQueuedMailDelivery(IMailDelivery):
-    """A mail delivery utility that puts all messages into a queue in the
-    filesystem.
-
-    Messages will be delivered asynchronously by a separate component.
-    """
-
-    queuePath = TextLine(
-        title=_(u"Queue path"),
-        description=_(u"Pathname of the directory used to queue mail."))
-
-
-class IMailQueueProcessor(Interface):
-    """A mail queue processor that delivers queueud messages asynchronously.
-    """
-
-    queuePath = TextLine(
-        title=_(u"Queue Path"),
-        description=_(u"Pathname of the directory used to queue mail."))
-
-    pollingInterval = Int(
-        title=_(u"Polling Interval"),
-        description=_(u"How often the queue is checked for new messages"
-                       " (in milliseconds)"),
-        default=5000)
-
-    mailer = Attribute("IMailer that is used for message delivery")
-
-
 class IMailer(Interface):
     """Mailer handles synchronous mail delivery."""
 
@@ -140,80 +96,3 @@ class IMailer(Interface):
         Dispatches an `IMailSentEvent` on successful delivery, otherwise an
         `IMailErrorEvent`.
         """
-
-
-class ISMTPMailer(IMailer):
-    """A mailer that delivers mail to a relay host via SMTP."""
-
-    hostname = TextLine(
-        title=_(u"Hostname"),
-        description=_(u"Name of server to be used as SMTP server."))
-
-    port = Int(
-        title=_(u"Port"),
-        description=_(u"Port of SMTP service"),
-        default=25)
-
-    username = TextLine(
-        title=_(u"Username"),
-        description=_(u"Username used for optional SMTP authentication."))
-
-    password = Password(
-        title=_(u"Password"),
-        description=_(u"Password used for optional SMTP authentication."))
-
-    no_tls = Bool(
-        title=_(u"No TLS"),
-        description=_(u"Never use TLS for sending email."))
-
-    force_tls = Bool(
-        title=_(u"Force TLS"),
-        description=_(u"Use TLS always for sending email."))
-
-
-class IMaildirFactory(Interface):
-
-    def __call__(dirname, create=False):
-        """Opens a `Maildir` folder at a given filesystem path.
-
-        If `create` is ``True``, the folder will be created when it does not
-        exist.  If `create` is ``False`` and the folder does not exist, an
-        exception (``OSError``) will be raised.
-
-        If path points to a file or an existing directory that is not a
-        valid `Maildir` folder, an exception is raised regardless of the
-        `create` argument.
-        """
-
-
-class IMaildir(Interface):
-    """Read/write access to `Maildir` folders.
-
-    See http://www.qmail.org/man/man5/maildir.html for detailed format
-    description.
-    """
-
-    def __iter__():
-        """Returns an iterator over the pathnames of messages in this folder.
-        """
-
-    def add(message):
-        """Add a new message to the `maildir`.
-
-        Returns an instance of ITransactionalMessage.
-        """
-
-
-class ITransactionalMessage(Interface):
-    """Used to hook the sending of a message into a transaction manager."""
-
-    def commit():
-        """
-        Causes the message to be sent.
-        """
-
-    def abort():
-        """
-        Causes the message to be aborted.
-        """
-

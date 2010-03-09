@@ -18,12 +18,12 @@ import socket
 from smtplib import SMTP
 
 from zope.interface import implements
-from repoze.sendmail.interfaces import ISMTPMailer
+from repoze.sendmail.interfaces import IMailer
 
 have_ssl = hasattr(socket, 'ssl')
 
 class SMTPMailer(object):
-    implements(ISMTPMailer)
+    implements(IMailer)
 
     smtp = SMTP
 

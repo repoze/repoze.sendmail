@@ -81,11 +81,11 @@ def doctest_unsuccessful_commit():
 class TestDirectMailDelivery(TestCase):
 
     def testInterface(self):
-        from repoze.sendmail.interfaces import IDirectMailDelivery
+        from repoze.sendmail.interfaces import IMailDelivery
         from repoze.sendmail.delivery import DirectMailDelivery
         mailer = MailerStub()
         delivery = DirectMailDelivery(mailer)
-        verifyObject(IDirectMailDelivery, delivery)
+        verifyObject(IMailDelivery, delivery)
         self.assertEqual(delivery.mailer, mailer)
 
     def testSend(self):
@@ -179,10 +179,10 @@ class TestQueuedMailDelivery(TestCase):
         MaildirMessageStub.aborted_messages = []
 
     def testInterface(self):
-        from repoze.sendmail.interfaces import IQueuedMailDelivery
+        from repoze.sendmail.interfaces import IMailDelivery
         from repoze.sendmail.delivery import QueuedMailDelivery
         delivery = QueuedMailDelivery('/path/to/mailbox')
-        verifyObject(IQueuedMailDelivery, delivery)
+        verifyObject(IMailDelivery, delivery)
         self.assertEqual(delivery.queuePath, '/path/to/mailbox')
 
     def testSend(self):

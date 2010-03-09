@@ -14,7 +14,6 @@
 
 from StringIO import StringIO
 from zope.interface.verify import verifyObject
-from repoze.sendmail.interfaces import ISMTPMailer
 from repoze.sendmail.mailer import SMTPMailer
 import socket
 import unittest
@@ -72,9 +71,6 @@ class TestSMTPMailer(unittest.TestCase):
         else:
             self.mailer = SMTPMailer(u'localhost', port)
         self.mailer.smtp = SMTP
-
-    def test_interface(self):
-        verifyObject(ISMTPMailer, self.mailer)
 
     def test_send(self):
         from email.message import Message

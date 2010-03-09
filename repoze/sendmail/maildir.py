@@ -22,21 +22,10 @@ import errno
 import socket
 import time
 import random
-
 from email.generator import Generator
-
-from zope.interface import classProvides
-from zope.interface import implements
-
-from repoze.sendmail.interfaces import IMaildirFactory
-from repoze.sendmail.interfaces import IMaildir
-from repoze.sendmail.interfaces import ITransactionalMessage
 
 class Maildir(object):
     """See `repoze.sendmail.interfaces.IMaildir`"""
-
-    classProvides(IMaildirFactory)
-    implements(IMaildir)
 
     def __init__(self, path, create=False):
         """See `repoze.sendmail.interfaces.IMaildirFactory`"""
@@ -118,8 +107,6 @@ class Maildir(object):
 
 class MaildirTransactionalMessage(object):
     """See `repoze.sendmail.interfaces.ITransactionalMessage`"""
-
-    implements(ITransactionalMessage)
 
     def __init__(self, pending_path, committed_path):
         self._pending_path = pending_path

@@ -186,20 +186,16 @@ class TestMaildir(unittest.TestCase):
         self.fake_os_module._all_files_exist = False
 
     def test_factory(self):
-        from repoze.sendmail.interfaces import IMaildirFactory, IMaildir
         from repoze.sendmail.maildir import Maildir
-        verifyObject(IMaildirFactory, Maildir)
 
         # Case 1: normal maildir
         m = Maildir('/path/to/maildir')
-        verifyObject(IMaildir, m)
 
         # Case 2a: directory does not exist, create = False
         self.assertRaises(ValueError, Maildir, '/path/to/nosuchfolder', False)
 
         # Case 2b: directory does not exist, create = True
         m = Maildir('/path/to/nosuchfolder', True)
-        verifyObject(IMaildir, m)
         dirs = list(self.fake_os_module._made_directories)
         dirs.sort()
         self.assertEquals(dirs, ['/path/to/nosuchfolder',
@@ -227,17 +223,14 @@ class TestMaildir(unittest.TestCase):
     def test_add(self):
         from email.message import Message
         from repoze.sendmail.maildir import Maildir
-        from repoze.sendmail.interfaces import ITransactionalMessage
         m = Maildir('/path/to/maildir')
         tx_message = m.add(Message())
-        verifyObject(ITransactionalMessage, tx_message)
         self.assert_(tx_message._pending_path,
                      '/path/to/maildir/tmp/1234500002.4242.myhostname.')
 
     def test_add_no_good_filenames(self):
         from email.message import Message
         from repoze.sendmail.maildir import Maildir
-        from repoze.sendmail.interfaces import ITransactionalMessage
         self.fake_os_module._all_files_exist = True
         m = Maildir('/path/to/maildir')
         self.assertRaises(RuntimeError, m.add, Message())
@@ -245,7 +238,6 @@ class TestMaildir(unittest.TestCase):
     def test_add_os_error(self):
         from email.message import Message
         from repoze.sendmail.maildir import Maildir
-        from repoze.sendmail.interfaces import ITransactionalMessage
         self.fake_os_module._exception = OSError('test')
         m = Maildir('/path/to/maildir')
         self.assertRaises(OSError, m.add, Message())

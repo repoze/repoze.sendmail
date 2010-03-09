@@ -25,7 +25,7 @@ from socket import gethostname
 from time import strftime
 
 from zope.interface import implements
-from repoze.sendmail.interfaces import IDirectMailDelivery, IQueuedMailDelivery
+from repoze.sendmail.interfaces import IMailDelivery
 from repoze.sendmail.maildir import Maildir
 from transaction.interfaces import IDataManager
 import transaction
@@ -97,7 +97,7 @@ class AbstractMailDelivery(object):
 
 
 class DirectMailDelivery(AbstractMailDelivery):
-    implements(IDirectMailDelivery)
+    implements(IMailDelivery)
 
     def __init__(self, mailer):
         self.mailer = mailer
@@ -108,9 +108,7 @@ class DirectMailDelivery(AbstractMailDelivery):
 
 
 class QueuedMailDelivery(AbstractMailDelivery):
-    __doc__ = IQueuedMailDelivery.__doc__
-
-    implements(IQueuedMailDelivery)
+    implements(IMailDelivery)
 
     def __init__(self, queuePath):
         self._queuePath = queuePath
