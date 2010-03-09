@@ -334,7 +334,8 @@ class ConsoleApp(object):
             if arg == "--hostname":
                 if not args:
                     self._error_usage()
-                self.hostname = args.pop(0)
+                else:
+                    self.hostname = args.pop(0)
 
             elif arg == "--port":
                 try:
@@ -345,12 +346,14 @@ class ConsoleApp(object):
             elif arg == "--username":
                 if not args:
                     self._error_usage()
-                self.username = args.pop(0)
+                else:
+                    self.username = args.pop(0)
 
             elif arg == "--password":
                 if not args:
                     self._error_usage()
-                self.password = args.pop(0)
+                else:
+                    self.password = args.pop(0)
 
             elif arg == "--force-tls":
                 self.force_tls = True
@@ -361,7 +364,8 @@ class ConsoleApp(object):
             elif arg == "--config":
                 if not args:
                     self._error_usage()
-                self._load_config(args.pop(0))
+                else:
+                    self._load_config(args.pop(0))
 
             elif arg.startswith("-") or got_queue_path:
                 self._error_usage()
@@ -420,10 +424,10 @@ class ConsoleApp(object):
         print >>sys.stderr, self._usage % {"script_name": self.script_name,}
         self._error = True
 
-def run_console():
+def run_console(): #pragma NO COVERAGE
     logging.basicConfig()
     app = ConsoleApp()
     app.main()
 
-if __name__ == "__main__":
+if __name__ == "__main__": #pragma NO COVERAGE
     run_console()

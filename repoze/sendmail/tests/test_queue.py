@@ -195,10 +195,17 @@ class TestConsoleApp(TestCase):
         self.maildir = Maildir(self.queue_dir, True)
         self.mailer = MailerStub()
 
+        from cStringIO import StringIO
+        import sys
+        self.save_stderr = sys.stderr
+        sys.stderr = self.stderr = StringIO()
+
     def tearDown(self):
+        import sys
+        sys.stderr = self.save_stderr
         shutil.rmtree(self.dir)
 
-    def test_args_processing(self):
+    def test_args_simple_ok(self):
         # Simplest case that works
         cmdline = "qp %s" % self.dir
         app = ConsoleApp(cmdline.split())
@@ -212,6 +219,7 @@ class TestConsoleApp(TestCase):
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
 
+    def test_args_simple_error(self):
         # Simplest case that doesn't work
         cmdline = "qp"
         app = ConsoleApp(cmdline.split())
@@ -224,7 +232,9 @@ class TestConsoleApp(TestCase):
         self.assertEquals(None, app.password)
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
+        app.main()
 
+    def test_args_full_monty(self):
         # Use (almost) all of the options
         cmdline = """qp --hostname foo --port 75
                         --username chris --password rossi --force-tls
@@ -240,13 +250,56 @@ class TestConsoleApp(TestCase):
         self.assertTrue(app.force_tls)
         self.assertFalse(app.no_tls)
 
+    def test_args_username_no_password(self):
         # Test username without password
         cmdline = "qp --username chris %s" % self.dir
         app = ConsoleApp(cmdline.split())
         self.assertTrue(app._error)
 
+    def test_args_force_tls_no_tls(self):
         # Test force_tls and no_tls
-        comdline = "qp --force-tls --no-tls %s" % self.dir
+        cmdline = "qp --force-tls --no-tls %s" % self.dir
+        app = ConsoleApp(cmdline.split())
+        self.assertTrue(app._error)
+
+    def test_args_hostname_no_hostname(self):
+        cmdline = 'qp %s --hostname' % self.dir
+        app = ConsoleApp(cmdline.split())
+        self.assertTrue(app._error)
+
+    def test_args_port_no_port(self):
+        cmdline = 'qp %s --port' % self.dir
+        app = ConsoleApp(cmdline.split())
+        self.assertTrue(app._error)
+
+    def test_args_bad_port(self):
+        cmdline = 'qp %s --port foo' % self.dir
+        app = ConsoleApp(cmdline.split())
+        self.assertTrue(app._error)
+
+    def test_args_username_no_username(self):
+        cmdline = 'qp %s --username' % self.dir
+        app = ConsoleApp(cmdline.split())
+        self.assertTrue(app._error)
+
+    def test_args_password_no_password(self):
+        cmdline = 'qp %s --password' % self.dir
+        app = ConsoleApp(cmdline.split())
+        self.assertTrue(app._error)
+
+    def test_args_config_no_config(self):
+        cmdline = 'qp %s --config' % self.dir
+        app = ConsoleApp(cmdline.split())
+        self.assertTrue(app._error)
+
+    def test_args_bad_arg(self):
+        cmdline = 'qp --foo %s' % self.dir
+        app = ConsoleApp(cmdline.split())
+        self.assertTrue(app._error)
+
+    def test_args_too_many_queues(self):
+        cmdline = 'qp %s foobar' % self.dir
+        app = ConsoleApp(cmdline.split())
         self.assertTrue(app._error)
 
     def test_ini_parse(self):
