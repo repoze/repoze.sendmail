@@ -18,6 +18,7 @@ This module contains various implementations of Mail Deliveries.
 """
 
 from email.message import Message
+from email.utils import formatdate
 import os
 from random import randrange
 from socket import gethostname
@@ -88,6 +89,8 @@ class AbstractMailDelivery(object):
         messageid = message['Message-Id']
         if messageid is None:
             messageid = message['Message-Id:'] = self.newMessageId()
+        if message['Date'] is None:
+            message['Date'] = formatdate()
         transaction.get().join(
             self.createDataManager(fromaddr, toaddrs, message))
         return messageid

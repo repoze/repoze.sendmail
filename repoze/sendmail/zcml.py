@@ -11,11 +11,6 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-"""'mail' ZCML Namespaces Schemas
-
-$Id: zcml.py 79091 2007-08-21 18:35:51Z andreasjung $
-"""
-__docformat__ = 'restructuredtext'
 
 from zope.component import queryUtility
 from zope.component import getSiteManager
@@ -100,45 +95,3 @@ def directDelivery(_context, mailer, name="Mail"):
             callable = createDirectDelivery,
             args = () )
 
-class IMailerDirective(Interface):
-    """A generic directive registering a mailer for the mail utility."""
-
-    name = TextLine(
-        title=u"Name",
-        description=u"Name of the Mailer.",
-        required=True)
-
-
-class ISMTPMailerDirective(IMailerDirective):
-    """Registers a new SMTP mailer."""
-
-    hostname = BytesLine(
-        title=u"Hostname",
-        description=u"Hostname of the SMTP host.",
-        default="localhost",
-        required=False)
-
-    port = Int(
-        title=u"Port",
-        description=u"Port of the SMTP server.",
-        default=25,
-        required=False)
-
-    username = TextLine(
-        title=u"Username",
-        description=u"A username for SMTP AUTH.",
-        required=False)
-
-    password = TextLine(
-        title=u"Password",
-        description=u"A password for SMTP AUTH.",
-        required=False)
-
-def smtpMailer(_context, name, hostname="localhost", port="25",
-               username=None, password=None):
-    _context.action(
-        discriminator = ('utility', IMailer, name),
-        callable = handler,
-        args = ('registerUtility',
-                SMTPMailer(hostname, port, username, password), IMailer, name)
-        )

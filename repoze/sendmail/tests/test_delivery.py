@@ -11,12 +11,6 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-"""Mail Delivery Tests
-
-Simple implementation of the MailDelivery, Mailers and MailEvents.
-
-$Id: test_delivery.py 82358 2007-12-19 15:47:43Z alga $
-"""
 
 import unittest
 from unittest import TestCase, TestSuite, makeSuite

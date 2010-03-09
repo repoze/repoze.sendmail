@@ -11,10 +11,7 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-"""Test the gts ZCML namespace directives.
 
-$Id: test_directives.py 80961 2007-10-23 14:54:54Z fdrake $
-"""
 import os
 import shutil
 import unittest
@@ -73,7 +70,3 @@ class DirectivesTest(PlacelessSetup, unittest.TestCase):
         delivery = zope.component.getUtility(IMailDelivery, "Mail2")
         self.assertEqual('DirectMailDelivery', delivery.__class__.__name__)
         self.assert_(self.testMailer is delivery.mailer)
-
-    def testSMTPMailer(self):
-        mailer = zope.component.getUtility(IMailer, "smtp")
-        self.assert_(ISMTPMailer.providedBy(mailer))

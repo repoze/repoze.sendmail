@@ -49,10 +49,7 @@ Email sending from Zope 3 applications works as follows:
 - If mail delivery succeeds, an `IMailSentEvent` is dispatched by the mailer.
   If mail delivery fails, no exceptions are raised, but an `IMailErrorEvent` is
   dispatched by the mailer.
-
-$Id: interfaces.py 79091 2007-08-21 18:35:51Z andreasjung $
 """
-__docformat__ = 'restructuredtext'
 
 from zope.interface import Interface, Attribute
 from zope.schema import TextLine, Int, Password, Bool

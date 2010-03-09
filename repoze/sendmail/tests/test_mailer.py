@@ -11,10 +11,6 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-"""Tests for mailers.
-
-$Id: test_mailer.py 92756 2008-11-03 12:50:08Z adamg $
-"""
 
 from StringIO import StringIO
 from zope.interface.verify import verifyObject

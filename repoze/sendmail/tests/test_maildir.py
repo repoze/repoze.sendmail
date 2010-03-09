@@ -11,10 +11,6 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-"""Unit tests for repoze.sendmail.maildir module
-
-$Id: test_maildir.py 76463 2007-06-07 13:24:21Z mgedmin $
-"""
 
 import unittest
 import stat

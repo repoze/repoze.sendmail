@@ -12,16 +12,5 @@
       name="Mail2"
       mailer="test.mailer"/>
 
-  <mail:smtpMailer
-      name="smtp"
-      hostname="localhost"
-      port="25"
-      username="zope3"
-      password="xyzzy"/>
-
-  <mail:smtpMailer
-      name="smtp2"
-      hostname="smarthost"/>
-
 </configure>
 

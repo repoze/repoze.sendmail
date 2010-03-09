@@ -5,12 +5,10 @@ Change history
 ----------------
 
 Represents major refactoring with a number of backwards incompatible changes.
-The focus of the changes is on simplifying the internals and using Message
-objects from the standard library to represent messages wherever possible,
-to avoid unnecessary serialization and parsing.  The impetus for the changes
-is support for RFCs that specify how unicode should be handled in header
-values.  These standards are implemented in the standard library 'email'
-module.  A few changes have been made solely to reduce internal complexity.
+The focus of the changes is on simplifying and updating the internals,
+removing usage of deprecated APIs, removing unused functionality and using the
+`email` module from the standard library wherever possible. A few changes have
+been made solely to reduce internal complexity.
 
 - Public facing APIs no longer accept messages passed as strings.  Messages
   must be instances of email.message.Message.
@@ -30,6 +28,10 @@ module.  A few changes have been made solely to reduce internal complexity.
 
 - Removed vocabulary.  It was a fossil from its days as zope.sendmail and was
   not used by anything.
+
+- Got rid of 'smtpMailer' zcml directive as that would tend to imply that you
+  are putting deployment configuration in your zcml, which is a fundamentally
+  broken pattern.
 
 1.2 (2010-02-11)
 ----------------
