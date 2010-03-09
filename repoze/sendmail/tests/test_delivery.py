@@ -50,13 +50,6 @@ class TestMailDataManager(TestCase):
         self.assertEqual(manager.args, (1, 2))
 
 
-def print_success(*args):
-    print "message successfully sent, args: %s" % (args, )
-
-def print_abort():
-    print "message aborted"
-
-
 def doctest_successful_commit():
     """Regression test for http://www.zope.org/Collectors/Zope3-dev/590
 
@@ -242,14 +235,3 @@ class TestQueuedMailDelivery(TestCase):
         transaction.abort()
         self.assertEquals(MaildirMessageStub.commited_messages, [])
         self.assertEquals(len(MaildirMessageStub.aborted_messages), 1)
-
-def test_suite():
-    return TestSuite((
-        makeSuite(TestMailDataManager),
-        makeSuite(TestDirectMailDelivery),
-        makeSuite(TestQueuedMailDelivery),
-        doctest.DocTestSuite(),
-        ))
-
-if __name__ == '__main__':
-    unittest.main()

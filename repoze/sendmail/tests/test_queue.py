@@ -20,9 +20,6 @@ class LoggerStub(object):
         self.infos = []
         self.errors = []
 
-    def getLogger(name):
-        return self
-
     def error(self, msg, *args, **kwargs):
         self.errors.append((msg, args, kwargs))
 
@@ -364,15 +361,6 @@ class TestConsoleApp(TestCase):
         queued_messages = [m for m in self.maildir]
         self.assertEqual(0, len(queued_messages))
         self.assertEqual(2, len(self.mailer.sent_messages))
-
-def test_suite():
-    return TestSuite((
-        makeSuite(TestQueueProcessor),
-        makeSuite(TestConsoleApp),
-        ))
-
-if __name__ == '__main__':
-    unittest.main()
 
 test_ini = """[app:qp]
 interval = 33

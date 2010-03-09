@@ -111,11 +111,6 @@ class FakeOsModule(object):
             return True
         return False
 
-    def stat(self, path):
-        if path in self._stat_mode:
-            return (self._stat_mode[path], 0, 0, 1, 0, 0, 0, 0, 0, 0)
-        raise OSError('%s does not exist' % path)
-
     def listdir(self, path):
         return self._listdir.get(path, [])
 
@@ -138,27 +133,17 @@ class FakeOsModule(object):
             and self.access(filename, 0)):
             raise OSError(errno.EEXIST, 'file already exists')
         if not flags & os.O_CREAT and not self.access(filename, 0):
-            raise OSError('file not found')
+            raise OSError('file not found') #pragma NO COVERAGE defensive
         fd = max(self._descriptors.keys() + [2]) + 1
         self._descriptors[fd] = filename, flags, mode
         return fd
 
     def fdopen(self, fd, mode='r'):
-        try:
-            filename, flags, permissions = self._descriptors[fd]
-        except KeyError:
-            raise AssertionError('os.fdopen() called with an unknown'
-                                 ' file descriptor')
-        if mode == 'r':
-            assert not flags & os.O_WRONLY
-            assert not flags & os.O_RDWR
-        elif mode == 'w':
+        filename, flags, permissions = self._descriptors[fd]
+        if mode == 'w':
             assert flags & os.O_WRONLY
             assert not flags & os.O_RDWR
-        elif mode == 'r+':
-            assert not flags & os.O_WRONLY
-            assert flags & os.O_RDWR
-        else:
+        else: #pragma NO COVERAGE defensive programming
             raise AssertionError("don't know how to verify if flags match"
                                  " mode %r" % mode)
         return FakeFile(filename, mode)
@@ -177,9 +162,6 @@ class FakeFile(object):
 
     def write(self, data):
         self._written += data
-
-    def writelines(self, lines):
-        self._written += ''.join(lines)
 
     def __enter__(self):
         return self

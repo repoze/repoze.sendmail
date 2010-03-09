@@ -33,18 +33,6 @@ from repoze.sendmail import delivery
 import repoze.sendmail.tests
 
 
-class MaildirStub(object):
-
-    def __init__(self, path, create=False):
-        self.path = path
-        self.create = create
-
-    def __iter__(self):
-        return iter(())
-
-    def newMessage(self):
-        return None
-
 class Mailer(object):
     implements(IMailer)
 
@@ -69,7 +57,6 @@ class DirectivesTest(PlacelessSetup, unittest.TestCase):
         self.context = xmlconfig.string(
             zcml.replace('path/to/tmp/mailbox', self.mailbox))
         self.orig_maildir = delivery.Maildir
-        delivery.Maildir = MaildirStub
 
     def tearDown(self):
         delivery.Maildir = self.orig_maildir
@@ -90,12 +77,3 @@ class DirectivesTest(PlacelessSetup, unittest.TestCase):
     def testSMTPMailer(self):
         mailer = zope.component.getUtility(IMailer, "smtp")
         self.assert_(ISMTPMailer.providedBy(mailer))
-
-
-def test_suite():
-    return unittest.TestSuite((
-        unittest.makeSuite(DirectivesTest),
-        ))
-
-if __name__ == '__main__':
-    unittest.main()
