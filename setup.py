@@ -11,12 +11,8 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-"""Setup for repoze.sendmail package
 
-$Id: setup.py 95044 2009-01-26 20:09:06Z hannosch $
-"""
 from setuptools import setup, find_packages
-
 
 setup(name='repoze.sendmail',
       version = '1.3dev',
@@ -33,10 +29,7 @@ setup(name='repoze.sendmail',
       namespace_packages=['repoze',],
       tests_require = ['zope.testing'],
       install_requires=['setuptools',
-                        'zope.component',
-                        'zope.configuration',
                         'zope.interface',
-                        'zope.schema',
                         'transaction',
                        ],
       test_suite="repoze.sendmail",
