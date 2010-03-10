@@ -54,9 +54,7 @@ class TestQueueProcessor(TestCase):
 
     def setUp(self):
         from repoze.sendmail.queue import QueueProcessor
-        self.qp = QueueProcessor()
-        self.qp.maildir = MaildirStub('/foo/bar/baz')
-        self.qp.mailer = MailerStub()
+        self.qp = QueueProcessor(MailerStub(), '/foo/bar/baz', MaildirStub)
         self.qp.log = LoggerStub()
         self.dir = mkdtemp()
 

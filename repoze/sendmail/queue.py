@@ -91,19 +91,10 @@ def string_or_none(s):
 
 class QueueProcessor(object):
     log = logging.getLogger("QueueProcessor")
-    maildir = None
-    mailer = None
 
-    def setQueuePath(self, path):
-        self.maildir = Maildir(path, True)
-
-    queue_path = property(None, setQueuePath)
-
-    def __init__(self, mailer=None, queue_path=None, maildir=None):
+    def __init__(self, mailer, queue_path, Maildir=Maildir):
         self.mailer = mailer
-        self.maildir = maildir
-        if queue_path:
-            self.setQueuePath(queue_path)
+        self.maildir = Maildir(queue_path, create=True)
 
     def send_messages(self):
         for filename in self.maildir:

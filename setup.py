@@ -15,7 +15,7 @@
 from setuptools import setup, find_packages
 
 setup(name='repoze.sendmail',
-      version = '1.3dev',
+      version = '2.0',
       url='http://www.repoze.org',
       license='ZPL 2.1',
       description='Repoze Sendmail',

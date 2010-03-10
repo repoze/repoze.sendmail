@@ -1,7 +1,7 @@
 Change history
 ~~~~~~~~~~~~~~
 
-2.0 (Unreleased)
+2.0 (2010-03-10)
 ----------------
 
 Represents major refactoring with a number of backwards incompatible changes.
