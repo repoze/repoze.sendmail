@@ -16,7 +16,6 @@ import unittest
 from unittest import TestCase, TestSuite, makeSuite
 
 import transaction
-from zope.testing import doctest
 from zope.interface import implements
 from zope.interface.verify import verifyObject
 
@@ -42,41 +41,6 @@ class TestMailDataManager(TestCase):
         verifyObject(IDataManager, manager)
         self.assertEqual(manager.callable, object)
         self.assertEqual(manager.args, (1, 2))
-
-
-def doctest_successful_commit():
-    """Regression test for http://www.zope.org/Collectors/Zope3-dev/590
-
-    Let's do a full two-phase commit.
-
-        >>> from repoze.sendmail.delivery import MailDataManager
-        >>> manager = MailDataManager(print_success, ('foo', 'bar'),
-        ...                           onAbort=print_abort)
-        >>> transaction = object()
-        >>> manager.tpc_begin(transaction)
-        >>> manager.commit(transaction)
-        >>> manager.tpc_vote(transaction)
-        >>> manager.tpc_finish(transaction)
-        message successfully sent, args: ('foo', 'bar')
-
-    """
-
-
-def doctest_unsuccessful_commit():
-    """Regression test for http://www.zope.org/Collectors/Zope3-dev/590
-
-    Let's start a two-phase commit, then abort it.
-
-        >>> from repoze.sendmail.delivery import MailDataManager
-        >>> manager = MailDataManager(print_success, onAbort=print_abort)
-        >>> manager.tpc_begin(transaction)
-        >>> manager.commit(transaction)
-        >>> manager.tpc_vote(transaction)
-        >>> manager.tpc_abort(transaction)
-        message aborted
-
-    """
-
 
 class TestDirectMailDelivery(TestCase):
 
