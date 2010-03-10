@@ -45,6 +45,8 @@ been made solely to reduce internal complexity.
 
 - Removed dependency on zope.i18nmessageid
 
+- No longer works under Python 2.4 (Python 2.5 required).
+
 1.2 (2010-02-11)
 ----------------
 
