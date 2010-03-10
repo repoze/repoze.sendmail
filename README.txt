@@ -2,77 +2,76 @@
 repoze.sendmail
 ===============
 
-repoze.sendmail is a fork of zope.sendmail with dependency on zope security
-framework removed.  The idea being that in this case authorization should be
-handled by caller, not by this library, which simply provides a means to send
-email.  This fork is meant to be usable with repoze.bfg and other non-Zope3
-frameworks.
+`repoze.sendmail` allows coupling the sending of email messages with a
+transaction, using the Zope transaction manager.  This allows messages to
+only be sent out when and if a transaction is committed, preventing users
+from receiving notifications about events which may not have completed
+successfully.  Messages may be sent directly or stored in a queue for later
+sending.  The queued mail approach is the more common and recommended path.  A
+console application which can flush the queue, sending the messages that it
+finds, is included for convenience.
 
-We have also made optional, for queued delivery, the running of the queue 
-processor thread.  We have added a console script, qp, which can process queued
-mail and either exit after one pass or continue to run daemonically, checking
-the queue periodically.  
-
-You probably want to take a look at the documentation for zope.sendmail:
-
-http://pypi.python.org/pypi/zope.sendmail
-
-See also src/repoze/sendmail/README.txt
+`repoze.sendmail` is a fork of `zope.sendmail`.  Functionality that was
+specific to running in a Zope context has been removed, making this version
+more generally useful to users of other frameworks.
 
 ==============
 Basic Tutorial
 ==============
 
-To use repoze.sendmail using the component architecture, you'll need to add
-something like this to your project's zcml:
+Messages are sent by means of a `Delivery` object. Two deliveries are included
+in `repoze.sendmail.delivery`: `QueuedMailDelivery` and `DirectMailDelivery`.
+A delivery implements the interface defined by
+`repoze.sendmail.interfaces.IDelivery`, which consists of a single `send`
+method::
 
-.. code-block: xml
-   :linenos:
+   def send(fromaddr, toaddrs, message):
+       """ Sends message on transaction commit. """
 
-  <configure xmlns="..."
-             xmlns:mail="http://namespaces.repoze.org/mail"
-  >
-  ...
-  
-  <include package="repoze.sendmail" file="meta.zcml"/>
-  
-  <mail:smtpMailer
-    name="smtp"
-    hostname="localhost"
-    port="25"
-    />
-    
-  <mail:queuedDelivery
-    name="myapp.mailer"
-    mailer="smtp"
-    queuePath="/my/var/mailqueue"
-    processorThread="False"
-    />
+`fromaddr` is the address of the sender of the message.  `toaddrs` is a list of
+email addresses for recipients of the message.  `message` must be an instance
+`email.message.Message` and is the actual message which will be sent.
 
-  </configure>
+To create a queued delivery::
 
-Note that the queuePath in the queuedDelivery must exist on the filesystem.  
-This creates two utilities, a mailer, named smtp, and a delivery, named 
-myapp.mailer.  The mailer is used by the delivery mechanism, so generally in 
-your code you need only look up the delivery utility::
+   from email.message import Message
+   from repoze.sendmail.delivery import QueuedMailDelivery
 
-  def send_email(msg):
-      mailer = getUtility(IMailDelivery, 'bfgtest.mailer')
-      mailer.send(sender, [recipient], msg.as_string())
+   message = Message()
+   message['From'] = 'Chris <chris@example.com>'
+   message['To'] = 'Paul <paul@example.com>, Tres <tres@example.com>'
+   message['Subject'] = "repoze.sendmail is a useful package"
+   message.set_payload("The subject line says it all.")
 
-The message is an instance of email.MIMEText.MIMEText::
+   delivery = QueuedMailDelivery('path/to/queue')
+   delivery.send('chris@example.com', ['paul@example.com', 'tres@example.com'],
+                 message)
 
-  import email.MIMEText
-  def create_message(sender, recipient, subject, body):
-      msg = email.MIMEText.MIMEText(body.encode('UTF-8'), 'plain', 'UTF-8')
-      msg["From"] = sender
-      msg["To"] = recipient
-      msg["Subject"] = email.Header.Header(subject, 'UTF-8')
-      return msg
-    
-repoze.sendmail hooks into the transaction system and only sends queued 
-messages on transaction commit.  If you are using a framework which, like 
-repoze.bfg, does not use transactions by default, you will need to begin and
+The message will be added to the maildir queue in 'path/to/queue' when and if
+the current transaction is committed successsfully.
+
+`repoze.sendmail` includes a console app utility for sending queued messages::
+
+  $ bin/qp path/to/queue
+
+This will attempt to use an SMTP server at localhost to send any messages found
+in the queue.  To see all options available::
+
+  $ bin/qp --help
+
+Direct delivery can also be used::
+
+   from repoze.sendmail.delivery import DirectDelivery
+   from repoze.sendmail.mailer import SMTPMailer
+
+   mailer = SMTPMailer()  # Uses localhost, port 25 be default.
+   delivery = DirectDelivery(mailer)
+   delivery.send('chris@example.com', ['paul@example.com', 'tres@example.com'],
+                 message)
+
+repoze.sendmail hooks into the Zope transaction manager and only sends
+messages on transaction commit. If you are using a framework which, like
+`repoze.bfg`, does not use transactions by default, you will need to begin and
 commit a transaction of your own in order for mail to be sent::
 
   import transaction
