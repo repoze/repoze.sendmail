@@ -64,11 +64,11 @@ in the queue.  To see all options available::
 
 Direct delivery can also be used::
 
-   from repoze.sendmail.delivery import DirectDelivery
+   from repoze.sendmail.delivery import DirectMailDelivery
    from repoze.sendmail.mailer import SMTPMailer
 
    mailer = SMTPMailer()  # Uses localhost, port 25 be default.
-   delivery = DirectDelivery(mailer)
+   delivery = DirectMailDelivery(mailer)
    delivery.send('chris@example.com', ['paul@example.com', 'tres@example.com'],
                  message)
 
