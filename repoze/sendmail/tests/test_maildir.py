@@ -254,7 +254,7 @@ class TestMaildir(unittest.TestCase):
         self.assertEquals(tx_msg._committed, False)
         self.assert_(filename1 in self.fake_os_module._removed_files)
 
-        self.assertRaises(RuntimeError, tx_msg.abort)
+        tx_msg.abort()
         self.assertRaises(RuntimeError, tx_msg.commit)
 
     def test_tx_msg_commit(self):

@@ -4,7 +4,7 @@ Change history
 2.1 (Unreleased)
 ----------------
 
-- ...
+- Silently ignore redundant calls to abort transaction. (LP #580164)
 
 2.0 (2010-03-10)
 ----------------

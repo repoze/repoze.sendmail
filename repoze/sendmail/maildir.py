@@ -125,7 +125,7 @@ class MaildirTransactionalMessage(object):
 
     def abort(self):
         if self._aborted:
-            raise RuntimeError('Cannot abort--already aborted.')
+            return
         if self._committed:
             raise RuntimeError('Cannot abort--already committed.')
 
