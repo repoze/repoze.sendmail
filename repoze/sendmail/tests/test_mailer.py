@@ -27,7 +27,7 @@ class TestSMTPMailer(unittest.TestCase):
         global SMTP
         class SMTP(object):
             fail_on_quit = False
-            
+
             def __init__(myself, h, p):
                 myself.hostname = h
                 myself.port = p
@@ -198,14 +198,13 @@ class TestSMTPMailerWithSMTPDebug(unittest.TestCase):
         self.mailer.smtp = SMTP
 
     def test_without_debug(self):
-        for run in (1,2):
-            if run == 2:
-                self.setUp(False)
-                connection = self.mailer.smtp_factory()
-                self.assertFalse(connection.debuglevel)
-            else:
-                connection = self.mailer.smtp_factory()
-                self.assertTrue(connection.debuglevel)
+        self.setUp(False)
+        connection = self.mailer.smtp_factory()
+        self.assertFalse(connection.debuglevel)
+
+    def test_with_debug(self):
+        connection = self.mailer.smtp_factory()
+        self.assertTrue(connection.debuglevel)
 
 
 def test_suite():
