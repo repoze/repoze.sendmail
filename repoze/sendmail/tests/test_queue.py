@@ -213,6 +213,7 @@ class TestConsoleApp(TestCase):
         self.assertEquals(None, app.password)
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
+        self.assertFalse(app.debug_smtp)
 
     def test_args_simple_error(self):
         # Simplest case that doesn't work
@@ -227,12 +228,14 @@ class TestConsoleApp(TestCase):
         self.assertEquals(None, app.password)
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
+        self.assertFalse(app.debug_smtp)
         app.main()
 
     def test_args_full_monty(self):
         # Use (almost) all of the options
         cmdline = """qp --hostname foo --port 75
                         --username chris --password rossi --force-tls
+                        --debug-smtp
                         %s""" % self.dir
         app = ConsoleApp(cmdline.split())
         self.assertEquals("qp", app.script_name)
@@ -244,6 +247,7 @@ class TestConsoleApp(TestCase):
         self.assertEquals("rossi", app.password)
         self.assertTrue(app.force_tls)
         self.assertFalse(app.no_tls)
+        self.assertTrue(app.debug_smtp)
 
     def test_args_username_no_password(self):
         # Test username without password

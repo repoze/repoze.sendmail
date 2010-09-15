@@ -28,20 +28,25 @@ class SMTPMailer(object):
     smtp = SMTP
 
     def __init__(self, hostname='localhost', port=25,
-                 username=None, password=None, no_tls=False, force_tls=False):
+                 username=None, password=None, no_tls=False, force_tls=False, debug_smtp=False):
         self.hostname = hostname
         self.port = port
         self.username = username
         self.password = password
         self.force_tls = force_tls
         self.no_tls = no_tls
+        self.debug_smtp = debug_smtp
+
+    def smtp_factory(self):
+        connection = self.smtp(self.hostname, str(self.port))
+        connection.set_debuglevel(self.debug_smtp)
+        return connection
 
     def send(self, fromaddr, toaddrs, message):
         if isinstance(message, Message):
             message = message.as_string()
 
-        connection = self.smtp(self.hostname, str(self.port))
-        connection.debuglevel = 10
+        connection = self.smtp_factory()
 
         # send EHLO
         code, response = connection.ehlo()

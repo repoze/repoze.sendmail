@@ -291,6 +291,8 @@ class ConsoleApp(object):
                             specified and etc/qp.ini is not in filesystem, no
                             config file will be read and default values will be
                             used for all options.
+
+        --debug-smtp        Enable SMTP debug output (STDERR)
     """
     _error = False
     hostname = "localhost"
@@ -300,6 +302,7 @@ class ConsoleApp(object):
     force_tls = False
     no_tls = False
     queue_path = None
+    debug_smtp = False
 
     def __init__(self, argv=sys.argv):
         self.script_name = argv[0]
@@ -310,7 +313,8 @@ class ConsoleApp(object):
                                  self.username,
                                  self.password,
                                  self.no_tls,
-                                 self.force_tls)
+                                 self.force_tls,
+                                 self.debug_smtp)
     def main(self):
         if self._error:
             return
@@ -358,6 +362,9 @@ class ConsoleApp(object):
                 else:
                     self._load_config(args.pop(0))
 
+            elif arg == "--debug-smtp":
+                self.debug_smtp = True
+
             elif arg.startswith("-") or got_queue_path:
                 self._error_usage()
 
@@ -397,6 +404,7 @@ class ConsoleApp(object):
             "force_tls",
             "no_tls",
             "queue_path",
+            "debug_smtp",
         ]
         defaults = dict([(name, str(getattr(self, name))) for name in names])
         config = ConfigParser.ConfigParser(defaults)
@@ -409,6 +417,7 @@ class ConsoleApp(object):
         self.force_tls = boolean(config.get(section, "force_tls"))
         self.no_tls = boolean(config.get(section, "no_tls"))
         self.queue_path = string_or_none(config.get(section, "queue_path"))
+        self.debug_smtp = string_or_none(config.get(section, "debug_smtp"))
 
 
     def _error_usage(self):

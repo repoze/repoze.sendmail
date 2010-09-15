@@ -4,7 +4,8 @@ Change history
 Unreleased
 ----------
 
-- ...
+- Made debug output for SMTP mailer optional.  (Thanks to Igor Stroh for
+  patch.)
 
 2.1 (2010-07-28)
 ----------------

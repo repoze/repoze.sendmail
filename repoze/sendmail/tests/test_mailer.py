@@ -27,13 +27,17 @@ class TestSMTPMailer(unittest.TestCase):
         global SMTP
         class SMTP(object):
             fail_on_quit = False
-
+            
             def __init__(myself, h, p):
                 myself.hostname = h
                 myself.port = p
                 myself.quitted = False
                 myself.closed = False
+                myself.debuglevel = 0
                 self.smtp = myself
+
+            def set_debuglevel(self, lvl):
+                self.debuglevel = bool(lvl)
 
             def sendmail(self, f, t, m):
                 self.fromaddr = f
@@ -142,7 +146,6 @@ class TestSMTPMailer(unittest.TestCase):
         finally:
             self.mailer.smtp.fail_on_quit = False
 
-
 class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
 
     def setUp(self, port=None):
@@ -188,8 +191,26 @@ class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
         # here, so pass.
         pass
 
+class TestSMTPMailerWithSMTPDebug(unittest.TestCase):
+
+    def setUp(self, debug_smtp=True):
+        self.mailer = SMTPMailer(debug_smtp=debug_smtp)
+        self.mailer.smtp = SMTP
+
+    def test_without_debug(self):
+        for run in (1,2):
+            if run == 2:
+                self.setUp(False)
+                connection = self.mailer.smtp_factory()
+                self.assertFalse(connection.debuglevel)
+            else:
+                connection = self.mailer.smtp_factory()
+                self.assertTrue(connection.debuglevel)
+
+
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestSMTPMailer))
     suite.addTest(unittest.makeSuite(TestSMTPMailerWithNoEHLO))
+    suite.addTest(unittest.makeSuite(TestSMTPMailerWithSMTPDebug))
     return suite
