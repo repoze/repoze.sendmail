@@ -51,7 +51,7 @@ Email sending from Zope 3 applications works as follows:
   dispatched by the mailer.
 """
 
-from zope.interface import Interface, Attribute
+from zope.interface import Interface
 
 class IMailDelivery(Interface):
     """A mail delivery utility allows someone to send an email to a group of

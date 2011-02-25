@@ -1,4 +1,3 @@
-import atexit
 import ConfigParser
 import errno
 import logging
@@ -7,7 +6,6 @@ import os.path
 import smtplib
 import stat
 import sys
-import threading
 import time
 
 from email.parser import Parser
