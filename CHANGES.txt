@@ -4,7 +4,9 @@ Change history
 Unreleased
 ----------
 
-- ...
+- Queued delivery now creates a copy of the passed in messsage before adding
+  the 'X-Actually-{To,From}' headers. This avoids rudely mutating the message
+  being sent in ways that might not be expected by the sender. (LP #780000)
 
 2.2 (2010-09-14)
 ----------------

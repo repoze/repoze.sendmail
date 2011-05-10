@@ -169,8 +169,9 @@ class TestQueuedMailDelivery(TestCase):
         self.assertEquals(MaildirMessageStub.commited_messages, [])
         self.assertEquals(MaildirMessageStub.aborted_messages, [])
         transaction.commit()
-        self.assertEquals(MaildirMessageStub.commited_messages, [message])
+        self.assertEquals(len(MaildirMessageStub.commited_messages), 1)
         self.assertEquals(MaildirMessageStub.aborted_messages, [])
+        message = MaildirMessageStub.commited_messages[0]
         self.assertEqual(message['X-Actually-From'], fromaddr)
         self.assertEqual(message['X-Actually-To'], ','.join(toaddrs))
 

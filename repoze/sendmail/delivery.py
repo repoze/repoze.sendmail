@@ -18,6 +18,7 @@ This module contains various implementations of Mail Deliveries.
 """
 
 from email.message import Message
+from email.parser import Parser
 from email.utils import formatdate
 import os
 from random import randrange
@@ -117,8 +118,14 @@ class QueuedMailDelivery(AbstractMailDelivery):
     processor_thread = None
 
     def createDataManager(self, fromaddr, toaddrs, message):
+        message = copy_message(message)
         message['X-Actually-From'] = fromaddr
         message['X-Actually-To'] = ','.join(toaddrs)
         maildir = Maildir(self.queuePath, True)
         tx_message = maildir.add(message)
         return MailDataManager(tx_message.commit, onAbort=tx_message.abort)
+
+
+def copy_message(message):
+    parser = Parser()
+    return parser.parsestr(message.as_string())
