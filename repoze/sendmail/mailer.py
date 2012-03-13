@@ -15,15 +15,16 @@
 from email.message import Message
 
 import socket
+import ssl
 from smtplib import SMTP
 
-from zope.interface import implements
+from zope.interface import implementer
 from repoze.sendmail.interfaces import IMailer
 
 have_ssl = hasattr(socket, 'ssl')
 
+@implementer(IMailer)
 class SMTPMailer(object):
-    implements(IMailer)
 
     smtp = SMTP
 
@@ -75,6 +76,6 @@ class SMTPMailer(object):
         connection.sendmail(fromaddr, toaddrs, message)
         try:
             connection.quit()
-        except socket.sslerror:
+        except ssl.SSLError:
             #something weird happened while quiting
             connection.close()

@@ -122,7 +122,9 @@ class FakeOsModule(object):
     def rename(self, old, new):
         self._renamed_files += ((old, new), )
 
-    def open(self, filename, flags, mode=0777):
+    def open(self, filename, flags,
+             mode=511  # BBB Python 2 vs 3, 0o777 in octal
+             ):
         if self._exception is not None:
             raise self._exception
         if (flags & os.O_EXCL and flags & os.O_CREAT
@@ -130,7 +132,7 @@ class FakeOsModule(object):
             raise OSError(errno.EEXIST, 'file already exists')
         if not flags & os.O_CREAT and not self.access(filename, 0):
             raise OSError('file not found') #pragma NO COVERAGE defensive
-        fd = max(self._descriptors.keys() + [2]) + 1
+        fd = max(list(self._descriptors.keys()) + [2]) + 1
         self._descriptors[fd] = filename, flags, mode
         return fd
 

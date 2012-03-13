@@ -1,3 +1,6 @@
+# BBB Python 2 vs 3 compat
+from __future__ import unicode_literals
+
 import os.path
 import shutil
 import smtplib
@@ -5,7 +8,13 @@ from tempfile import mkdtemp
 import unittest
 from unittest import TestCase, TestSuite, makeSuite
 
-from zope.interface import implements
+try:
+    from io import StringIO
+    StringIO  # pyflakes
+except ImportError:
+    from StringIO import StringIO  # BBB Python 2 vs 3 compat
+
+from zope.interface import implementer
 
 from repoze.sendmail import queue
 from repoze.sendmail.interfaces import IMailer
@@ -31,9 +40,9 @@ class BizzarreMailError(IOError):
     pass
 
 
+@implementer(IMailer)
 class BrokenMailerStub(object):
 
-    implements(IMailer)
     def __init__(self, *args, **kw):
         pass
 
@@ -41,9 +50,9 @@ class BrokenMailerStub(object):
         raise BizzarreMailError("bad things happened while sending mail")
 
 
+@implementer(IMailer)
 class SMTPResponseExceptionMailerStub(object):
 
-    implements(IMailer)
     def __init__(self, code):
         self.code = code
 
@@ -62,7 +71,6 @@ class TestQueueProcessor(TestCase):
         shutil.rmtree(self.dir)
 
     def test_parseMessage(self):
-        from cStringIO import StringIO
         hdr = ('X-Actually-From: foo@example.com\n'
                'X-Actually-To: bar@example.com, baz@example.com\n')
         msg = ('Header: value\n'
@@ -76,9 +84,9 @@ class TestQueueProcessor(TestCase):
     def test_delivery(self):
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write('X-Actually-From: foo@example.com\n'
-                   'X-Actually-To: bar@example.com, baz@example.com\n'
-                   'Header: value\n\nBody\n')
+        temp.write(b'X-Actually-From: foo@example.com\n'
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'
+                   b'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
@@ -97,9 +105,9 @@ class TestQueueProcessor(TestCase):
         self.qp.mailer = BrokenMailerStub()
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write('X-Actually-From: foo@example.com\n'
-                   'X-Actually-To: bar@example.com, baz@example.com\n'
-                   'Header: value\n\nBody\n')
+        temp.write(b'X-Actually-From: foo@example.com\n'
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'
+                   b'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
@@ -114,9 +122,9 @@ class TestQueueProcessor(TestCase):
         self.qp.mailer = SMTPResponseExceptionMailerStub(451)
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write('X-Actually-From: foo@example.com\n'
-                   'X-Actually-To: bar@example.com, baz@example.com\n'
-                   'Header: value\n\nBody\n')
+        temp.write(b'X-Actually-From: foo@example.com\n'
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'
+                   b'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
@@ -134,9 +142,9 @@ class TestQueueProcessor(TestCase):
         self.qp.mailer = SMTPResponseExceptionMailerStub(550)
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write('X-Actually-From: foo@example.com\n'
-                   'X-Actually-To: bar@example.com, baz@example.com\n'
-                   'Header: value\n\nBody\n')
+        temp.write(b'X-Actually-From: foo@example.com\n'
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'
+                   b'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
@@ -158,9 +166,9 @@ class TestQueueProcessor(TestCase):
         self.filename = os.path.join(self.dir, 'message')
 
         temp = open(self.filename, "w+b")
-        temp.write('X-Actually-From: foo@example.com\n'
-                   'X-Actually-To: bar@example.com, baz@example.com\n'
-                   'Header: value\n\nBody\n')
+        temp.write(b'X-Actually-From: foo@example.com\n'
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'
+                   b'Header: value\n\nBody\n')
         temp.close()
 
         self.qp.maildir.files.append(self.filename)
@@ -190,7 +198,6 @@ class TestConsoleApp(TestCase):
         self.maildir = Maildir(self.queue_dir, True)
         self.mailer = MailerStub()
 
-        from cStringIO import StringIO
         import sys
         self.save_stderr = sys.stderr
         sys.stderr = self.stderr = StringIO()

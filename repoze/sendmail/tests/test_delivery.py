@@ -16,15 +16,15 @@ import unittest
 from unittest import TestCase, TestSuite, makeSuite
 
 import transaction
-from zope.interface import implements
+from zope.interface import implementer
 from zope.interface.verify import verifyObject
 
 from repoze.sendmail.interfaces import IMailer
 
 
+@implementer(IMailer)
 class MailerStub(object):
 
-    implements(IMailer)
     def __init__(self, *args, **kw):
         self.sent_messages = []
 

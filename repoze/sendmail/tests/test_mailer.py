@@ -12,10 +12,9 @@
 #
 ##############################################################################
 
-from StringIO import StringIO
 from zope.interface.verify import verifyObject
 from repoze.sendmail.mailer import SMTPMailer
-import socket
+import ssl
 import unittest
 
 
@@ -50,7 +49,7 @@ class TestSMTPMailer(unittest.TestCase):
 
             def quit(self):
                 if self.fail_on_quit:
-                    raise socket.sslerror("dang")
+                    raise ssl.SSLError("dang")
                 self.quitted = True
                 self.close()
 
@@ -73,14 +72,14 @@ class TestSMTPMailer(unittest.TestCase):
         if port is None:
             self.mailer = SMTPMailer()
         else:
-            self.mailer = SMTPMailer(u'localhost', port)
+            self.mailer = SMTPMailer('localhost', port)
         self.mailer.smtp = SMTP
 
     def test_send(self):
         from email.message import Message
         for run in (1,2):
             if run == 2:
-                self.setUp(u'25')
+                self.setUp('25')
             fromaddr = 'me@example.com'
             toaddrs = ('you@example.com', 'him@example.com')
             msg = Message()
@@ -171,7 +170,7 @@ class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
         if port is None:
             self.mailer = SMTPMailer()
         else:
-            self.mailer = SMTPMailer(u'localhost', port)
+            self.mailer = SMTPMailer('localhost', port)
         self.mailer.smtp = SMTPWithNoEHLO
 
     def test_send_auth(self):

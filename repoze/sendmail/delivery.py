@@ -25,14 +25,14 @@ from random import randrange
 from socket import gethostname
 from time import strftime
 
-from zope.interface import implements
+from zope.interface import implementer
 from repoze.sendmail.interfaces import IMailDelivery
 from repoze.sendmail.maildir import Maildir
 from transaction.interfaces import IDataManager
 import transaction
 
+@implementer(IDataManager)
 class MailDataManager(object):
-    implements(IDataManager)
 
     def __init__(self, callable, args=(), onAbort=None):
         self.callable = callable
@@ -97,8 +97,8 @@ class AbstractMailDelivery(object):
         return messageid
 
 
+@implementer(IMailDelivery)
 class DirectMailDelivery(AbstractMailDelivery):
-    implements(IMailDelivery)
 
     def __init__(self, mailer):
         self.mailer = mailer
@@ -108,8 +108,8 @@ class DirectMailDelivery(AbstractMailDelivery):
                                args=(fromaddr, toaddrs, message))
 
 
+@implementer(IMailDelivery)
 class QueuedMailDelivery(AbstractMailDelivery):
-    implements(IMailDelivery)
 
     def __init__(self, queuePath):
         self._queuePath = queuePath
