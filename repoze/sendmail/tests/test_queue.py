@@ -158,7 +158,7 @@ class TestQueueProcessor(TestCase):
                             'permanent error: %s',
                             ('foo@example.com',
                              'bar@example.com, baz@example.com',
-                             "(550, 'Serious Error')"), {})])
+                             (550, 'Serious Error')), {})])
 
 
     def test_concurrent_delivery(self):

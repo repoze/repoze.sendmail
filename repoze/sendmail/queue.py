@@ -218,7 +218,7 @@ class QueueProcessor(object):
                     self.log.error(
                         "Discarding email from %s to %s due to"
                         " a permanent error: %s",
-                        fromaddr, ", ".join(toaddrs), str(e))
+                        fromaddr, ", ".join(toaddrs), e.args)
                     _os_link(filename, rejected_filename)
                 else:
                     # Log an error and retry later
