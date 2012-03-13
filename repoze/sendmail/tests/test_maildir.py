@@ -282,5 +282,5 @@ class TestMaildir(unittest.TestCase):
         self.fake_os_module.path.files[filename1] = 1
         tx_msg = MaildirTransactionalMessage(filename1, filename2)
         tx_msg.debug = True
-        del tx_msg
+        tx_msg.__del__()
         self.assertEqual(self.fake_os_module._removed_files, (filename1,))
