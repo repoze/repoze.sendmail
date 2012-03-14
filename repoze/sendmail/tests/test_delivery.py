@@ -18,7 +18,7 @@ from unittest import TestCase, TestSuite, makeSuite
 raw_header = str
 try:
     raw_header = unicode
-except NameError:
+except NameError: #pragma NO COVER
     pass  # Python 2 & 3 compat
 
 import transaction
