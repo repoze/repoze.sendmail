@@ -24,6 +24,9 @@ if sys.platform == 'win32': #pragma NO COVERAGE
 else:
     _os_link = os.link
 
+def _log_error(msg):
+    print(msg, sys.stderr)
+
 # The below diagram depicts the operations performed while sending a message.
 # This sequence of operations will be performed for each file in the maildir
 # on which ``send_message`` is called.
@@ -380,12 +383,11 @@ class ConsoleApp(object):
 
         if ((self.username or self.password)
             and not (self.username and self.password)):
-            print("Must use username and password together.", sys.stderr)
+            _log_error("Must use username and password together.")
             self._error = True
 
         if self.force_tls and self.no_tls:
-            print("--force-tls and --no-tls are mutually exclusive.",
-                  sys.stderr)
+            _log_error("--force-tls and --no-tls are mutually exclusive.")
             self._error = True
 
     def _load_config(self, path=None):
@@ -424,7 +426,7 @@ class ConsoleApp(object):
 
 
     def _error_usage(self):
-        print(self._usage % {"script_name": self.script_name}, sys.stderr)
+        _log_error(self._usage % {"script_name": self.script_name})
         self._error = True
 
 def run_console(): #pragma NO COVERAGE

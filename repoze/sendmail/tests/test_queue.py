@@ -207,6 +207,13 @@ class TestConsoleApp(TestCase):
         sys.stderr = self.save_stderr
         shutil.rmtree(self.dir)
 
+    def _captureLoggedErrors(self, cmdline):
+        from repoze.sendmail import queue
+        logged = []
+        with _Monkey(queue, _log_error=logged.append):
+            app = ConsoleApp(cmdline.split())
+        return app, logged
+
     def test_args_simple_ok(self):
         # Simplest case that works
         cmdline = "qp %s" % self.dir
@@ -225,7 +232,7 @@ class TestConsoleApp(TestCase):
     def test_args_simple_error(self):
         # Simplest case that doesn't work
         cmdline = "qp"
-        app = ConsoleApp(cmdline.split())
+        app, logged = self._captureLoggedErrors(cmdline)
         self.assertEquals("qp", app.script_name)
         self.assertTrue(app._error)
         self.assertEquals(None, app.queue_path)
@@ -236,6 +243,7 @@ class TestConsoleApp(TestCase):
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
         self.assertFalse(app.debug_smtp)
+        self.assertEqual(len(logged), 1)
         app.main()
 
     def test_args_full_monty(self):
@@ -259,54 +267,64 @@ class TestConsoleApp(TestCase):
     def test_args_username_no_password(self):
         # Test username without password
         cmdline = "qp --username chris %s" % self.dir
-        app = ConsoleApp(cmdline.split())
+        app, logged = self._captureLoggedErrors(cmdline)
         self.assertTrue(app._error)
+        self.assertEqual(len(logged), 1)
 
     def test_args_force_tls_no_tls(self):
         # Test force_tls and no_tls
         cmdline = "qp --force-tls --no-tls %s" % self.dir
-        app = ConsoleApp(cmdline.split())
+        app, logged = self._captureLoggedErrors(cmdline)
         self.assertTrue(app._error)
+        self.assertEqual(len(logged), 1)
 
     def test_args_hostname_no_hostname(self):
         cmdline = 'qp %s --hostname' % self.dir
-        app = ConsoleApp(cmdline.split())
+        app, logged = self._captureLoggedErrors(cmdline)
         self.assertTrue(app._error)
+        self.assertEqual(len(logged), 1)
 
     def test_args_port_no_port(self):
         cmdline = 'qp %s --port' % self.dir
-        app = ConsoleApp(cmdline.split())
+        app, logged = self._captureLoggedErrors(cmdline)
         self.assertTrue(app._error)
+        self.assertEqual(len(logged), 1)
 
     def test_args_bad_port(self):
         cmdline = 'qp %s --port foo' % self.dir
-        app = ConsoleApp(cmdline.split())
+        app, logged = self._captureLoggedErrors(cmdline)
         self.assertTrue(app._error)
+        self.assertEqual(len(logged), 1)
 
     def test_args_username_no_username(self):
         cmdline = 'qp %s --username' % self.dir
-        app = ConsoleApp(cmdline.split())
+        app, logged = self._captureLoggedErrors(cmdline)
         self.assertTrue(app._error)
+        self.assertEqual(len(logged), 1)
 
     def test_args_password_no_password(self):
         cmdline = 'qp %s --password' % self.dir
-        app = ConsoleApp(cmdline.split())
+        app, logged = self._captureLoggedErrors(cmdline)
         self.assertTrue(app._error)
+        self.assertEqual(len(logged), 1)
 
     def test_args_config_no_config(self):
         cmdline = 'qp %s --config' % self.dir
-        app = ConsoleApp(cmdline.split())
+        app, logged = self._captureLoggedErrors(cmdline)
         self.assertTrue(app._error)
+        self.assertEqual(len(logged), 1)
 
     def test_args_bad_arg(self):
         cmdline = 'qp --foo %s' % self.dir
-        app = ConsoleApp(cmdline.split())
+        app, logged = self._captureLoggedErrors(cmdline)
         self.assertTrue(app._error)
+        self.assertEqual(len(logged), 1)
 
     def test_args_too_many_queues(self):
         cmdline = 'qp %s foobar' % self.dir
-        app = ConsoleApp(cmdline.split())
+        app, logged = self._captureLoggedErrors(cmdline)
         self.assertTrue(app._error)
+        self.assertEqual(len(logged), 1)
 
     def test_ini_parse(self):
         ini_path = os.path.join(self.dir, "qp.ini")
@@ -381,3 +399,25 @@ force_tls = False
 no_tls = True
 queue_path = hammer/dont/hurt/em
 """
+
+
+class _Monkey(object):
+
+    def __init__(self, module, **replacements):
+        self.module = module
+        self.orig = {}
+        self.replacements = replacements
+        
+    def __enter__(self):
+        for k, v in self.replacements.items():
+            orig = getattr(self.module, k, self)
+            if orig is not self:
+                self.orig[k] = orig
+            setattr(self.module, k, v)
+
+    def __exit__(self, *exc_info):
+        for k, v in self.replacements.items():
+            if k in self.orig:
+                setattr(self.module, k, self.orig[k])
+            else: #pragma NO COVERSGE
+                delattr(self.module, k)
