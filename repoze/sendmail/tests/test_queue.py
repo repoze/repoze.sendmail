@@ -16,7 +16,7 @@ except NameError:
 try:
     from io import StringIO
     StringIO  # pyflakes
-except ImportError:
+except ImportError: #pragma NO COVER
     from StringIO import StringIO  # BBB Python 2 vs 3 compat
 
 from zope.interface import implementer
