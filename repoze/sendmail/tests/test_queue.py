@@ -128,6 +128,19 @@ class TestQueueProcessor(TestCase):
                              'bar@example.com, baz@example.com'),
                             {'exc_info': 1})])
 
+    def test_error_logging_no_addrs(self):
+        self.qp.mailer = BrokenMailerStub()
+        self.filename = os.path.join(self.dir, 'message')
+        temp = open(self.filename, "w+b")
+        temp.write(b'Header: value\n\nBody\n')
+        temp.close()
+        self.qp.maildir.files.append(self.filename)
+        self.qp.send_messages()
+        self.assertEquals(self.qp.log.errors,
+                          [('Error while sending mail : %s ',
+                            self.filename,
+                            {'exc_info': True})])
+
     def test_smtp_response_error_transient(self):
         # Test a transient error
         self.qp.mailer = SMTPResponseExceptionMailerStub(451)
@@ -171,7 +184,6 @@ class TestQueueProcessor(TestCase):
                              'bar@example.com, baz@example.com',
                              (550, 'Serious Error')), {})])
 
-
     def test_concurrent_delivery(self):
         # Attempt to send message
         self.filename = os.path.join(self.dir, 'message')
@@ -198,6 +210,39 @@ class TestQueueProcessor(TestCase):
             self.assertEquals(self.qp.log.infos, [])
         finally:
             os.unlink(tmp_filename)
+
+    def test_concurrent_delivery_w_old_file(self):
+        # Attempt to send message
+        self.filename = os.path.join(self.dir, 'message')
+
+        temp = open(self.filename, "w+b")
+        temp.write(b'X-Actually-From: foo@example.com\n'
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'
+                   b'Header: value\n\nBody\n')
+        temp.close()
+
+        self.qp.maildir.files.append(self.filename)
+
+        # Trick processor into thinking message is being delivered by
+        # another process.
+        head, tail = os.path.split(self.filename)
+        tmp_filename = os.path.join(head, '.sending-' + tail)
+        queue._os_link(self.filename, tmp_filename)
+        os.utime(tmp_filename, (1,1)) #mtime/utime 1970-01-01T00:00:01Z
+        self.qp.send_messages()
+
+        self.assertEquals(self.qp.mailer.sent_messages,
+                          [('foo@example.com',
+                            ('bar@example.com', 'baz@example.com'),
+                            'Header: value\n\nBody\n')])
+        self.failIf(os.path.exists(self.filename),
+                        'File still exists')
+        self.assertEquals(self.qp.log.infos,
+                          [('Mail from %s to %s sent.',
+                            ('foo@example.com',
+                             'bar@example.com, baz@example.com'),
+                            {})])
+        self.failIf(os.path.exists(tmp_filename))
 
 class TestConsoleApp(TestCase):
     def setUp(self):

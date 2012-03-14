@@ -9,9 +9,10 @@ import time
 
 try:
     import configparser
-    configparser  # pyflakes
 except ImportError:
     import ConfigParser as configparser  # BBB Python 2 vs 3 compat
+
+configparser  #pyflakes
 
 from email.parser import Parser
 
@@ -24,7 +25,7 @@ if sys.platform == 'win32': #pragma NO COVERAGE
 else:
     _os_link = os.link
 
-def _log_error(msg):
+def _log_error(msg): #pragma NO COVER
     print(msg, sys.stderr)
 
 # The below diagram depicts the operations performed while sending a message.
@@ -135,20 +136,20 @@ class QueueProcessor(object):
             # comment above this class
             try:
                 # find the age of the tmp file (if it exists)
-                age = None
                 mtime = os.stat(tmp_filename)[stat.ST_MTIME]
-                age = time.time() - mtime
             except OSError:
                 # BBB Python 2.5 compat
                 e = sys.exc_info()[1]
                 if e.errno == errno.ENOENT: # file does not exist
                     # the tmp file could not be stated because it
                     # doesn't exist, that's fine, keep going
-                    pass
-                else:
+                    age = None
+                else: #pragma NO COVER
                     # the tmp file could not be stated for some reason
                     # other than not existing; we'll report the error
                     raise
+            else:
+                age = time.time() - mtime
 
             # if the tmp file exists, check it's age
             if age is not None:
@@ -165,7 +166,7 @@ class QueueProcessor(object):
                         return
                     # if we get here, the file existed, but was too
                     # old, so it was unlinked
-                except OSError:
+                except OSError: #pragma NO COVER
                     # BBB Python 2.5 compat
                     e = sys.exc_info()[1]
                     if e.errno == errno.ENOENT: # file does not exist
@@ -181,7 +182,7 @@ class QueueProcessor(object):
             # more processes to touch the file "simultaneously")
             try:
                 os.utime(filename, None)
-            except OSError:
+            except OSError: #pragma NO COVER
                 # BBB Python 2.5 compat
                 e = sys.exc_info()[1]
                 if e.errno == errno.ENOENT: # file does not exist
@@ -189,7 +190,6 @@ class QueueProcessor(object):
                     # touch it, no need to complain, we'll just keep
                     # going
                     return
-
                 else:
                     # Some other error, propogate it
                     raise
@@ -198,14 +198,13 @@ class QueueProcessor(object):
             # also sending this message
             try:
                 _os_link(filename, tmp_filename)
-            except OSError:
+            except OSError: #pragma NO COVER
                 # BBB Python 2.5 compat
                 e = sys.exc_info()[1]
                 if e.errno == errno.EEXIST: # file exists, *nix
                     # it looks like someone else is sending this
                     # message too; we'll try again later
                     return
-
                 else:
                     # Some other error, propogate it
                     raise
@@ -239,7 +238,7 @@ class QueueProcessor(object):
 
             try:
                 os.remove(filename)
-            except OSError:
+            except OSError: #pragma NO COVER
                 # BBB Python 2.5 compat
                 e = sys.exc_info()[1]
                 if e.errno == errno.ENOENT: # file does not exist
@@ -251,7 +250,7 @@ class QueueProcessor(object):
 
             try:
                 os.remove(tmp_filename)
-            except OSError:
+            except OSError: #pragma NO COVER
                 # BBB Python 2.5 compat
                 e = sys.exc_info()[1]
                 if e.errno == errno.ENOENT: # file does not exist
