@@ -83,8 +83,11 @@ class Maildir(object):
                                       random.randrange(randmax))
             filename = join(subdir_tmp, unique)
             try:
-                fd = os.open(filename, os.O_CREAT|os.O_EXCL|os.O_WRONLY, 0600)
-            except OSError, e:
+                fd = os.open(filename,
+                             os.O_CREAT|os.O_EXCL|os.O_WRONLY,
+                             384  # BBB Python 2 vs 3, 0o600 in octal
+                             )
+            except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
                 # File exists

@@ -18,6 +18,7 @@ This module contains various implementations of Mail Deliveries.
 """
 
 from email.message import Message
+from email.header import Header
 from email.parser import Parser
 from email.utils import formatdate
 import os
@@ -25,14 +26,14 @@ from random import randrange
 from socket import gethostname
 from time import strftime
 
-from zope.interface import implements
+from zope.interface import implementer
 from repoze.sendmail.interfaces import IMailDelivery
 from repoze.sendmail.maildir import Maildir
 from transaction.interfaces import IDataManager
 import transaction
 
+@implementer(IDataManager)
 class MailDataManager(object):
-    implements(IDataManager)
 
     def __init__(self, callable, args=(), onAbort=None):
         self.callable = callable
@@ -97,8 +98,8 @@ class AbstractMailDelivery(object):
         return messageid
 
 
+@implementer(IMailDelivery)
 class DirectMailDelivery(AbstractMailDelivery):
-    implements(IMailDelivery)
 
     def __init__(self, mailer):
         self.mailer = mailer
@@ -108,8 +109,8 @@ class DirectMailDelivery(AbstractMailDelivery):
                                args=(fromaddr, toaddrs, message))
 
 
+@implementer(IMailDelivery)
 class QueuedMailDelivery(AbstractMailDelivery):
-    implements(IMailDelivery)
 
     def __init__(self, queuePath):
         self._queuePath = queuePath
@@ -119,8 +120,8 @@ class QueuedMailDelivery(AbstractMailDelivery):
 
     def createDataManager(self, fromaddr, toaddrs, message):
         message = copy_message(message)
-        message['X-Actually-From'] = fromaddr
-        message['X-Actually-To'] = ','.join(toaddrs)
+        message['X-Actually-From'] = Header(fromaddr, 'utf-8')
+        message['X-Actually-To'] = Header(','.join(toaddrs), 'utf-8')
         maildir = Maildir(self.queuePath, True)
         tx_message = maildir.add(message)
         return MailDataManager(tx_message.commit, onAbort=tx_message.abort)

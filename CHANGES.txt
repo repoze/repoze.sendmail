@@ -1,10 +1,10 @@
 Change history
 ~~~~~~~~~~~~~~
 
-Unreleased
-----------
+2.4 (Unreleased)
+----------------
 
-- ...
+- cPython 2.6, 2.7, 3.2 and pypy 1.8 compatibility.
 
 2.3 (2011-05-17)
 ----------------

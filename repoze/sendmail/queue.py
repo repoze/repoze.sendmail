@@ -1,4 +1,3 @@
-import ConfigParser
 import errno
 import logging
 import os
@@ -7,6 +6,12 @@ import smtplib
 import stat
 import sys
 import time
+
+try:
+    import configparser
+    configparser  # pyflakes
+except ImportError:
+    import ConfigParser as configparser  # BBB Python 2 vs 3 compat
 
 from email.parser import Parser
 
@@ -130,7 +135,7 @@ class QueueProcessor(object):
                 age = None
                 mtime = os.stat(tmp_filename)[stat.ST_MTIME]
                 age = time.time() - mtime
-            except OSError, e:
+            except OSError as e:
                 if e.errno == errno.ENOENT: # file does not exist
                     # the tmp file could not be stated because it
                     # doesn't exist, that's fine, keep going
@@ -155,7 +160,7 @@ class QueueProcessor(object):
                         return
                     # if we get here, the file existed, but was too
                     # old, so it was unlinked
-                except OSError, e:
+                except OSError as e:
                     if e.errno == errno.ENOENT: # file does not exist
                         # it looks like someone else removed the tmp
                         # file, that's fine, we'll try to deliver the
@@ -169,7 +174,7 @@ class QueueProcessor(object):
             # more processes to touch the file "simultaneously")
             try:
                 os.utime(filename, None)
-            except OSError, e:
+            except OSError as e:
                 if e.errno == errno.ENOENT: # file does not exist
                     # someone removed the message before we could
                     # touch it, no need to complain, we'll just keep
@@ -184,7 +189,7 @@ class QueueProcessor(object):
             # also sending this message
             try:
                 _os_link(filename, tmp_filename)
-            except OSError, e:
+            except OSError as e:
                 if e.errno == errno.EEXIST: # file exists, *nix
                     # it looks like someone else is sending this
                     # message too; we'll try again later
@@ -198,7 +203,7 @@ class QueueProcessor(object):
             # test_concurrent_delivery passes, this stanza can be
             # deleted.  Otherwise we probably need to catch
             # WindowsError and check for corresponding error code.
-            #except error, e:
+            #except error as e:
             #    if e[0] == 183 and e[1] == 'CreateHardLink':
             #        # file exists, win32
             #        return
@@ -207,13 +212,13 @@ class QueueProcessor(object):
             fromaddr, toaddrs, message = self._parseMessage(open(filename))
             try:
                 self.mailer.send(fromaddr, toaddrs, message)
-            except smtplib.SMTPResponseException, e:
+            except smtplib.SMTPResponseException as e:
                 if 500 <= e.smtp_code <= 599:
                     # permanent error, ditch the message
                     self.log.error(
                         "Discarding email from %s to %s due to"
                         " a permanent error: %s",
-                        fromaddr, ", ".join(toaddrs), str(e))
+                        fromaddr, ", ".join(toaddrs), e.args)
                     _os_link(filename, rejected_filename)
                 else:
                     # Log an error and retry later
@@ -221,7 +226,7 @@ class QueueProcessor(object):
 
             try:
                 os.remove(filename)
-            except OSError, e:
+            except OSError as e:
                 if e.errno == errno.ENOENT: # file does not exist
                     # someone else unlinked the file; oh well
                     pass
@@ -231,7 +236,7 @@ class QueueProcessor(object):
 
             try:
                 os.remove(tmp_filename)
-            except OSError, e:
+            except OSError as e:
                 if e.errno == errno.ENOENT: # file does not exist
                     # someone else unlinked the file; oh well
                     pass
@@ -375,12 +380,12 @@ class ConsoleApp(object):
 
         if ((self.username or self.password)
             and not (self.username and self.password)):
-            print >>sys.stderr, "Must use username and password together."
+            print("Must use username and password together.", sys.stderr)
             self._error = True
 
         if self.force_tls and self.no_tls:
-            print >>sys.stderr, \
-                  "--force-tls and --no-tls are mutually exclusive."
+            print("--force-tls and --no-tls are mutually exclusive.",
+                  sys.stderr)
             self._error = True
 
     def _load_config(self, path=None):
@@ -405,7 +410,7 @@ class ConsoleApp(object):
             "debug_smtp",
         ]
         defaults = dict([(name, str(getattr(self, name))) for name in names])
-        config = ConfigParser.ConfigParser(defaults)
+        config = configparser.ConfigParser(defaults)
         config.read(path)
 
         self.hostname = config.get(section, "hostname")
@@ -419,7 +424,7 @@ class ConsoleApp(object):
 
 
     def _error_usage(self):
-        print >>sys.stderr, self._usage % {"script_name": self.script_name,}
+        print(self._usage % {"script_name": self.script_name}, sys.stderr)
         self._error = True
 
 def run_console(): #pragma NO COVERAGE
