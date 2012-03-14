@@ -19,7 +19,7 @@ from unittest import TestCase, TestSuite, makeSuite
 raw_header = b = str
 try:
     raw_header = unicode
-except NameError:
+except NameError: #pragma NO COVER
     import codecs
     def b(x): return codecs.latin_1_encode(x)[0]
 
