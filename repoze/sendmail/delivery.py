@@ -18,6 +18,7 @@ This module contains various implementations of Mail Deliveries.
 """
 
 from email.message import Message
+from email.header import Header
 from email.parser import Parser
 from email.utils import formatdate
 import os
@@ -119,8 +120,8 @@ class QueuedMailDelivery(AbstractMailDelivery):
 
     def createDataManager(self, fromaddr, toaddrs, message):
         message = copy_message(message)
-        message['X-Actually-From'] = fromaddr
-        message['X-Actually-To'] = ','.join(toaddrs)
+        message['X-Actually-From'] = Header(fromaddr, 'utf-8')
+        message['X-Actually-To'] = Header(','.join(toaddrs), 'utf-8')
         maildir = Maildir(self.queuePath, True)
         tx_message = maildir.add(message)
         return MailDataManager(tx_message.commit, onAbort=tx_message.abort)

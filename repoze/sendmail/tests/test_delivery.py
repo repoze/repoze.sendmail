@@ -15,6 +15,12 @@
 import unittest
 from unittest import TestCase, TestSuite, makeSuite
 
+raw_header = str
+try:
+    raw_header = unicode
+except NameError:
+    pass  # Python 2 & 3 compat
+
 import transaction
 from zope.interface import implementer
 from zope.interface.verify import verifyObject
@@ -172,8 +178,9 @@ class TestQueuedMailDelivery(TestCase):
         self.assertEquals(len(MaildirMessageStub.commited_messages), 1)
         self.assertEquals(MaildirMessageStub.aborted_messages, [])
         message = MaildirMessageStub.commited_messages[0]
-        self.assertEqual(message['X-Actually-From'], fromaddr)
-        self.assertEqual(message['X-Actually-To'], ','.join(toaddrs))
+        self.assertEqual(raw_header(message['X-Actually-From']), fromaddr)
+        self.assertEqual(raw_header(
+            message['X-Actually-To']), ','.join(toaddrs))
 
         MaildirMessageStub.commited_messages = []
         msgid = delivery.send(fromaddr, toaddrs, message)
@@ -194,3 +201,21 @@ class TestQueuedMailDelivery(TestCase):
         transaction.abort()
         self.assertEquals(MaildirMessageStub.commited_messages, [])
         self.assertEquals(len(MaildirMessageStub.aborted_messages), 1)
+
+    def testNonASCIIAddrs(self):
+        from email.message import Message
+        from repoze.sendmail.delivery import QueuedMailDelivery
+        delivery = QueuedMailDelivery('/path/to/mailbox')
+
+        non_ascii = b'LaPe\xc3\xb1a'.decode('utf-8')
+        fromaddr = non_ascii+' <jim@example.com>'
+        toaddrs = (non_ascii+' <guido@recip.com>',)
+        message = Message()
+
+        delivery.send(fromaddr, toaddrs, message)
+        transaction.commit()
+        message = MaildirMessageStub.commited_messages[0]
+
+        self.assertEqual(raw_header(message['X-Actually-From']), fromaddr)
+        self.assertEqual(raw_header(
+            message['X-Actually-To']), ','.join(toaddrs))
