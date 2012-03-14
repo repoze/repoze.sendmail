@@ -6,6 +6,8 @@ Change history
 
 - cPython 2.6, 2.7, 3.2 and pypy 1.8 compatibility.
 
+- This release is no longer Python 2.5 compatible.
+
 2.3 (2011-05-17)
 ----------------
 
