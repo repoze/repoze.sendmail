@@ -46,6 +46,7 @@ class SMTPMailer(object):
     def send(self, fromaddr, toaddrs, message):
         assert isinstance(message, Message), \
                'Message must be instance of email.message.Message'
+        message = message.as_string()
 
         connection = self.smtp_factory()
 

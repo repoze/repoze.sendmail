@@ -14,6 +14,7 @@
 
 from zope.interface.verify import verifyObject
 from repoze.sendmail.mailer import SMTPMailer
+import email
 import ssl
 import unittest
 
@@ -115,11 +116,12 @@ class TestSMTPMailer(unittest.TestCase):
         fromaddr = 'me@example.com'
         toaddrs = ('you@example.com', 'him@example.com')
         msgtext = 'Headers: headers\n\nbodybodybody\n-- \nsig\n'
+        msg = email.message_from_string(msgtext)
         self.mailer.username = 'foo'
         self.mailer.password = 'evil'
         self.mailer.hostname = 'spamrelay'
         self.mailer.port = 31337
-        self.mailer.send(fromaddr, toaddrs, msgtext)
+        self.mailer.send(fromaddr, toaddrs, msg)
         self.assertEquals(self.smtp.username, 'foo')
         self.assertEquals(self.smtp.password, 'evil')
         self.assertEquals(self.smtp.hostname, 'spamrelay')
@@ -136,7 +138,8 @@ class TestSMTPMailer(unittest.TestCase):
             fromaddr = 'me@example.com'
             toaddrs = ('you@example.com', 'him@example.com')
             msgtext = 'Headers: headers\n\nbodybodybody\n-- \nsig\n'
-            self.mailer.send(fromaddr, toaddrs, msgtext)
+            msg = email.message_from_string(msgtext)
+            self.mailer.send(fromaddr, toaddrs, msg)
             self.assertEquals(self.smtp.fromaddr, fromaddr)
             self.assertEquals(self.smtp.toaddrs, toaddrs)
             self.assertEquals(self.smtp.msgtext, msgtext)
