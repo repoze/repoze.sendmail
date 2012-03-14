@@ -64,8 +64,8 @@ class IMailDelivery(Interface):
 
         `toaddrs` is a sequence of recipient addresses (byte strings).
 
-        `message` is a byte string that contains both headers and body
-        formatted according to RFC 2822.  If it does not contain a Message-Id
+        `message` is a `Message` object from the stdlib
+        `email.message` module.  If it does not contain a Message-Id
         header, it will be generated and added automatically.
 
         Returns the message ID.
@@ -87,9 +87,9 @@ class IMailer(Interface):
 
         `toaddrs` is a sequence of recipient addresses (unicode strings).
 
-        `message` contains both headers and body formatted according to RFC
-        2822.  It should contain at least Date, From, To, and Message-Id
-        headers.
+        `message` is a `Message` object from the stdlib
+        `email.message` module.  If it does not contain a Message-Id
+        header, it will be generated and added automatically.
 
         Messages are sent immediatelly.
 
