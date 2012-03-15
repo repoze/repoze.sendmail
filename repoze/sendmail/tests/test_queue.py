@@ -5,8 +5,7 @@ import os.path
 import shutil
 import smtplib
 from tempfile import mkdtemp
-import unittest
-from unittest import TestCase, TestSuite, makeSuite
+from unittest import TestCase
 
 try:
     from io import StringIO
@@ -127,7 +126,7 @@ class TestQueueProcessor(TestCase):
         self.qp.send_messages()
         self.assertEquals(self.qp.log.errors,
                           [('Error while sending mail : %s ',
-                            self.filename,
+                            (self.filename,),
                             {'exc_info': True})])
 
     def test_smtp_response_error_transient(self):
