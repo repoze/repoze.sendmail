@@ -92,7 +92,7 @@ class AbstractMailDelivery(object):
                'Message must be instance of email.message.Message'
         messageid = message['Message-Id']
         if messageid is None:
-            messageid = message['Message-Id:'] = self.newMessageId()
+            messageid = message['Message-Id'] = self.newMessageId()
         if message['Date'] is None:
             message['Date'] = formatdate()
         transaction.get().join(

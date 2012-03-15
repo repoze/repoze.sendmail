@@ -103,6 +103,24 @@ class TestDirectMailDelivery(TestCase):
         transaction.abort()
         self.assertEquals(mailer.sent_messages, [])
 
+    def testMakeMessageId(self):
+        from repoze.sendmail.delivery import DirectMailDelivery
+        from email.message import Message
+        mailer = MailerStub()
+        delivery = DirectMailDelivery(mailer)
+        fromaddr = 'Jim <jim@example.com'
+        toaddrs = ('Guido <guido@example.com>',
+                   'Steve <steve@examplecom>')
+        message = Message()
+        message['From'] = 'Jim <jim@example.org>'
+        message['To'] = 'some-zope-coders:;'
+        message['Date'] = 'Date: Mon, 19 May 2003 10:17:36 -0400'
+        message['Subject'] = 'example'
+        message.set_payload('This is just an example\n')
+
+        msgid = delivery.send(fromaddr, toaddrs, message)
+        self.assertEqual(message['Message-Id'],  msgid)
+
 
 class MaildirMessageStub(object):
     message = None
