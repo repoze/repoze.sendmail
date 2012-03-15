@@ -18,7 +18,7 @@ from unittest import TestCase
 raw_header = b = str
 try:
     raw_header = unicode
-except NameError:
+except NameError: #pragma NO COVER
     import codecs
     def b(x): return codecs.latin_1_encode(x)[0]
 
@@ -73,7 +73,7 @@ class TestDirectMailDelivery(TestCase):
         message['From'] = 'Jim <jim@example.org>'
         message['To'] = 'some-zope-coders:;'
         message['Date'] = 'Date: Mon, 19 May 2003 10:17:36 -0400'
-        message['Message-Id'] = '<20030519.1234@example.org>'
+        message['Message-Id'] = ext_msgid = '<20030519.1234@example.org>'
         message['Subject'] = 'example'
         message.set_payload('This is just an example\n')
 
@@ -95,12 +95,32 @@ class TestDirectMailDelivery(TestCase):
         self.assertEquals(mailer.sent_messages[0][2].get_payload(),
                           'This is just an example\n')
         self.assertEqual(message['Message-Id'],  msgid)
+        self.assertEqual(message['Message-Id'], ext_msgid)
 
         mailer.sent_messages = []
         msgid = delivery.send(fromaddr, toaddrs, message)
         self.assertEquals(mailer.sent_messages, [])
         transaction.abort()
         self.assertEquals(mailer.sent_messages, [])
+
+    def testMakeMessageId(self):
+        from repoze.sendmail.delivery import DirectMailDelivery
+        from email.message import Message
+        mailer = MailerStub()
+        delivery = DirectMailDelivery(mailer)
+        fromaddr = 'Jim <jim@example.com'
+        toaddrs = ('Guido <guido@example.com>',
+                   'Steve <steve@examplecom>')
+        message = Message()
+        message['From'] = 'Jim <jim@example.org>'
+        message['To'] = 'some-zope-coders:;'
+        message['Date'] = 'Date: Mon, 19 May 2003 10:17:36 -0400'
+        message['Subject'] = 'example'
+        message.set_payload('This is just an example\n')
+
+        msgid = delivery.send(fromaddr, toaddrs, message)
+        self.assertTrue('.repoze.sendmail@' in msgid)
+        self.assertEqual(message['Message-Id'],  msgid)
 
 
 class MaildirMessageStub(object):
@@ -169,7 +189,7 @@ class TestQueuedMailDelivery(TestCase):
         message['From'] = 'Jim <jim@example.org>'
         message['To'] = 'some-zope-coders:;'
         message['Date'] = 'Date: Mon, 19 May 2003 10:17:36 -0400'
-        message['Message-Id'] = '<20030519.1234@example.org>'
+        message['Message-Id'] = ext_msgid = '<20030519.1234@example.org>'
         message['Subject'] = 'example'
         message.set_payload('This is just an example\n')
 
@@ -195,6 +215,7 @@ class TestQueuedMailDelivery(TestCase):
         self.assertEqual(MaildirMessageStub.commited_messages[0].get_payload(),
                          'This is just an example\n')
         self.assertEqual(message['Message-Id'], msgid)
+        self.assertEqual(message['Message-Id'], ext_msgid)
         self.assertEquals(MaildirMessageStub.aborted_messages, [])
 
         MaildirMessageStub.commited_messages = []

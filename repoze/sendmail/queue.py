@@ -137,7 +137,6 @@ class QueueProcessor(object):
             try:
                 # find the age of the tmp file (if it exists)
                 mtime = os.stat(tmp_filename)[stat.ST_MTIME]
-                age = time.time() - mtime
             except OSError:
                 # BBB Python 2.5 compat
                 e = sys.exc_info()[1]
@@ -167,7 +166,7 @@ class QueueProcessor(object):
                         return
                     # if we get here, the file existed, but was too
                     # old, so it was unlinked
-                except OSError:
+                except OSError: #pragma NO COVER
                     # BBB Python 2.5 compat
                     e = sys.exc_info()[1]
                     if e.errno == errno.ENOENT: # file does not exist
@@ -183,7 +182,7 @@ class QueueProcessor(object):
             # more processes to touch the file "simultaneously")
             try:
                 os.utime(filename, None)
-            except OSError:
+            except OSError: #pragma NO COVER
                 # BBB Python 2.5 compat
                 e = sys.exc_info()[1]
                 if e.errno == errno.ENOENT: # file does not exist
@@ -199,7 +198,7 @@ class QueueProcessor(object):
             # also sending this message
             try:
                 _os_link(filename, tmp_filename)
-            except OSError:
+            except OSError: #pragma NO COVER
                 # BBB Python 2.5 compat
                 e = sys.exc_info()[1]
                 if e.errno == errno.EEXIST: # file exists, *nix
@@ -239,7 +238,7 @@ class QueueProcessor(object):
 
             try:
                 os.remove(filename)
-            except OSError:
+            except OSError: #pragma NO COVER
                 # BBB Python 2.5 compat
                 e = sys.exc_info()[1]
                 if e.errno == errno.ENOENT: # file does not exist
@@ -251,7 +250,7 @@ class QueueProcessor(object):
 
             try:
                 os.remove(tmp_filename)
-            except OSError:
+            except OSError: #pragma NO COVER
                 # BBB Python 2.5 compat
                 e = sys.exc_info()[1]
                 if e.errno == errno.ENOENT: # file does not exist
