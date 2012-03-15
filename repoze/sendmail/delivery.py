@@ -21,6 +21,7 @@ from email.message import Message
 from email.header import Header
 from email.parser import Parser
 from email.utils import formatdate
+from email.utils import make_msgid
 import os
 from random import randrange
 from socket import gethostname
@@ -79,20 +80,12 @@ MailDataManager = implementer(IDataManager)(MailDataManager)
 
 class AbstractMailDelivery(object):
 
-    def newMessageId(self):
-        """Generates a new message ID according to RFC 2822 rules"""
-        randmax = 0x7fffffff
-        left_part = '%s.%d.%d' % (strftime('%Y%m%d%H%M%S'),
-                                  os.getpid(),
-                                  randrange(0, randmax))
-        return "%s@%s" % (left_part, gethostname())
-
     def send(self, fromaddr, toaddrs, message):
         assert isinstance(message, Message), \
                'Message must be instance of email.message.Message'
         messageid = message['Message-Id']
         if messageid is None:
-            messageid = message['Message-Id'] = self.newMessageId()
+            messageid = message['Message-Id'] = make_msgid('repoze.sendmail')
         if message['Date'] is None:
             message['Date'] = formatdate()
         transaction.get().join(

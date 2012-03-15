@@ -119,6 +119,7 @@ class TestDirectMailDelivery(TestCase):
         message.set_payload('This is just an example\n')
 
         msgid = delivery.send(fromaddr, toaddrs, message)
+        self.assertTrue('.repoze.sendmail@' in msgid)
         self.assertEqual(message['Message-Id'],  msgid)
 
 
