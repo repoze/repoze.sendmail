@@ -1,14 +1,13 @@
 Change history
 ~~~~~~~~~~~~~~
 
-2.4 (Unreleased)
+3.0 (Unreleased)
 ----------------
 
-- Provide improved support for encoding messages to bytes.  It should
-  now be possible to represent your messages in
-  `email.message.Message` objects just with unicode (excepting bytes
-  for binary attachments) and the mailer will handler it as
-  appropriate.
+- Provide improved support for encoding messages to bytes.  It should now be
+  possible to represent your messages in `email.message.Message` objects just
+  with unicode (excepting bytes for binary attachments) and the mailer will
+  handler it as appropriate.
 
 - cPython 2.6, 2.7, 3.2 and pypy 1.8 compatibility.
 

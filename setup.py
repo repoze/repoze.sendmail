@@ -21,7 +21,7 @@ if sys.version < '2.6':
     transaction = 'transaction<1.2'
 
 setup(name='repoze.sendmail',
-      version = '2.4dev',
+      version = '3.0dev',
       url='http://www.repoze.org',
       license='ZPL 2.1',
       description='Repoze Sendmail',
