@@ -110,9 +110,9 @@ class TestEncoding(unittest.TestCase):
 
         encoded = self.encode()
 
-        self.assertTrue(b'To: =?utf_8?' in encoded)
-        self.assertTrue(b'From: =?utf_8?' in encoded)
-        self.assertTrue(b'Subject: =?utf_8?' in encoded)
+        self.assertTrue(b'To: =?utf' in encoded)
+        self.assertTrue(b'From: =?utf' in encoded)
+        self.assertTrue(b'Subject: =?utf' in encoded)
         self.assertTrue(b'<chrism@example.com>' in encoded)
         self.assertTrue(b'<chrisr@example.com>' in encoded)
         self.assertTrue(b'<rpatterson@example.com>' in encoded)
