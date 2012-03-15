@@ -91,8 +91,8 @@ class TestSMTPMailer(unittest.TestCase):
             self.assertEqual(self.smtp.toaddrs, toaddrs)
             self.assertEqual(
                 self.smtp.msgtext, msg.as_string().encode('ascii'))
-            self.assert_(self.smtp.quitted)
-            self.assert_(self.smtp.closed)
+            self.assertTrue(self.smtp.quitted)
+            self.assertTrue(self.smtp.closed)
 
     def test_fail_ehlo(self):
         from email.message import Message
@@ -133,8 +133,8 @@ class TestSMTPMailer(unittest.TestCase):
         self.assertEqual(self.smtp.toaddrs, toaddrs)
         self.assertTrue(body.encode('ascii') in self.smtp.msgtext)
         self.assertTrue(headers.encode('ascii') in self.smtp.msgtext)
-        self.assert_(self.smtp.quitted)
-        self.assert_(self.smtp.closed)
+        self.assertTrue(self.smtp.quitted)
+        self.assertTrue(self.smtp.closed)
 
     def test_send_failQuit(self):
         self.mailer.smtp.fail_on_quit = True
@@ -150,8 +150,8 @@ class TestSMTPMailer(unittest.TestCase):
             self.assertEqual(self.smtp.toaddrs, toaddrs)
             self.assertTrue(body.encode('ascii') in self.smtp.msgtext)
             self.assertTrue(headers.encode('ascii') in self.smtp.msgtext)
-            self.assert_(not self.smtp.quitted)
-            self.assert_(self.smtp.closed)
+            self.assertTrue(not self.smtp.quitted)
+            self.assertTrue(self.smtp.closed)
         finally:
             self.mailer.smtp.fail_on_quit = False
 
