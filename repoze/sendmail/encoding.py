@@ -68,6 +68,14 @@ def encode_message(message,
                 value = encoded
             value = charset.Charset(best).header_encode(value)
             message.replace_header(key, value)
+
+    payload = message.get_payload()
+    if payload:
+        best, encoded = best_charset(payload)
+        if BBB_PY_2:
+            payload = encoded
+        message.set_payload(payload, charset=best)
+
     return message.as_string().encode('ascii')
 
 

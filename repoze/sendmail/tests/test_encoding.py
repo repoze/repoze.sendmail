@@ -13,8 +13,10 @@
 ##############################################################################
 
 import unittest
+import base64
+import quopri
 from email import message
-from email import utils
+from email import encoders
 
 try:
     from urllib.parse import quote
@@ -144,3 +146,27 @@ class TestEncoding(unittest.TestCase):
             b"Content-Disposition: attachment; filename*=" in encoded)
         self.assertTrue(b"utf_8''"+quote(self.utf_8_encoded).encode('ascii')
                         in encoded)
+
+    def test_encoding_ascii_body(self):
+        body = 'I know what you did last PyCon'
+        self.message.set_payload(body)
+
+        encoded = self.encode()
+
+        self.assertTrue(body.encode('ascii') in encoded)
+
+    def test_encoding_latin_1_body(self):
+        body = 'I know what you did last '+self.latin_1
+        self.message.set_payload(body)
+
+        encoded = self.encode()
+
+        self.assertTrue(quopri.encodestring(body.encode('latin_1')) in encoded)
+
+    def test_encoding_utf_8_body(self):
+        body = 'I know what you did last '+self.utf_8
+        self.message.set_payload(body)
+
+        encoded = self.encode()
+
+        self.assertTrue(base64.encodestring(body.encode('utf_8')) in encoded)
