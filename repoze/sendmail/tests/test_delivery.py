@@ -73,7 +73,7 @@ class TestDirectMailDelivery(TestCase):
         message['From'] = 'Jim <jim@example.org>'
         message['To'] = 'some-zope-coders:;'
         message['Date'] = 'Date: Mon, 19 May 2003 10:17:36 -0400'
-        message['Message-Id'] = '<20030519.1234@example.org>'
+        message['Message-Id'] = ext_msgid = '<20030519.1234@example.org>'
         message['Subject'] = 'example'
         message.set_payload('This is just an example\n')
 
@@ -95,6 +95,7 @@ class TestDirectMailDelivery(TestCase):
         self.assertEquals(mailer.sent_messages[0][2].get_payload(),
                           'This is just an example\n')
         self.assertEqual(message['Message-Id'],  msgid)
+        self.assertEqual(message['Message-Id'], ext_msgid)
 
         mailer.sent_messages = []
         msgid = delivery.send(fromaddr, toaddrs, message)
@@ -169,7 +170,7 @@ class TestQueuedMailDelivery(TestCase):
         message['From'] = 'Jim <jim@example.org>'
         message['To'] = 'some-zope-coders:;'
         message['Date'] = 'Date: Mon, 19 May 2003 10:17:36 -0400'
-        message['Message-Id'] = '<20030519.1234@example.org>'
+        message['Message-Id'] = ext_msgid = '<20030519.1234@example.org>'
         message['Subject'] = 'example'
         message.set_payload('This is just an example\n')
 
@@ -195,6 +196,7 @@ class TestQueuedMailDelivery(TestCase):
         self.assertEqual(MaildirMessageStub.commited_messages[0].get_payload(),
                          'This is just an example\n')
         self.assertEqual(message['Message-Id'], msgid)
+        self.assertEqual(message['Message-Id'], ext_msgid)
         self.assertEquals(MaildirMessageStub.aborted_messages, [])
 
         MaildirMessageStub.commited_messages = []
