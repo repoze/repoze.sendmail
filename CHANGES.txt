@@ -9,7 +9,7 @@ Change history
   with unicode (excepting bytes for binary attachments) and the mailer will
   handler it as appropriate.
 
-- cPython 2.6, 2.7, 3.2 and pypy 1.8 compatibility.
+- cPython 2.5, 2.6, 2.7, 3.2 and pypy 1.8 compatibility.
 
 - This release is no longer Python 2.5 compatible.
 

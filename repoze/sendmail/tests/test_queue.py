@@ -1,6 +1,7 @@
 import os.path
 import shutil
 import smtplib
+import sys
 from tempfile import mkdtemp
 from unittest import TestCase
 
@@ -131,7 +132,7 @@ class TestQueueProcessor(TestCase):
         self.qp.mailer = BrokenMailerStub()
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write(b'Header: value\n\nBody\n')
+        temp.write(b('Header: value\n\nBody\n'))
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
@@ -215,9 +216,9 @@ class TestQueueProcessor(TestCase):
         self.filename = os.path.join(self.dir, 'message')
 
         temp = open(self.filename, "w+b")
-        temp.write(b'X-Actually-From: foo@example.com\n'
-                   b'X-Actually-To: bar@example.com, baz@example.com\n'
-                   b'Header: value\n\nBody\n')
+        temp.write(b('X-Actually-From: foo@example.com\n'
+                     'X-Actually-To: bar@example.com, baz@example.com\n'
+                     'Header: value\n\nBody\n'))
         temp.close()
 
         self.qp.maildir.files.append(self.filename)
@@ -253,20 +254,25 @@ class TestConsoleApp(TestCase):
         self.maildir = Maildir(self.queue_dir, True)
         self.mailer = MailerStub()
 
-        import sys
         self.save_stderr = sys.stderr
         sys.stderr = self.stderr = StringIO()
 
     def tearDown(self):
-        import sys
         sys.stderr = self.save_stderr
         shutil.rmtree(self.dir)
 
     def _captureLoggedErrors(self, cmdline):
         from repoze.sendmail import queue
         logged = []
-        with _Monkey(queue, _log_error=logged.append):
+        monkey = _Monkey(queue, _log_error=logged.append)
+        # py 25 compat, can't use with statement
+        exc_info = ()
+        try:
+            monkey.__enter__()
             app = ConsoleApp(cmdline.split())
+        except:
+            exc_info = sys.exc_info()
+        monkey.__exit__(*exc_info)
         return app, logged
 
     def test_args_simple_ok(self):

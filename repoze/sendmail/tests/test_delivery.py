@@ -12,8 +12,7 @@
 #
 ##############################################################################
 
-import unittest
-from unittest import TestCase, TestSuite, makeSuite
+from unittest import TestCase
 
 # BBB Python 2 & 3 compat
 raw_header = b = str
