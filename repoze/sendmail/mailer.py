@@ -15,8 +15,13 @@
 from email.message import Message
 
 import socket
-import ssl
 from smtplib import SMTP
+
+try:
+    from ssl import SSLError
+except ImportError:
+    # BBB Python 2.5
+    from socket import sslerror as SSLError
 
 from zope.interface import implementer
 from repoze.sendmail.interfaces import IMailer
@@ -24,7 +29,7 @@ from repoze.sendmail import encoding
 
 have_ssl = hasattr(socket, 'ssl')
 
-@implementer(IMailer)
+
 class SMTPMailer(object):
 
     smtp = SMTP
@@ -78,6 +83,9 @@ class SMTPMailer(object):
         connection.sendmail(fromaddr, toaddrs, message)
         try:
             connection.quit()
-        except ssl.SSLError:
+        except SSLError:
             #something weird happened while quiting
             connection.close()
+
+# BBB Python 2.5 compat
+SMTPMailer = implementer(IMailer)(SMTPMailer)
