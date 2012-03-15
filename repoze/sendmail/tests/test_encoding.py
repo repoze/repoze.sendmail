@@ -16,7 +16,8 @@ import unittest
 import base64
 import quopri
 from email import message
-from email import encoders
+from email.mime import multipart
+from email.mime import application
 
 try:
     from urllib.parse import quote
@@ -170,3 +171,12 @@ class TestEncoding(unittest.TestCase):
         encoded = self.encode()
 
         self.assertTrue(base64.encodestring(body.encode('utf_8')) in encoded)
+
+    def test_binary_body(self):
+        body = b'I know what you did last PyCon'
+        self.message = multipart.MIMEMultipart()
+        self.message.attach(application.MIMEApplication(body))
+
+        encoded = self.encode()
+
+        self.assertTrue(base64.encodestring(body) in encoded)
