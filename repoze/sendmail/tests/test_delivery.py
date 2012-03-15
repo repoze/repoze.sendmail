@@ -12,14 +12,15 @@
 #
 ##############################################################################
 
-import unittest
-from unittest import TestCase, TestSuite, makeSuite
+from unittest import TestCase
 
-raw_header = str
+# BBB Python 2 & 3 compat
+raw_header = b = str
 try:
     raw_header = unicode
-except NameError: #pragma NO COVER
-    pass  # Python 2 & 3 compat
+except NameError:
+    import codecs
+    def b(x): return codecs.latin_1_encode(x)[0]
 
 import transaction
 from zope.interface import implementer
@@ -28,7 +29,6 @@ from zope.interface.verify import verifyObject
 from repoze.sendmail.interfaces import IMailer
 
 
-@implementer(IMailer)
 class MailerStub(object):
 
     def __init__(self, *args, **kw):
@@ -36,6 +36,9 @@ class MailerStub(object):
 
     def send(self, fromaddr, toaddrs, message):
         self.sent_messages.append((fromaddr, toaddrs, message))
+
+# BBB Python 2.5 compat
+MailerStub = implementer(IMailer)(MailerStub)
 
 
 class TestMailDataManager(TestCase):
@@ -207,7 +210,7 @@ class TestQueuedMailDelivery(TestCase):
         from repoze.sendmail.delivery import QueuedMailDelivery
         delivery = QueuedMailDelivery('/path/to/mailbox')
 
-        non_ascii = b'LaPe\xc3\xb1a'.decode('utf-8')
+        non_ascii = b('LaPe\xc3\xb1a').decode('utf-8')
         fromaddr = non_ascii+' <jim@example.com>'
         toaddrs = (non_ascii+' <guido@recip.com>',)
         message = Message()

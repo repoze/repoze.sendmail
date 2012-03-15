@@ -17,6 +17,7 @@ from __future__ import with_statement
 Read/write access to `Maildir` folders.
 """
 
+import sys
 import os
 import errno
 import socket
@@ -87,7 +88,9 @@ class Maildir(object):
                              os.O_CREAT|os.O_EXCL|os.O_WRONLY,
                              384  # BBB Python 2 vs 3, 0o600 in octal
                              )
-            except OSError as e:
+            except OSError:
+                # BBB Python 2.5 compat
+                e = sys.exc_info()[1]
                 if e.errno != errno.EEXIST:
                     raise
                 # File exists

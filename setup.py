@@ -12,7 +12,13 @@
 #
 ##############################################################################
 
+import sys
 from setuptools import setup, find_packages
+
+transaction = 'transaction'
+if sys.version < '2.6':
+    # BBB Python 2.5 compat
+    transaction = 'transaction<1.2'
 
 setup(name='repoze.sendmail',
       version = '3.0dev',
@@ -30,7 +36,7 @@ setup(name='repoze.sendmail',
       tests_require = [],
       install_requires=['setuptools',
                         'zope.interface>=3.6.0',
-                        'transaction',
+                        transaction,
                        ],
       test_suite="repoze.sendmail",
       include_package_data = True,

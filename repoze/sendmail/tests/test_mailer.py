@@ -15,8 +15,13 @@
 from zope.interface.verify import verifyObject
 from repoze.sendmail.mailer import SMTPMailer
 import email
-import ssl
 import unittest
+
+try:
+    from ssl import SSLError
+except ImportError:
+    # BBB Python 2.5
+    from socket import sslerror as SSLError
 
 
 class TestSMTPMailer(unittest.TestCase):
@@ -50,7 +55,7 @@ class TestSMTPMailer(unittest.TestCase):
 
             def quit(self):
                 if self.fail_on_quit:
-                    raise ssl.SSLError("dang")
+                    raise SSLError("dang")
                 self.quitted = True
                 self.close()
 
