@@ -1,6 +1,6 @@
 BBB_PY_2 = True
 try:
-    unicode
+    str = unicode
 except NameError:
     BBB_PY_2 = False
 
@@ -70,7 +70,7 @@ def encode_message(message,
             message.replace_header(key, value)
 
     payload = message.get_payload()
-    if payload:
+    if payload and isinstance(payload, str):
         best, encoded = best_charset(payload)
         if BBB_PY_2:
             payload = encoded

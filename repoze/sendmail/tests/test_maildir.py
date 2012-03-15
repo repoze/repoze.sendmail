@@ -227,7 +227,7 @@ class TestMaildir(unittest.TestCase):
         from repoze.sendmail.maildir import Maildir
         m = Maildir('/path/to/maildir')
         tx_message = m.add(Message())
-        self.assert_(tx_message._pending_path,
+        self.assertTrue(tx_message._pending_path,
                      '/path/to/maildir/tmp/1234500002.4242.myhostname.')
 
     def test_add_no_good_filenames(self):
@@ -254,7 +254,7 @@ class TestMaildir(unittest.TestCase):
         tx_msg.abort()
         self.assertEquals(tx_msg._aborted, True)
         self.assertEquals(tx_msg._committed, False)
-        self.assert_(filename1 in self.fake_os_module._removed_files)
+        self.assertTrue(filename1 in self.fake_os_module._removed_files)
 
         tx_msg.abort()
         self.assertRaises(RuntimeError, tx_msg.commit)
@@ -269,7 +269,7 @@ class TestMaildir(unittest.TestCase):
         tx_msg.commit()
         self.assertEquals(tx_msg._aborted, False)
         self.assertEquals(tx_msg._committed, True)
-        self.assert_((filename1, filename2)
+        self.assertTrue((filename1, filename2)
                        in self.fake_os_module._renamed_files)
 
         self.assertRaises(RuntimeError, tx_msg.abort)
