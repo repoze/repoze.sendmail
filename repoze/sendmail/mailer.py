@@ -20,6 +20,7 @@ from smtplib import SMTP
 
 from zope.interface import implementer
 from repoze.sendmail.interfaces import IMailer
+from repoze.sendmail import encoding
 
 have_ssl = hasattr(socket, 'ssl')
 
@@ -46,7 +47,7 @@ class SMTPMailer(object):
     def send(self, fromaddr, toaddrs, message):
         assert isinstance(message, Message), \
                'Message must be instance of email.message.Message'
-        message = message.as_string()
+        message = encoding.encode_message(message)
 
         connection = self.smtp_factory()
 

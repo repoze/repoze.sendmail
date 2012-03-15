@@ -87,9 +87,10 @@ class TestSMTPMailer(unittest.TestCase):
             msg['Headers'] = 'headers'
             msg.set_payload('bodybodybody\n-- \nsig\n')
             self.mailer.send(fromaddr, toaddrs, msg)
-            self.assertEquals(self.smtp.fromaddr, fromaddr)
-            self.assertEquals(self.smtp.toaddrs, toaddrs)
-            self.assertEquals(self.smtp.msgtext, msg.as_string())
+            self.assertEqual(self.smtp.fromaddr, fromaddr)
+            self.assertEqual(self.smtp.toaddrs, toaddrs)
+            self.assertEqual(
+                self.smtp.msgtext, msg.as_string().encode('ascii'))
             self.assert_(self.smtp.quitted)
             self.assert_(self.smtp.closed)
 
@@ -115,20 +116,23 @@ class TestSMTPMailer(unittest.TestCase):
     def test_send_auth(self):
         fromaddr = 'me@example.com'
         toaddrs = ('you@example.com', 'him@example.com')
-        msgtext = 'Headers: headers\n\nbodybodybody\n-- \nsig\n'
+        headers = 'Headers: headers'
+        body='bodybodybody\n-- \nsig\n'
+        msgtext = headers+'\n\n'+body
         msg = email.message_from_string(msgtext)
         self.mailer.username = 'foo'
         self.mailer.password = 'evil'
         self.mailer.hostname = 'spamrelay'
         self.mailer.port = 31337
         self.mailer.send(fromaddr, toaddrs, msg)
-        self.assertEquals(self.smtp.username, 'foo')
-        self.assertEquals(self.smtp.password, 'evil')
-        self.assertEquals(self.smtp.hostname, 'spamrelay')
-        self.assertEquals(self.smtp.port, '31337')
-        self.assertEquals(self.smtp.fromaddr, fromaddr)
-        self.assertEquals(self.smtp.toaddrs, toaddrs)
-        self.assertEquals(self.smtp.msgtext, msgtext)
+        self.assertEqual(self.smtp.username, 'foo')
+        self.assertEqual(self.smtp.password, 'evil')
+        self.assertEqual(self.smtp.hostname, 'spamrelay')
+        self.assertEqual(self.smtp.port, '31337')
+        self.assertEqual(self.smtp.fromaddr, fromaddr)
+        self.assertEqual(self.smtp.toaddrs, toaddrs)
+        self.assertTrue(body.encode('ascii') in self.smtp.msgtext)
+        self.assertTrue(headers.encode('ascii') in self.smtp.msgtext)
         self.assert_(self.smtp.quitted)
         self.assert_(self.smtp.closed)
 
@@ -137,12 +141,15 @@ class TestSMTPMailer(unittest.TestCase):
         try:
             fromaddr = 'me@example.com'
             toaddrs = ('you@example.com', 'him@example.com')
-            msgtext = 'Headers: headers\n\nbodybodybody\n-- \nsig\n'
+            headers = 'Headers: headers'
+            body='bodybodybody\n-- \nsig\n'
+            msgtext = headers+'\n\n'+body
             msg = email.message_from_string(msgtext)
             self.mailer.send(fromaddr, toaddrs, msg)
-            self.assertEquals(self.smtp.fromaddr, fromaddr)
-            self.assertEquals(self.smtp.toaddrs, toaddrs)
-            self.assertEquals(self.smtp.msgtext, msgtext)
+            self.assertEqual(self.smtp.fromaddr, fromaddr)
+            self.assertEqual(self.smtp.toaddrs, toaddrs)
+            self.assertTrue(body.encode('ascii') in self.smtp.msgtext)
+            self.assertTrue(headers.encode('ascii') in self.smtp.msgtext)
             self.assert_(not self.smtp.quitted)
             self.assert_(self.smtp.closed)
         finally:
