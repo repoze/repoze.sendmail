@@ -83,7 +83,7 @@ class TestDirectMailDelivery(TestCase):
 
         mailer.sent_messages = []
         msgid = delivery.send(fromaddr, toaddrs, message)
-        self.assert_('@' in msgid)
+        self.assertTrue('@' in msgid)
         self.assertEquals(mailer.sent_messages, [])
         transaction.commit()
         self.assertEquals(len(mailer.sent_messages), 1)
@@ -184,7 +184,7 @@ class TestQueuedMailDelivery(TestCase):
 
         MaildirMessageStub.commited_messages = []
         msgid = delivery.send(fromaddr, toaddrs, message)
-        self.assert_('@' in msgid)
+        self.assertTrue('@' in msgid)
         self.assertEquals(MaildirMessageStub.commited_messages, [])
         self.assertEquals(MaildirMessageStub.aborted_messages, [])
         transaction.commit()
