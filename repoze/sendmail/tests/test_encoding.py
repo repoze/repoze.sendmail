@@ -19,6 +19,14 @@ from email import message
 from email.mime import multipart
 from email.mime import application
 
+# BBB Python 2.5 & 3 compat
+b = str
+try:
+    unicode
+except NameError:
+    import codecs
+    def b(x): return codecs.latin_1_encode(x)[0]
+
 try:
     from urllib.parse import quote
 except ImportError:
@@ -30,9 +38,9 @@ class TestEncoding(unittest.TestCase):
 
     def setUp(self):
         self.message = message.Message()
-        self.latin_1_encoded = b'LaPe\xf1a'
+        self.latin_1_encoded = b('LaPe\xf1a')
         self.latin_1 = self.latin_1_encoded.decode('latin_1')
-        self.utf_8_encoded = b'mo \xe2\x82\xac'
+        self.utf_8_encoded = b('mo \xe2\x82\xac')
         self.utf_8 = self.utf_8_encoded.decode('utf_8')
 
     def encode(self, message=None):
@@ -45,7 +53,7 @@ class TestEncoding(unittest.TestCase):
         from repoze.sendmail import encoding
         value = 'foo'
         best, encoded = encoding.best_charset(value)
-        self.assertEqual(encoded, b'foo')
+        self.assertEqual(encoded, b('foo'))
         self.assertEqual(best, 'ascii')
 
     def test_best_charset_latin_1(self):
@@ -74,10 +82,10 @@ class TestEncoding(unittest.TestCase):
         encoded = self.encode()
 
         self.assertTrue(
-            b'To: Chris McDonough <chrism@example.com>, "Chris Rossi,'
+            b('To: Chris McDonough <chrism@example.com>, "Chris Rossi,')
             in encoded)
-        self.assertTrue(b'From: '+from_.encode('ascii') in encoded)
-        self.assertTrue(b'Subject: '+subject.encode('ascii') in encoded)
+        self.assertTrue(b('From: ')+from_.encode('ascii') in encoded)
+        self.assertTrue(b('Subject: ')+subject.encode('ascii') in encoded)
 
     def test_encoding_latin_1_headers(self):
         to = ', '.join([
@@ -91,12 +99,12 @@ class TestEncoding(unittest.TestCase):
 
         encoded = self.encode()
 
-        self.assertTrue(b'To: =?iso-8859-1?' in encoded)
-        self.assertTrue(b'From: =?iso-8859-1?' in encoded)
-        self.assertTrue(b'Subject: =?iso-8859-1?' in encoded)
-        self.assertTrue(b'<chrism@example.com>' in encoded)
-        self.assertTrue(b'<chrisr@example.com>' in encoded)
-        self.assertTrue(b'<rpatterson@example.com>' in encoded)
+        self.assertTrue(b('To: =?iso-8859-1?') in encoded)
+        self.assertTrue(b('From: =?iso-8859-1?') in encoded)
+        self.assertTrue(b('Subject: =?iso-8859-1?') in encoded)
+        self.assertTrue(b('<chrism@example.com>') in encoded)
+        self.assertTrue(b('<chrisr@example.com>') in encoded)
+        self.assertTrue(b('<rpatterson@example.com>') in encoded)
 
     def test_encoding_utf_8_headers(self):
         to = ', '.join([
@@ -110,12 +118,12 @@ class TestEncoding(unittest.TestCase):
 
         encoded = self.encode()
 
-        self.assertTrue(b'To: =?utf' in encoded)
-        self.assertTrue(b'From: =?utf' in encoded)
-        self.assertTrue(b'Subject: =?utf' in encoded)
-        self.assertTrue(b'<chrism@example.com>' in encoded)
-        self.assertTrue(b'<chrisr@example.com>' in encoded)
-        self.assertTrue(b'<rpatterson@example.com>' in encoded)
+        self.assertTrue(b('To: =?utf') in encoded)
+        self.assertTrue(b('From: =?utf') in encoded)
+        self.assertTrue(b('Subject: =?utf') in encoded)
+        self.assertTrue(b('<chrism@example.com>') in encoded)
+        self.assertTrue(b('<chrisr@example.com>') in encoded)
+        self.assertTrue(b('<rpatterson@example.com>') in encoded)
     
     def test_encoding_ascii_header_parameters(self):
         self.message['Content-Disposition'] = (
@@ -124,7 +132,8 @@ class TestEncoding(unittest.TestCase):
         encoded = self.encode()
         
         self.assertTrue(
-            b'Content-Disposition: attachment; filename="foo.ppt"' in encoded)
+            b('Content-Disposition: attachment; filename="foo.ppt"')
+            in encoded)
     
     def test_encoding_latin_1_header_parameters(self):
         self.message['Content-Disposition'] = (
@@ -133,8 +142,8 @@ class TestEncoding(unittest.TestCase):
         encoded = self.encode()
         
         self.assertTrue(
-            b"Content-Disposition: attachment; filename*=" in encoded)
-        self.assertTrue(b"latin_1''"+quote(
+            b("Content-Disposition: attachment; filename*=") in encoded)
+        self.assertTrue(b("latin_1''")+quote(
             self.latin_1_encoded).encode('ascii') in encoded)
     
     def test_encoding_utf_8_header_parameters(self):
@@ -144,8 +153,8 @@ class TestEncoding(unittest.TestCase):
         encoded = self.encode()
         
         self.assertTrue(
-            b"Content-Disposition: attachment; filename*=" in encoded)
-        self.assertTrue(b"utf_8''"+quote(self.utf_8_encoded).encode('ascii')
+            b("Content-Disposition: attachment; filename*=") in encoded)
+        self.assertTrue(b("utf_8''")+quote(self.utf_8_encoded).encode('ascii')
                         in encoded)
 
     def test_encoding_ascii_body(self):
@@ -173,7 +182,7 @@ class TestEncoding(unittest.TestCase):
         self.assertTrue(base64.encodestring(body.encode('utf_8')) in encoded)
 
     def test_binary_body(self):
-        body = b'I know what you did last PyCon'
+        body = b('I know what you did last PyCon')
         self.message = multipart.MIMEMultipart()
         self.message.attach(application.MIMEApplication(body))
 
