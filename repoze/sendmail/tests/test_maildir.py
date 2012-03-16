@@ -17,8 +17,6 @@ import stat
 import os
 import errno
 
-from zope.interface.verify import verifyObject
-
 
 class FakeSocketModule(object):
 
@@ -38,8 +36,8 @@ class FakeTimeModule(object):
 class FakeOsPathModule(object):
 
     def __init__(self, files, dirs):
-        self.files = files
-        self.dirs = dirs
+        self.files = dict(files)
+        self.dirs = dict(dirs)
         mtimes = {}
         for t,f in enumerate(files):
             mtimes[f] = 9999 - t
@@ -64,29 +62,31 @@ class FakeOsModule(object):
     O_EXCL = os.O_EXCL
     O_WRONLY = os.O_WRONLY
 
-    _stat_mode = {
-        '/path/to/maildir': stat.S_IFDIR,
-        '/path/to/maildir/new': stat.S_IFDIR,
-        '/path/to/maildir/new/1': stat.S_IFREG,
-        '/path/to/maildir/new/2': stat.S_IFREG,
-        '/path/to/maildir/cur': stat.S_IFDIR,
-        '/path/to/maildir/cur/1': stat.S_IFREG,
-        '/path/to/maildir/cur/2': stat.S_IFREG,
-        '/path/to/maildir/tmp': stat.S_IFDIR,
-        '/path/to/maildir/tmp/1': stat.S_IFREG,
-        '/path/to/maildir/tmp/2': stat.S_IFREG,
-        '/path/to/maildir/tmp/1234500000.4242.myhostname.*': stat.S_IFREG,
-        '/path/to/maildir/tmp/1234500001.4242.myhostname.*': stat.S_IFREG,
-        '/path/to/regularfile': stat.S_IFREG,
-        '/path/to/emptydirectory': stat.S_IFDIR,
-    }
-    _listdir = {
-        '/path/to/maildir/new': ['1', '2', '.svn'],
-        '/path/to/maildir/cur': ['2', '1', '.tmp'],
-        '/path/to/maildir/tmp': ['1', '2', '.ignore'],
-    }
+    _stat_files = [
+        ('/path/to/maildir', stat.S_IFDIR),
+        ('/path/to/maildir/new', stat.S_IFDIR),
+        ('/path/to/maildir/new/1', stat.S_IFREG),
+        ('/path/to/maildir/new/2', stat.S_IFREG),
+        ('/path/to/maildir/cur', stat.S_IFDIR),
+        ('/path/to/maildir/cur/1', stat.S_IFREG),
+        ('/path/to/maildir/cur/2', stat.S_IFREG),
+        ('/path/to/maildir/tmp', stat.S_IFDIR),
+        ('/path/to/maildir/tmp/1', stat.S_IFREG),
+        ('/path/to/maildir/tmp/2', stat.S_IFREG),
+        ('/path/to/maildir/tmp/1234500000.4242.myhostname.*', stat.S_IFREG),
+        ('/path/to/maildir/tmp/1234500001.4242.myhostname.*', stat.S_IFREG),
+        ('/path/to/regularfile', stat.S_IFREG),
+        ('/path/to/emptydirectory', stat.S_IFDIR),
+    ]
+    _stat_mode = dict(_stat_files)
+    _listdir_files = [
+        ('/path/to/maildir/new', ['1', '2', '.svn']),
+        ('/path/to/maildir/cur', ['2', '1', '.tmp']),
+        ('/path/to/maildir/tmp', ['1', '2', '.ignore']),
+    ]
+    _listdir = dict(_listdir_files)
 
-    path = FakeOsPathModule(_stat_mode, _listdir)
+    path = FakeOsPathModule(_stat_files, _listdir_files)
 
     _made_directories = ()
     _removed_files = ()
@@ -217,10 +217,10 @@ class TestMaildir(unittest.TestCase):
         from repoze.sendmail.maildir import Maildir
         m = Maildir('/path/to/maildir')
         messages = list(m)
-        self.assertEquals(messages, ['/path/to/maildir/cur/2',
-                                     '/path/to/maildir/cur/1',
-                                     '/path/to/maildir/new/2',
-                                     '/path/to/maildir/new/1'])
+        self.assertEqual(messages, ['/path/to/maildir/new/1', 
+                                    '/path/to/maildir/new/2',
+                                    '/path/to/maildir/cur/2',
+                                    '/path/to/maildir/cur/1'])
 
     def test_add(self):
         from email.message import Message
