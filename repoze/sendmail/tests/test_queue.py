@@ -105,7 +105,7 @@ class TestQueueProcessor(TestCase):
                           [('foo@example.com',
                             ('bar@example.com', 'baz@example.com'),
                             'Header: value\n\nBody\n')])
-        self.failIf(os.path.exists(self.filename), 'File exists')
+        self.assertFalse(os.path.exists(self.filename), 'File exists')
         self.assertEquals(self.qp.log.infos,
                           [('Mail from %s to %s sent.',
                             ('foo@example.com',
@@ -154,7 +154,7 @@ class TestQueueProcessor(TestCase):
         self.qp.send_messages()
 
         # File must remail were it was, so it will be retried
-        self.failUnless(os.path.exists(self.filename))
+        self.assertTrue(os.path.exists(self.filename))
         self.assertEquals(self.qp.log.errors,
                           [('Error while sending mail from %s to %s.',
                             ('foo@example.com',
@@ -174,10 +174,10 @@ class TestQueueProcessor(TestCase):
         self.qp.send_messages()
 
         # File must be moved aside
-        self.failIf(os.path.exists(self.filename))
-        self.failUnless(os.path.exists(os.path.join(self.dir,
+        self.assertFalse(os.path.exists(self.filename))
+        self.assertTrue(os.path.exists(os.path.join(self.dir,
                                                     '.rejected-message')))
-        self.assertEquals(self.qp.log.errors,
+        self.assertEqual(self.qp.log.errors,
                           [('Discarding email from %s to %s due to a '
                             'permanent error: %s',
                             ('foo@example.com',
@@ -205,7 +205,7 @@ class TestQueueProcessor(TestCase):
             self.qp.send_messages()
 
             self.assertEquals(self.qp.mailer.sent_messages, [])
-            self.failUnless(os.path.exists(self.filename),
+            self.assertTrue(os.path.exists(self.filename),
                             'File does not exist')
             self.assertEquals(self.qp.log.infos, [])
         finally:
@@ -235,14 +235,14 @@ class TestQueueProcessor(TestCase):
                           [('foo@example.com',
                             ('bar@example.com', 'baz@example.com'),
                             'Header: value\n\nBody\n')])
-        self.failIf(os.path.exists(self.filename),
-                        'File still exists')
+        self.assertFalse(os.path.exists(self.filename),
+                         'File still exists')
         self.assertEquals(self.qp.log.infos,
                           [('Mail from %s to %s sent.',
                             ('foo@example.com',
                              'bar@example.com, baz@example.com'),
                             {})])
-        self.failIf(os.path.exists(tmp_filename))
+        self.assertFalse(os.path.exists(tmp_filename))
 
 class TestConsoleApp(TestCase):
     def setUp(self):

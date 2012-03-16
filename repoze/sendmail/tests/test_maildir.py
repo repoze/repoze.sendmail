@@ -191,19 +191,19 @@ class TestMaildir(unittest.TestCase):
         from repoze.sendmail.maildir import Maildir
 
         # Case 1: normal maildir
-        m = Maildir('/path/to/maildir')
+        Maildir('/path/to/maildir')
 
         # Case 2a: directory does not exist, create = False
         self.assertRaises(ValueError, Maildir, '/path/to/nosuchfolder', False)
 
         # Case 2b: directory does not exist, create = True
-        m = Maildir('/path/to/nosuchfolder', True)
+        Maildir('/path/to/nosuchfolder', True)
         dirs = list(self.fake_os_module._made_directories)
         dirs.sort()
-        self.assertEquals(dirs, ['/path/to/nosuchfolder',
-                                 '/path/to/nosuchfolder/cur',
-                                 '/path/to/nosuchfolder/new',
-                                 '/path/to/nosuchfolder/tmp'])
+        self.assertEqual(dirs, ['/path/to/nosuchfolder',
+                                '/path/to/nosuchfolder/cur',
+                                '/path/to/nosuchfolder/new',
+                                '/path/to/nosuchfolder/tmp'])
 
         # Case 3: it is a file, not a directory
         self.assertRaises(ValueError, Maildir, '/path/to/regularfile', False)
@@ -249,11 +249,11 @@ class TestMaildir(unittest.TestCase):
         filename1 = '/path/to/maildir/tmp/1234500002.4242.myhostname'
         filename2 = '/path/to/maildir/new/1234500002.4242.myhostname'
         tx_msg = MaildirTransactionalMessage(filename1, filename2)
-        self.assertEquals(tx_msg._pending_path, filename1)
+        self.assertEqual(tx_msg._pending_path, filename1)
 
         tx_msg.abort()
-        self.assertEquals(tx_msg._aborted, True)
-        self.assertEquals(tx_msg._committed, False)
+        self.assertEqual(tx_msg._aborted, True)
+        self.assertEqual(tx_msg._committed, False)
         self.assertTrue(filename1 in self.fake_os_module._removed_files)
 
         tx_msg.abort()
@@ -264,11 +264,11 @@ class TestMaildir(unittest.TestCase):
         filename1 = '/path/to/maildir/tmp/1234500002.4242.myhostname'
         filename2 = '/path/to/maildir/new/1234500002.4242.myhostname'
         tx_msg = MaildirTransactionalMessage(filename1, filename2)
-        self.assertEquals(tx_msg._pending_path, filename1)
+        self.assertEqual(tx_msg._pending_path, filename1)
 
         tx_msg.commit()
-        self.assertEquals(tx_msg._aborted, False)
-        self.assertEquals(tx_msg._committed, True)
+        self.assertEqual(tx_msg._aborted, False)
+        self.assertEqual(tx_msg._committed, True)
         self.assertTrue((filename1, filename2)
                        in self.fake_os_module._renamed_files)
 

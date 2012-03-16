@@ -15,6 +15,8 @@
 import unittest
 import base64
 import quopri
+import sys
+
 from email import message
 from email.mime import multipart
 from email.mime import application
@@ -32,6 +34,11 @@ try:
 except ImportError:
     # BBB Python 2 and 3 compat
     from urllib import quote
+
+if sys.version_info[0] == 3:
+    encodestring = base64.encodebytes
+else:
+    encodestring = base64.encodestring
 
 
 class TestEncoding(unittest.TestCase):
@@ -179,7 +186,7 @@ class TestEncoding(unittest.TestCase):
 
         encoded = self.encode()
 
-        self.assertTrue(base64.encodestring(body.encode('utf_8')) in encoded)
+        self.assertTrue(encodestring(body.encode('utf_8')) in encoded)
 
     def test_binary_body(self):
         body = b('I know what you did last PyCon')
@@ -188,4 +195,4 @@ class TestEncoding(unittest.TestCase):
 
         encoded = self.encode()
 
-        self.assertTrue(base64.encodestring(body) in encoded)
+        self.assertTrue(encodestring(body) in encoded)

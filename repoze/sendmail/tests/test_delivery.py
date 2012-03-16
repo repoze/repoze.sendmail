@@ -78,30 +78,30 @@ class TestDirectMailDelivery(TestCase):
         message.set_payload('This is just an example\n')
 
         msgid = delivery.send(fromaddr, toaddrs, message)
-        self.assertEquals(msgid, '<20030519.1234@example.org>')
-        self.assertEquals(mailer.sent_messages, [])
+        self.assertEqual(msgid, '<20030519.1234@example.org>')
+        self.assertEqual(mailer.sent_messages, [])
         transaction.commit()
-        self.assertEquals(mailer.sent_messages,
+        self.assertEqual(mailer.sent_messages,
                           [(fromaddr, toaddrs, message)])
 
         mailer.sent_messages = []
         msgid = delivery.send(fromaddr, toaddrs, message)
         self.assertTrue('@' in msgid)
-        self.assertEquals(mailer.sent_messages, [])
+        self.assertEqual(mailer.sent_messages, [])
         transaction.commit()
-        self.assertEquals(len(mailer.sent_messages), 1)
-        self.assertEquals(mailer.sent_messages[0][0], fromaddr)
-        self.assertEquals(mailer.sent_messages[0][1], toaddrs)
-        self.assertEquals(mailer.sent_messages[0][2].get_payload(),
+        self.assertEqual(len(mailer.sent_messages), 1)
+        self.assertEqual(mailer.sent_messages[0][0], fromaddr)
+        self.assertEqual(mailer.sent_messages[0][1], toaddrs)
+        self.assertEqual(mailer.sent_messages[0][2].get_payload(),
                           'This is just an example\n')
         self.assertEqual(message['Message-Id'],  msgid)
         self.assertEqual(message['Message-Id'], ext_msgid)
 
         mailer.sent_messages = []
         msgid = delivery.send(fromaddr, toaddrs, message)
-        self.assertEquals(mailer.sent_messages, [])
+        self.assertEqual(mailer.sent_messages, [])
         transaction.abort()
-        self.assertEquals(mailer.sent_messages, [])
+        self.assertEqual(mailer.sent_messages, [])
 
     def testMakeMessageId(self):
         from repoze.sendmail.delivery import DirectMailDelivery
@@ -194,12 +194,12 @@ class TestQueuedMailDelivery(TestCase):
         message.set_payload('This is just an example\n')
 
         msgid = delivery.send(fromaddr, toaddrs, message)
-        self.assertEquals(msgid, '<20030519.1234@example.org>')
-        self.assertEquals(MaildirMessageStub.commited_messages, [])
-        self.assertEquals(MaildirMessageStub.aborted_messages, [])
+        self.assertEqual(msgid, '<20030519.1234@example.org>')
+        self.assertEqual(MaildirMessageStub.commited_messages, [])
+        self.assertEqual(MaildirMessageStub.aborted_messages, [])
         transaction.commit()
-        self.assertEquals(len(MaildirMessageStub.commited_messages), 1)
-        self.assertEquals(MaildirMessageStub.aborted_messages, [])
+        self.assertEqual(len(MaildirMessageStub.commited_messages), 1)
+        self.assertEqual(MaildirMessageStub.aborted_messages, [])
         message = MaildirMessageStub.commited_messages[0]
         self.assertEqual(raw_header(message['X-Actually-From']), fromaddr)
         self.assertEqual(raw_header(
@@ -208,23 +208,23 @@ class TestQueuedMailDelivery(TestCase):
         MaildirMessageStub.commited_messages = []
         msgid = delivery.send(fromaddr, toaddrs, message)
         self.assertTrue('@' in msgid)
-        self.assertEquals(MaildirMessageStub.commited_messages, [])
-        self.assertEquals(MaildirMessageStub.aborted_messages, [])
+        self.assertEqual(MaildirMessageStub.commited_messages, [])
+        self.assertEqual(MaildirMessageStub.aborted_messages, [])
         transaction.commit()
-        self.assertEquals(len(MaildirMessageStub.commited_messages), 1)
+        self.assertEqual(len(MaildirMessageStub.commited_messages), 1)
         self.assertEqual(MaildirMessageStub.commited_messages[0].get_payload(),
                          'This is just an example\n')
         self.assertEqual(message['Message-Id'], msgid)
         self.assertEqual(message['Message-Id'], ext_msgid)
-        self.assertEquals(MaildirMessageStub.aborted_messages, [])
+        self.assertEqual(MaildirMessageStub.aborted_messages, [])
 
         MaildirMessageStub.commited_messages = []
         msgid = delivery.send(fromaddr, toaddrs, message)
-        self.assertEquals(MaildirMessageStub.commited_messages, [])
-        self.assertEquals(MaildirMessageStub.aborted_messages, [])
+        self.assertEqual(MaildirMessageStub.commited_messages, [])
+        self.assertEqual(MaildirMessageStub.aborted_messages, [])
         transaction.abort()
-        self.assertEquals(MaildirMessageStub.commited_messages, [])
-        self.assertEquals(len(MaildirMessageStub.aborted_messages), 1)
+        self.assertEqual(MaildirMessageStub.commited_messages, [])
+        self.assertEqual(len(MaildirMessageStub.aborted_messages), 1)
 
     def testNonASCIIAddrs(self):
         from email.message import Message
