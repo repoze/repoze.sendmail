@@ -4,7 +4,7 @@ Change history
 3.0 (Unreleased)
 ----------------
 
-- Fix `Message-Id` handling.
+- Fix `Message-Id` handling (see http://bugs.repoze.org/issue177).
 
 - Provide improved support for encoding messages to bytes.  It should now be
   possible to represent your messages in `email.message.Message` objects just
