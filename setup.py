@@ -16,7 +16,8 @@ import sys
 from setuptools import setup, find_packages
 
 transaction = 'transaction'
-if sys.version < '2.6':
+
+if sys.version_info[:2] < (2, 6):
     # BBB Python 2.5 compat
     transaction = 'transaction<1.2'
 
@@ -41,6 +42,22 @@ setup(name='repoze.sendmail',
       test_suite="repoze.sendmail",
       include_package_data = True,
       zip_safe = False,
+      classifiers=[
+          'Intended Audience :: Developers',
+          'License :: Repoze Public License',
+          'Operating System :: OS Independent',
+          'Topic :: Software Development :: Libraries :: Python Modules'
+          "Topic :: Communications :: Email",
+          "Programming Language :: Python",
+          "Programming Language :: Python :: 2.5",
+          "Programming Language :: Python :: 2.6",
+          "Programming Language :: Python :: 2.7",
+          "Programming Language :: Python :: 3",
+          "Programming Language :: Python :: 3.2",
+          "Programming Language :: Python :: Implementation :: CPython",
+          "Programming Language :: Python :: Implementation :: PyPy",
+          "Programming Language :: Python :: Implementation :: Jython",
+      ],
       entry_points = """
           [console_scripts]
           qp = repoze.sendmail.queue:run_console
