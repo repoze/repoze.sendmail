@@ -16,7 +16,7 @@ specific to running in a Zope context has been removed, making this version
 more generally useful to users of other frameworks.
 
 Note that repoze.sendmail works only under Python 2.5+ (it will not
-work under 2.4).
+work under 2.4) and Python 3.2+.
 
 ==============
 Basic Tutorial

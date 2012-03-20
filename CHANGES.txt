@@ -1,7 +1,7 @@
 Change history
 ~~~~~~~~~~~~~~
 
-3.0 (Unreleased)
+3.0 (2012-03-20)
 ----------------
 
 - Fix `Message-Id` handling (see http://bugs.repoze.org/issue177).
