@@ -25,7 +25,7 @@ from email.mime import application
 b = str
 try:
     unicode
-except NameError:
+except NameError: # pragma: no cover
     import codecs
     def b(x): return codecs.latin_1_encode(x)[0]
 
@@ -35,7 +35,7 @@ except ImportError:
     # BBB Python 2 and 3 compat
     from urllib import quote
 
-if sys.version_info[0] == 3:
+if sys.version_info[0] == 3: # pragma: no cover
     encodestring = base64.encodebytes
 else:
     encodestring = base64.encodestring

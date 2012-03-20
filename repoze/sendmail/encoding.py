@@ -1,7 +1,7 @@
 BBB_PY_2 = True
 try:
     str = unicode
-except NameError:
+except NameError: # pragma: no cover
     BBB_PY_2 = False
 
 from email import utils
