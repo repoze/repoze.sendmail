@@ -46,7 +46,6 @@ setup(name='repoze.sendmail',
           'Intended Audience :: Developers',
           'License :: Repoze Public License',
           'Operating System :: OS Independent',
-          'Topic :: Software Development :: Libraries :: Python Modules'
           "Topic :: Communications :: Email",
           "Programming Language :: Python",
           "Programming Language :: Python :: 2.5",
