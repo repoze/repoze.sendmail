@@ -90,7 +90,7 @@ class TestQueueProcessor(TestCase):
         f, t, m = self.qp._parseMessage(StringIO(str(hdr + msg)))
         self.assertEquals(f, 'foo@example.com')
         self.assertEquals(t, ('bar@example.com', 'baz@example.com'))
-        self.assertEquals(m, msg)
+        self.assertEquals(m.as_string(), msg)
 
     def test_delivery(self):
         self.filename = os.path.join(self.dir, 'message')
@@ -101,10 +101,11 @@ class TestQueueProcessor(TestCase):
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
-        self.assertEquals(self.qp.mailer.sent_messages,
-                          [('foo@example.com',
-                            ('bar@example.com', 'baz@example.com'),
-                            'Header: value\n\nBody\n')])
+        
+        sent_message = self.qp.mailer.sent_messages[0]
+        self.assertEquals(sent_message[0], 'foo@example.com')
+        self.assertEquals(sent_message[1], ('bar@example.com', 'baz@example.com'))
+        self.assertEquals(sent_message[2].as_string(), 'Header: value\n\nBody\n')
         self.assertFalse(os.path.exists(self.filename), 'File exists')
         self.assertEquals(self.qp.log.infos,
                           [('Mail from %s to %s sent.',
@@ -231,10 +232,12 @@ class TestQueueProcessor(TestCase):
         os.utime(tmp_filename, (1,1)) #mtime/utime 1970-01-01T00:00:01Z
         self.qp.send_messages()
 
-        self.assertEquals(self.qp.mailer.sent_messages,
-                          [('foo@example.com',
-                            ('bar@example.com', 'baz@example.com'),
-                            'Header: value\n\nBody\n')])
+        sent_message = self.qp.mailer.sent_messages[0]
+        self.assertEquals(sent_message[0], 'foo@example.com')
+        self.assertEquals(sent_message[1], 
+                          ('bar@example.com', 'baz@example.com'))
+        self.assertEquals(sent_message[2].as_string(), 
+                          'Header: value\n\nBody\n')
         self.assertFalse(os.path.exists(self.filename),
                          'File still exists')
         self.assertEquals(self.qp.log.infos,
