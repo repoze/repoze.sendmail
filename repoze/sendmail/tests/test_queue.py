@@ -104,8 +104,10 @@ class TestQueueProcessor(TestCase):
         
         sent_message = self.qp.mailer.sent_messages[0]
         self.assertEquals(sent_message[0], 'foo@example.com')
-        self.assertEquals(sent_message[1], ('bar@example.com', 'baz@example.com'))
-        self.assertEquals(sent_message[2].as_string(), 'Header: value\n\nBody\n')
+        self.assertEquals(sent_message[1], 
+                          ('bar@example.com', 'baz@example.com'))
+        self.assertEquals(sent_message[2].as_string(), 
+                          'Header: value\n\nBody\n')
         self.assertFalse(os.path.exists(self.filename), 'File exists')
         self.assertEquals(self.qp.log.infos,
                           [('Mail from %s to %s sent.',
