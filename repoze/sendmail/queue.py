@@ -119,7 +119,7 @@ class QueueProcessor(object):
         toaddrs = tuple([a.strip() for a in
                          message['X-Actually-To'].split(',')])
         del message['X-Actually-To']
-        return fromaddr, toaddrs, message.as_string()
+        return fromaddr, toaddrs, message
 
     def _send_message(self, filename):
         fromaddr = ''
