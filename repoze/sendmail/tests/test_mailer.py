@@ -17,9 +17,9 @@ from repoze.sendmail.mailer import SMTPMailer
 import email
 import unittest
 
-try:
+try: 
     from ssl import SSLError
-except ImportError:
+except ImportError: # pragma: no cover
     # BBB Python 2.5
     from socket import sslerror as SSLError
 

@@ -1,13 +1,16 @@
 Change history
 ~~~~~~~~~~~~~~
 
-3.0 (Unreleased)
-----------------
+After 3.0
+----------
 
 - Added 'setup.py dev' alias (runs ``setup.py develop`` plus installs
   ``nose`` and ``coverage``).
 
-- Fix `Message-Id` handling.
+3.0 (2012-03-20)
+----------------
+
+- Fix `Message-Id` handling (see http://bugs.repoze.org/issue177).
 
 - Provide improved support for encoding messages to bytes.  It should now be
   possible to represent your messages in `email.message.Message` objects just

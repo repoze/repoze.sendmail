@@ -19,7 +19,7 @@ from smtplib import SMTP
 
 try:
     from ssl import SSLError
-except ImportError:
+except ImportError: # pragma: no cover
     # BBB Python 2.5
     from socket import sslerror as SSLError
 

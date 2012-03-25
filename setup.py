@@ -11,17 +11,25 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
+import sys
 
 from setuptools import setup, find_packages
+
+testing_extras = ['nose', 'coverage']
 
 requires = ['setuptools',
             'zope.interface>=3.6.0',
             'transaction']
 
-testing_extras = ['nose', 'coverage']
+if sys.version_info[:2] < (2, 6):
+    # BBB Python 2.5 compat
+    requires = ['setuptools',
+                'zope.interface>=3.6.0',
+                'transaction<1.2',
+               ]
 
 setup(name='repoze.sendmail',
-      version = '3.0dev',
+      version = '3.0',
       url='http://www.repoze.org',
       license='ZPL 2.1',
       description='Repoze Sendmail',

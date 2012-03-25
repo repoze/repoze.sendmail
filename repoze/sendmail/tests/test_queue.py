@@ -9,7 +9,7 @@ from unittest import TestCase
 b = str
 try:
     str = unicode
-except NameError:
+except NameError: # pragma: no cover
     import codecs
     def b(x): return codecs.latin_1_encode(x)[0]
 
@@ -270,7 +270,7 @@ class TestConsoleApp(TestCase):
         try:
             monkey.__enter__()
             app = ConsoleApp(cmdline.split())
-        except:
+        except: # pragma: no cover
             exc_info = sys.exc_info()
         monkey.__exit__(*exc_info)
         return app, logged
