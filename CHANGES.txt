@@ -4,6 +4,9 @@ Change history
 3.0 (Unreleased)
 ----------------
 
+- Added 'setup.py dev' alias (runs ``setup.py develop`` plus installs
+  ``nose`` and ``coverage``).
+
 - Fix `Message-Id` handling.
 
 - Provide improved support for encoding messages to bytes.  It should now be

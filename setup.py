@@ -12,13 +12,13 @@
 #
 ##############################################################################
 
-import sys
 from setuptools import setup, find_packages
 
-transaction = 'transaction'
-if sys.version < '2.6':
-    # BBB Python 2.5 compat
-    transaction = 'transaction<1.2'
+requires = ['setuptools',
+            'zope.interface>=3.6.0',
+            'transaction']
+
+testing_extras = ['nose', 'coverage']
 
 setup(name='repoze.sendmail',
       version = '3.0dev',
@@ -33,11 +33,8 @@ setup(name='repoze.sendmail',
           ]),
       packages=find_packages(),
       namespace_packages=['repoze',],
-      tests_require = [],
-      install_requires=['setuptools',
-                        'zope.interface>=3.6.0',
-                        transaction,
-                       ],
+      tests_require = requires,
+      install_requires=requires,
       test_suite="repoze.sendmail",
       include_package_data = True,
       zip_safe = False,
@@ -45,4 +42,7 @@ setup(name='repoze.sendmail',
           [console_scripts]
           qp = repoze.sendmail.queue:run_console
           """,
-      )
+      extras_require = {
+        'testing': requires + testing_extras,
+      },
+)
