@@ -1,8 +1,8 @@
 Change history
 ~~~~~~~~~~~~~~
 
-After 3.0
-----------
+3.1 (2012-03-26)
+----------------
 
 - ``qp`` queue processor mail delivery didn't work in 3.0.
 
