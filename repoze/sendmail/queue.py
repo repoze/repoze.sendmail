@@ -343,11 +343,12 @@ class ConsoleApp(object):
 
     def _process_args(self, args):
         got_queue_path = False
+        log_usage = False
         while args:
             arg = args.pop(0)
             if arg == "--hostname":
                 if not args:
-                    self._error_usage()
+                    log_usage = True
                 else:
                     self.hostname = args.pop(0)
 
@@ -355,17 +356,17 @@ class ConsoleApp(object):
                 try:
                     self.port = int(args.pop(0))
                 except:
-                    self._error_usage()
+                    log_usage = True
 
             elif arg == "--username":
                 if not args:
-                    self._error_usage()
+                    log_usage = True
                 else:
                     self.username = args.pop(0)
 
             elif arg == "--password":
                 if not args:
-                    self._error_usage()
+                    log_usage = True
                 else:
                     self.password = args.pop(0)
 
@@ -377,7 +378,7 @@ class ConsoleApp(object):
 
             elif arg == "--config":
                 if not args:
-                    self._error_usage()
+                    log_usage = True
                 else:
                     self._load_config(args.pop(0))
 
@@ -385,13 +386,16 @@ class ConsoleApp(object):
                 self.debug_smtp = True
 
             elif arg.startswith("-") or got_queue_path:
-                self._error_usage()
+                log_usage = True
 
             else:
                 self.queue_path = arg
                 got_queue_path = True
 
         if not self.queue_path:
+            log_usage = True
+
+        if log_usage:
             self._error_usage()
 
         if ((self.username or self.password)
