@@ -26,7 +26,7 @@ else:
     _os_link = os.link
 
 def _log_error(msg): #pragma NO COVER
-    print(msg, sys.stderr)
+    sys.stderr.write(msg)
 
 # The below diagram depicts the operations performed while sending a message.
 # This sequence of operations will be performed for each file in the maildir
