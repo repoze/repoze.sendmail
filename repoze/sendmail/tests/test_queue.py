@@ -25,7 +25,7 @@ from repoze.sendmail import queue
 from repoze.sendmail.interfaces import IMailer
 from repoze.sendmail.queue import ConsoleApp
 
-from repoze.sendmail.tests.test_delivery import MailerStub
+from repoze.sendmail.tests.test_delivery import _makeMailerStub
 from repoze.sendmail.tests.test_delivery import MaildirStub
 
 class LoggerStub(object):
@@ -74,7 +74,7 @@ class TestQueueProcessor(TestCase):
 
     def setUp(self):
         from repoze.sendmail.queue import QueueProcessor
-        self.qp = QueueProcessor(MailerStub(), '/foo/bar/baz', MaildirStub)
+        self.qp = QueueProcessor(_makeMailerStub(), '/foo/bar/baz', MaildirStub)
         self.qp.log = LoggerStub()
         self.dir = mkdtemp()
 
@@ -257,7 +257,7 @@ class TestConsoleApp(TestCase):
         self.queue_dir = os.path.join(self.dir, "queue")
         self.delivery = QueuedMailDelivery(self.queue_dir)
         self.maildir = Maildir(self.queue_dir, True)
-        self.mailer = MailerStub()
+        self.mailer = _makeMailerStub()
 
         self.save_stderr = sys.stderr
         sys.stderr = self.stderr = StringIO()

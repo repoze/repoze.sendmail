@@ -13,159 +13,6 @@
 ##############################################################################
 
 import unittest
-import stat
-import os
-import errno
-
-
-class FakeSocketModule(object):
-
-    def gethostname(self):
-        return 'myhostname'
-
-class FakeTimeModule(object):
-
-    _timer = 1234500000
-
-    def time(self):
-        return self._timer
-
-    def sleep(self, n):
-        self._timer += n
-
-class FakeOsPathModule(object):
-
-    def __init__(self, files, dirs):
-        self.files = dict(files)
-        self.dirs = dict(dirs)
-        mtimes = {}
-        for t,f in enumerate(files):
-            mtimes[f] = 9999 - t
-        self._mtimes = mtimes
-
-    def join(self, *args):
-        return '/'.join(args)
-
-    def isdir(self, dir):
-        return dir in self.dirs
-
-    def getmtime(self, f):
-        return self._mtimes.get(f, 10000)
-
-    def exists(self, path):
-        return path in self.dirs or path in self.files
-
-class FakeOsModule(object):
-
-    F_OK = 0
-    O_CREAT = os.O_CREAT
-    O_EXCL = os.O_EXCL
-    O_WRONLY = os.O_WRONLY
-
-    _stat_files = [
-        ('/path/to/maildir', stat.S_IFDIR),
-        ('/path/to/maildir/new', stat.S_IFDIR),
-        ('/path/to/maildir/new/1', stat.S_IFREG),
-        ('/path/to/maildir/new/2', stat.S_IFREG),
-        ('/path/to/maildir/cur', stat.S_IFDIR),
-        ('/path/to/maildir/cur/1', stat.S_IFREG),
-        ('/path/to/maildir/cur/2', stat.S_IFREG),
-        ('/path/to/maildir/tmp', stat.S_IFDIR),
-        ('/path/to/maildir/tmp/1', stat.S_IFREG),
-        ('/path/to/maildir/tmp/2', stat.S_IFREG),
-        ('/path/to/maildir/tmp/1234500000.4242.myhostname.*', stat.S_IFREG),
-        ('/path/to/maildir/tmp/1234500001.4242.myhostname.*', stat.S_IFREG),
-        ('/path/to/regularfile', stat.S_IFREG),
-        ('/path/to/emptydirectory', stat.S_IFDIR),
-    ]
-    _stat_mode = dict(_stat_files)
-    _listdir_files = [
-        ('/path/to/maildir/new', ['1', '2', '.svn']),
-        ('/path/to/maildir/cur', ['2', '1', '.tmp']),
-        ('/path/to/maildir/tmp', ['1', '2', '.ignore']),
-    ]
-    _listdir = dict(_listdir_files)
-
-    path = FakeOsPathModule(_stat_files, _listdir_files)
-
-    _made_directories = ()
-    _removed_files = ()
-    _renamed_files = ()
-
-    _all_files_exist = False
-    _exception = None
-
-    def __init__(self):
-        self._descriptors = {}
-
-    def access(self, path, mode):
-        if self._all_files_exist:
-            return True
-        if path in self._stat_mode:
-            return True
-        if path.rsplit('.', 1)[0] + '.*' in self._stat_mode:
-            return True
-        return False
-
-    def listdir(self, path):
-        return self._listdir.get(path, [])
-
-    def mkdir(self, path):
-        self._made_directories += (path, )
-
-    def getpid(self):
-        return 4242
-
-    def remove(self, path):
-        self._removed_files += (path, )
-
-    def rename(self, old, new):
-        self._renamed_files += ((old, new), )
-
-    def open(self, filename, flags,
-             mode=511  # BBB Python 2 vs 3, 0o777 in octal
-             ):
-        if self._exception is not None:
-            raise self._exception
-        if (flags & os.O_EXCL and flags & os.O_CREAT
-            and self.access(filename, 0)):
-            raise OSError(errno.EEXIST, 'file already exists')
-        if not flags & os.O_CREAT and not self.access(filename, 0):
-            raise OSError('file not found') #pragma NO COVERAGE defensive
-        fd = max(list(self._descriptors.keys()) + [2]) + 1
-        self._descriptors[fd] = filename, flags, mode
-        return fd
-
-    def fdopen(self, fd, mode='r'):
-        filename, flags, permissions = self._descriptors[fd]
-        if mode == 'w':
-            assert flags & os.O_WRONLY
-            assert not flags & os.O_RDWR
-        else: #pragma NO COVERAGE defensive programming
-            raise AssertionError("don't know how to verify if flags match"
-                                 " mode %r" % mode)
-        return FakeFile(filename, mode)
-
-
-class FakeFile(object):
-
-    def __init__(self, filename, mode):
-        self._filename = filename
-        self._mode = mode
-        self._written = ''
-        self._closed = False
-
-    def close(self):
-        self._closed = True
-
-    def write(self, data):
-        self._written += data
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        self.close()
 
 
 class TestMaildir(unittest.TestCase):
@@ -284,3 +131,160 @@ class TestMaildir(unittest.TestCase):
         tx_msg.debug = True
         tx_msg.__del__()
         self.assertEqual(self.fake_os_module._removed_files, (filename1,))
+
+
+class FakeSocketModule(object):
+
+    def gethostname(self):
+        return 'myhostname'
+
+class FakeTimeModule(object):
+
+    _timer = 1234500000
+
+    def time(self):
+        return self._timer
+
+    def sleep(self, n):
+        self._timer += n
+
+class FakeOsPathModule(object):
+
+    def __init__(self, files, dirs):
+        self.files = dict(files)
+        self.dirs = dict(dirs)
+        mtimes = {}
+        for t,f in enumerate(files):
+            mtimes[f] = 9999 - t
+        self._mtimes = mtimes
+
+    def join(self, *args):
+        return '/'.join(args)
+
+    def isdir(self, dir):
+        return dir in self.dirs
+
+    def getmtime(self, f):
+        return self._mtimes.get(f, 10000)
+
+    def exists(self, path):
+        return path in self.dirs or path in self.files
+
+def _stat_files():
+    import stat
+    return [
+        ('/path/to/maildir', stat.S_IFDIR),
+        ('/path/to/maildir/new', stat.S_IFDIR),
+        ('/path/to/maildir/new/1', stat.S_IFREG),
+        ('/path/to/maildir/new/2', stat.S_IFREG),
+        ('/path/to/maildir/cur', stat.S_IFDIR),
+        ('/path/to/maildir/cur/1', stat.S_IFREG),
+        ('/path/to/maildir/cur/2', stat.S_IFREG),
+        ('/path/to/maildir/tmp', stat.S_IFDIR),
+        ('/path/to/maildir/tmp/1', stat.S_IFREG),
+        ('/path/to/maildir/tmp/2', stat.S_IFREG),
+        ('/path/to/maildir/tmp/1234500000.4242.myhostname.*', stat.S_IFREG),
+        ('/path/to/maildir/tmp/1234500001.4242.myhostname.*', stat.S_IFREG),
+        ('/path/to/regularfile', stat.S_IFREG),
+        ('/path/to/emptydirectory', stat.S_IFDIR),
+    ]
+
+def _listdir_files():
+    return [
+        ('/path/to/maildir/new', ['1', '2', '.svn']),
+        ('/path/to/maildir/cur', ['2', '1', '.tmp']),
+        ('/path/to/maildir/tmp', ['1', '2', '.ignore']),
+    ]
+
+class FakeOsModule(object):
+
+    F_OK = 0
+
+    path = FakeOsPathModule(_stat_files(), _listdir_files())
+
+    _made_directories = ()
+    _removed_files = ()
+    _renamed_files = ()
+
+    _all_files_exist = False
+    _exception = None
+
+    def __init__(self):
+        import os
+        self._descriptors = {}
+        self.O_CREAT = os.O_CREAT
+        self.O_EXCL = os.O_EXCL
+        self.O_WRONLY = os.O_WRONLY
+        self.O_RDWR = os.O_RDWR
+
+    def access(self, path, mode):
+        modes = dict(_stat_files())
+        if self._all_files_exist:
+            return True
+        if path in modes:
+            return True
+        if path.rsplit('.', 1)[0] + '.*' in modes:
+            return True
+        return False
+
+    def listdir(self, path):
+        listdir = dict(_listdir_files())
+        return listdir.get(path, [])
+
+    def mkdir(self, path):
+        self._made_directories += (path, )
+
+    def getpid(self):
+        return 4242
+
+    def remove(self, path):
+        self._removed_files += (path, )
+
+    def rename(self, old, new):
+        self._renamed_files += ((old, new), )
+
+    def open(self, filename, flags,
+             mode=511  # BBB Python 2 vs 3, 0o777 in octal
+             ):
+        import errno
+        if self._exception is not None:
+            raise self._exception
+        if (flags & self.O_EXCL and flags & self.O_CREAT
+            and self.access(filename, 0)):
+            raise OSError(errno.EEXIST, 'file already exists')
+        if not flags & self.O_CREAT and not self.access(filename, 0):
+            raise OSError('file not found') #pragma NO COVERAGE defensive
+        fd = max(list(self._descriptors.keys()) + [2]) + 1
+        self._descriptors[fd] = filename, flags, mode
+        return fd
+
+    def fdopen(self, fd, mode='r'):
+        filename, flags, permissions = self._descriptors[fd]
+        if mode == 'w':
+            assert flags & self.O_WRONLY
+            assert not flags & self.O_RDWR
+        else: #pragma NO COVERAGE defensive programming
+            raise AssertionError("don't know how to verify if flags match"
+                                 " mode %r" % mode)
+        return FakeFile(filename, mode)
+
+
+class FakeFile(object):
+
+    def __init__(self, filename, mode):
+        self._filename = filename
+        self._mode = mode
+        self._written = ''
+        self._closed = False
+
+    def close(self):
+        self._closed = True
+
+    def write(self, data):
+        self._written += data
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
