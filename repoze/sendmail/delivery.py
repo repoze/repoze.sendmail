@@ -22,10 +22,6 @@ from email.header import Header
 from email.parser import Parser
 from email.utils import formatdate
 from email.utils import make_msgid
-import os
-from random import randrange
-from socket import gethostname
-from time import strftime
 
 from zope.interface import implementer
 from repoze.sendmail.interfaces import IMailDelivery
