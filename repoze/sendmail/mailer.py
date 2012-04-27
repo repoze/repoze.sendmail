@@ -13,14 +13,18 @@
 ##############################################################################
 from email.message import Message
 from smtplib import SMTP
-import socket
+try:
+    from socket import ssl
+except ImportError:
+    HAVE_SSL = False
+else:
+    HAVE_SSL = True
+    del ssl
 
 from zope.interface import implementer
 from repoze.sendmail.encoding import encode_message
 from repoze.sendmail.interfaces import IMailer
 from repoze.sendmail._compat import SSLError
-
-have_ssl = hasattr(socket, 'ssl')
 
 
 class SMTPMailer(object):
@@ -64,7 +68,7 @@ class SMTPMailer(object):
         if not have_tls and self.force_tls:
             raise RuntimeError('TLS is not available but TLS is required')
 
-        if have_tls and have_ssl and not self.no_tls:
+        if have_tls and HAVE_SSL and not self.no_tls:
             connection.starttls()
             connection.ehlo()
 
