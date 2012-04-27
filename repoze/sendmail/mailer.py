@@ -25,10 +25,11 @@ have_ssl = hasattr(socket, 'ssl')
 
 class SMTPMailer(object):
 
-    smtp = SMTP
+    smtp = SMTP  #allow replacement for testing.
 
     def __init__(self, hostname='localhost', port=25,
-                 username=None, password=None, no_tls=False, force_tls=False, debug_smtp=False):
+                 username=None, password=None,
+                 no_tls=False, force_tls=False, debug_smtp=False):
         self.hostname = hostname
         self.port = port
         self.username = username
@@ -54,8 +55,9 @@ class SMTPMailer(object):
         if code < 200 or code >= 300:
             code, response = connection.helo()
             if code < 200 or code >= 300:
-                raise RuntimeError('Error sending HELO to the SMTP server '
-                                   '(code=%s, response=%s)' % (code, response))
+                raise RuntimeError(
+                        'Error sending HELO to the SMTP server '
+                        '(code=%s, response=%s)' % (code, response))
 
         # encryption support
         have_tls =  connection.has_extn('starttls')
@@ -70,8 +72,9 @@ class SMTPMailer(object):
             if self.username is not None and self.password is not None:
                 connection.login(self.username, self.password)
         elif self.username:
-            raise RuntimeError('Mailhost does not support ESMTP but a username '
-                                'is configured')
+            raise RuntimeError(
+                    'Mailhost does not support ESMTP but a username '
+                    'is configured')
 
         connection.sendmail(fromaddr, toaddrs, message)
         try:
