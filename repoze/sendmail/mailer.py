@@ -11,21 +11,14 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-
 from email.message import Message
-
-import socket
 from smtplib import SMTP
-
-try:
-    from ssl import SSLError
-except ImportError: # pragma: no cover
-    # BBB Python 2.5
-    from socket import sslerror as SSLError
+import socket
 
 from zope.interface import implementer
+from repoze.sendmail.encoding import encode_message
 from repoze.sendmail.interfaces import IMailer
-from repoze.sendmail import encoding
+from repoze.sendmail._compat import SSLError
 
 have_ssl = hasattr(socket, 'ssl')
 
@@ -52,7 +45,7 @@ class SMTPMailer(object):
     def send(self, fromaddr, toaddrs, message):
         assert isinstance(message, Message), \
                'Message must be instance of email.message.Message'
-        message = encoding.encode_message(message)
+        message = encode_message(message)
 
         connection = self.smtp_factory()
 

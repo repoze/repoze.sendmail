@@ -1,23 +1,16 @@
 import errno
 import logging
 import os
-import os.path
 import smtplib
 import stat
 import sys
 import time
 
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser  # BBB Python 2 vs 3 compat
-
-configparser  #pyflakes
-
 from email.parser import Parser
 
 from repoze.sendmail.maildir import Maildir
 from repoze.sendmail.mailer import SMTPMailer
+from repoze.sendmail._compat import ConfigParser
 
 if sys.platform == 'win32': #pragma NO COVERAGE
     import win32file
@@ -425,7 +418,7 @@ class ConsoleApp(object):
             "debug_smtp",
         ]
         defaults = dict([(name, str(getattr(self, name))) for name in names])
-        config = configparser.ConfigParser(defaults)
+        config = ConfigParser(defaults)
         config.read(path)
 
         self.hostname = config.get(section, "hostname")

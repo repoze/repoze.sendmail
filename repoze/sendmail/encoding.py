@@ -1,11 +1,8 @@
-BBB_PY_2 = True
-try:
-    str = unicode
-except NameError: # pragma: no cover
-    BBB_PY_2 = False
-
 from email import utils
 from email import charset
+
+from repoze.sendmail._compat import PY_2
+from repoze.sendmail._compat import text_type
 
 # From http://tools.ietf.org/html/rfc5322#section-3.6
 ADDR_HEADERS = ('resent-from',
@@ -46,7 +43,7 @@ def encode_message(message,
             addrs = []
             for name, addr in utils.getaddresses([value]):
                 best, encoded = best_charset(name)
-                if BBB_PY_2:
+                if PY_2:
                     name = encoded
                 name = charset.Charset(best).header_encode(name)
                 addrs.append(utils.formataddr((name, addr)))
@@ -56,7 +53,7 @@ def encode_message(message,
             for param_key, param_value in message.get_params(header=key):
                 if param_value:
                     best, encoded = best_charset(param_value)
-                    if BBB_PY_2:
+                    if PY_2:
                         param_value = encoded
                     if best == 'ascii':
                         best = None
@@ -64,15 +61,15 @@ def encode_message(message,
                                       header=key, charset=best)
         else:
             best, encoded = best_charset(value)
-            if BBB_PY_2:
+            if PY_2:
                 value = encoded
             value = charset.Charset(best).header_encode(value)
             message.replace_header(key, value)
 
     payload = message.get_payload()
-    if payload and isinstance(payload, str):
+    if payload and isinstance(payload, text_type):
         best, encoded = best_charset(payload)
-        if BBB_PY_2:
+        if PY_2:
             payload = encoded
         message.set_payload(payload, charset=best)
 
