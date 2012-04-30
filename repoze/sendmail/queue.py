@@ -15,6 +15,7 @@ except ImportError:
 configparser  #pyflakes
 
 from email.parser import Parser
+from email import header
 
 from repoze.sendmail.maildir import Maildir
 from repoze.sendmail.mailer import SMTPMailer
@@ -114,11 +115,30 @@ class QueueProcessor(object):
         """
         parser = Parser()
         message = parser.parse(fp)
+
         fromaddr = message['X-Actually-From']
+        if fromaddr is not None:
+            decoded_fromaddr = header.decode_header(fromaddr)
+            assert len(decoded_fromaddr) == 1, 'From header has multiple parts.'
+            encoded_fromaddr, charset = decoded_fromaddr[0]
+            if charset is not None:
+                fromaddr = encoded_fromaddr.decode(charset)
+        else:
+            fromaddr = ''
         del message['X-Actually-From']
-        toaddrs = tuple([a.strip() for a in
-                         message['X-Actually-To'].split(',')])
+
+        toaddrs = message['X-Actually-To']
+        if toaddrs is not None:
+            decoded_toaddrs = header.decode_header(toaddrs)
+            assert len(decoded_toaddrs) == 1, 'To header has multiple parts.'
+            encoded_toaddrs, charset = decoded_toaddrs[0]
+            if charset is not None:
+                toaddrs = encoded_toaddrs.decode(charset)
+            toaddrs = tuple(a.strip() for a in toaddrs.split(','))
+        else:
+            toaddrs = ()
         del message['X-Actually-To']
+
         return fromaddr, toaddrs, message
 
     def _send_message(self, filename):

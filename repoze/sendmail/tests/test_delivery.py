@@ -12,6 +12,10 @@
 #
 ##############################################################################
 
+import os
+import tempfile
+import shutil
+
 from unittest import TestCase
 
 # BBB Python 2 & 3 compat
@@ -226,10 +230,22 @@ class TestQueuedMailDelivery(TestCase):
         self.assertEqual(MaildirMessageStub.commited_messages, [])
         self.assertEqual(len(MaildirMessageStub.aborted_messages), 1)
 
+
+class TestQueuedMailDeliveryWithMaildir(TestCase):
+
+    def setUp(self):
+        from repoze.sendmail.queue import QueueProcessor
+        self.dir = tempfile.mkdtemp()
+        self.maildir_path = os.path.join(self.dir, 'Maildir')
+        self.qp = QueueProcessor(MailerStub(), self.maildir_path)
+
+    def tearDown(self):
+        shutil.rmtree(self.dir)
+
     def testNonASCIIAddrs(self):
         from email.message import Message
         from repoze.sendmail.delivery import QueuedMailDelivery
-        delivery = QueuedMailDelivery('/path/to/mailbox')
+        delivery = QueuedMailDelivery(self.maildir_path)
 
         non_ascii = b('LaPe\xc3\xb1a').decode('utf-8')
         fromaddr = non_ascii+' <jim@example.com>'
@@ -237,9 +253,15 @@ class TestQueuedMailDelivery(TestCase):
         message = Message()
 
         delivery.send(fromaddr, toaddrs, message)
+        self.assertTrue(os.listdir(os.path.join(self.maildir_path, 'tmp')))
+        self.assertFalse(os.listdir(os.path.join(self.maildir_path, 'new')))
         transaction.commit()
-        message = MaildirMessageStub.commited_messages[0]
+        self.assertFalse(os.listdir(os.path.join(self.maildir_path, 'tmp')))
+        self.assertTrue(os.listdir(os.path.join(self.maildir_path, 'new')))
 
-        self.assertEqual(raw_header(message['X-Actually-From']), fromaddr)
-        self.assertEqual(raw_header(
-            message['X-Actually-To']), ','.join(toaddrs))
+        self.qp.send_messages()
+        self.assertTrue(len(self.qp.mailer.sent_messages), 1)
+        queued_fromaddr, queued_toaddrs, queued_message = (
+            self.qp.mailer.sent_messages[0])
+        self.assertEqual(queued_fromaddr, fromaddr)
+        self.assertEqual(queued_toaddrs, toaddrs)
