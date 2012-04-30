@@ -11,193 +11,158 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-
-from zope.interface.verify import verifyObject
-from repoze.sendmail.mailer import SMTPMailer
-import email
 import unittest
-
-try: 
-    from ssl import SSLError
-except ImportError: # pragma: no cover
-    # BBB Python 2.5
-    from socket import sslerror as SSLError
 
 
 class TestSMTPMailer(unittest.TestCase):
 
-    def setUp(self, port=None):
-        self.ehlo_status = 200
-        self.extns = set(['starttls',])
-        global SMTP
-        class SMTP(object):
-            fail_on_quit = False
 
-            def __init__(myself, h, p):
-                myself.hostname = h
-                myself.port = p
-                myself.quitted = False
-                myself.closed = False
-                myself.debuglevel = 0
-                self.smtp = myself
+    def _getTargetClass(self):
+        from repoze.sendmail.mailer import SMTPMailer
+        return SMTPMailer
 
-            def set_debuglevel(self, lvl):
-                self.debuglevel = bool(lvl)
-
-            def sendmail(self, f, t, m):
-                self.fromaddr = f
-                self.toaddrs = t
-                self.msgtext = m
-
-            def login(self, username, password):
-                self.username = username
-                self.password = password
-
-            def quit(self):
-                if self.fail_on_quit:
-                    raise SSLError("dang")
-                self.quitted = True
-                self.close()
-
-            def close(self):
-                self.closed = True
-
-            def has_extn(myself, ext):
-                return ext in self.extns
-
-            def ehlo(myself):
-                myself.does_esmtp = True
-                return (self.ehlo_status, 'Hello, I am your stupid MTA mock')
-
-            helo = ehlo
-
-            def starttls(self):
-                pass
-
-
+    def _makeOne(self, port=None, ehlo_status=200, extns=set(['starttls',])):
+        klass = self._getTargetClass()
         if port is None:
-            self.mailer = SMTPMailer()
+            mailer = klass()
         else:
-            self.mailer = SMTPMailer('localhost', port)
-        self.mailer.smtp = SMTP
+            mailer = klass('localhost', port)
+        smtp = _makeSMTP(ehlo_status, extns)
+        mailer.smtp = smtp
+        return mailer, smtp
 
     def test_send(self):
         from email.message import Message
         for run in (1,2):
             if run == 2:
-                self.setUp('25')
+                mailer, smtp = self._makeOne(port=25)
+            else:
+                mailer, smtp = self._makeOne()
             fromaddr = 'me@example.com'
             toaddrs = ('you@example.com', 'him@example.com')
             msg = Message()
             msg['Headers'] = 'headers'
             msg.set_payload('bodybodybody\n-- \nsig\n')
-            self.mailer.send(fromaddr, toaddrs, msg)
-            self.assertEqual(self.smtp.fromaddr, fromaddr)
-            self.assertEqual(self.smtp.toaddrs, toaddrs)
-            self.assertEqual(
-                self.smtp.msgtext, msg.as_string().encode('ascii'))
-            self.assertTrue(self.smtp.quitted)
-            self.assertTrue(self.smtp.closed)
+            mailer.send(fromaddr, toaddrs, msg)
+            self.assertEqual(len(smtp._inst), 1)
+            inst = smtp._inst[0]
+            self.assertEqual(inst.fromaddr, fromaddr)
+            self.assertEqual(inst.toaddrs, toaddrs)
+            self.assertEqual(inst.msgtext, msg.as_string().encode('ascii'))
+            self.assertTrue(inst.quitted)
+            self.assertTrue(inst.closed)
 
     def test_fail_ehlo(self):
         from email.message import Message
+        mailer, smtp = self._makeOne(ehlo_status=100)
         fromaddr = 'me@example.com'
         toaddrs = ('you@example.com', 'him@example.com')
         msg = Message()
-        self.ehlo_status = 100
-        self.assertRaises(RuntimeError, self.mailer.send,
+        self.assertRaises(RuntimeError, mailer.send,
                           fromaddr, toaddrs, msg)
 
     def test_tls_required_not_available(self):
         from email.message import Message
+        mailer, smtp = self._makeOne(extns=set())
         fromaddr = 'me@example.com'
         toaddrs = ('you@example.com', 'him@example.com')
         msg = Message()
-        self.extns.remove('starttls')
-        self.mailer.force_tls = True
-        self.assertRaises(RuntimeError, self.mailer.send,
+        mailer.force_tls = True
+        self.assertRaises(RuntimeError, mailer.send,
                           fromaddr, toaddrs, msg)
 
     def test_send_auth(self):
+        from email import message_from_string
+        mailer, smtp = self._makeOne()
         fromaddr = 'me@example.com'
         toaddrs = ('you@example.com', 'him@example.com')
         headers = 'Headers: headers'
         body='bodybodybody\n-- \nsig\n'
         msgtext = headers+'\n\n'+body
-        msg = email.message_from_string(msgtext)
-        self.mailer.username = 'foo'
-        self.mailer.password = 'evil'
-        self.mailer.hostname = 'spamrelay'
-        self.mailer.port = 31337
-        self.mailer.send(fromaddr, toaddrs, msg)
-        self.assertEqual(self.smtp.username, 'foo')
-        self.assertEqual(self.smtp.password, 'evil')
-        self.assertEqual(self.smtp.hostname, 'spamrelay')
-        self.assertEqual(self.smtp.port, '31337')
-        self.assertEqual(self.smtp.fromaddr, fromaddr)
-        self.assertEqual(self.smtp.toaddrs, toaddrs)
-        self.assertTrue(body.encode('ascii') in self.smtp.msgtext)
-        self.assertTrue(headers.encode('ascii') in self.smtp.msgtext)
-        self.assertTrue(self.smtp.quitted)
-        self.assertTrue(self.smtp.closed)
+        msg = message_from_string(msgtext)
+        mailer.username = 'foo'
+        mailer.password = 'evil'
+        mailer.hostname = 'spamrelay'
+        mailer.port = 31337
+        mailer.send(fromaddr, toaddrs, msg)
+        self.assertEqual(len(smtp._inst), 1)
+        inst = smtp._inst[0]
+        self.assertEqual(inst.username, 'foo')
+        self.assertEqual(inst.password, 'evil')
+        self.assertEqual(inst.hostname, 'spamrelay')
+        self.assertEqual(inst.port, '31337')
+        self.assertEqual(inst.fromaddr, fromaddr)
+        self.assertEqual(inst.toaddrs, toaddrs)
+        self.assertTrue(body.encode('ascii') in inst.msgtext)
+        self.assertTrue(headers.encode('ascii') in inst.msgtext)
+        self.assertTrue(inst.quitted)
+        self.assertTrue(inst.closed)
 
     def test_send_failQuit(self):
-        self.mailer.smtp.fail_on_quit = True
+        from email import message_from_string
+        mailer, smtp = self._makeOne()
+        mailer.smtp.fail_on_quit = True
         try:
             fromaddr = 'me@example.com'
             toaddrs = ('you@example.com', 'him@example.com')
             headers = 'Headers: headers'
             body='bodybodybody\n-- \nsig\n'
             msgtext = headers+'\n\n'+body
-            msg = email.message_from_string(msgtext)
-            self.mailer.send(fromaddr, toaddrs, msg)
-            self.assertEqual(self.smtp.fromaddr, fromaddr)
-            self.assertEqual(self.smtp.toaddrs, toaddrs)
-            self.assertTrue(body.encode('ascii') in self.smtp.msgtext)
-            self.assertTrue(headers.encode('ascii') in self.smtp.msgtext)
-            self.assertTrue(not self.smtp.quitted)
-            self.assertTrue(self.smtp.closed)
+            msg = message_from_string(msgtext)
+            mailer.send(fromaddr, toaddrs, msg)
+            self.assertEqual(len(smtp._inst), 1)
+            inst = smtp._inst[0]
+            self.assertEqual(inst.fromaddr, fromaddr)
+            self.assertEqual(inst.toaddrs, toaddrs)
+            self.assertTrue(body.encode('ascii') in inst.msgtext)
+            self.assertTrue(headers.encode('ascii') in inst.msgtext)
+            self.assertTrue(not inst.quitted)
+            self.assertTrue(inst.closed)
         finally:
-            self.mailer.smtp.fail_on_quit = False
+            mailer.smtp.fail_on_quit = False
+
+    def test_without_debug(self):
+        klass = self._getTargetClass()
+        mailer = klass(debug_smtp=False)
+        mailer.smtp = _makeSMTP()
+        connection = mailer.smtp_factory()
+        self.assertFalse(connection.debuglevel)
+
+    def test_with_debug(self):
+        klass = self._getTargetClass()
+        mailer = klass(debug_smtp=True)
+        mailer.smtp = _makeSMTP()
+        connection = mailer.smtp_factory()
+        self.assertTrue(connection.debuglevel)
+
 
 class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
 
-    def setUp(self, port=None):
-        self.extns = set(['starttls',])
+    def _getTargetClass(self):
+        from repoze.sendmail.mailer import SMTPMailer
+        return SMTPMailer
 
-        class SMTPWithNoEHLO(SMTP):
-            does_esmtp = False
-
-            def __init__(myself, h, p):
-                myself.hostname = h
-                myself.port = p
-                myself.quitted = False
-                myself.closed = False
-                self.smtp = myself
-
-            def helo(self):
-                return (200, 'Hello, I am your stupid MTA mock')
-
-            def ehlo(self):
-                return (502, 'I don\'t understand EHLO')
-
-
+    def _makeOne(self, port=None, extns=set(['starttls',])):
+        klass = self._getTargetClass()
         if port is None:
-            self.mailer = SMTPMailer()
+            mailer = klass()
         else:
-            self.mailer = SMTPMailer('localhost', port)
-        self.mailer.smtp = SMTPWithNoEHLO
+            mailer = klass('localhost', port)
+        smtp = _makeSMTPNoEHLO(extns)
+        mailer.smtp = smtp
+        return mailer, smtp
 
     def test_send_auth(self):
         from email.message import Message
+        mailer, smtp = self._makeOne()
         fromaddr = 'me@example.com'
         toaddrs = ('you@example.com', 'him@example.com')
         msg = Message()
-        self.mailer.username = 'foo'
-        self.mailer.password = 'evil'
-        self.mailer.hostname = 'spamrelay'
-        self.mailer.port = 31337
-        self.assertRaises(RuntimeError, self.mailer.send,
+        mailer.username = 'foo'
+        mailer.password = 'evil'
+        mailer.hostname = 'spamrelay'
+        mailer.port = 31337
+        self.assertRaises(RuntimeError, mailer.send,
                           fromaddr, toaddrs, msg)
 
     def test_fail_ehlo(self):
@@ -205,25 +170,74 @@ class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
         # here, so pass.
         pass
 
-class TestSMTPMailerWithSMTPDebug(unittest.TestCase):
 
-    def setUp(self, debug_smtp=True):
-        self.mailer = SMTPMailer(debug_smtp=debug_smtp)
-        self.mailer.smtp = SMTP
+def _makeSMTP(ehlo_status=200, extns=set(['starttls',])):
+    class SMTP(object):
+        fail_on_quit = False
+        _inst = []
 
-    def test_without_debug(self):
-        self.setUp(False)
-        connection = self.mailer.smtp_factory()
-        self.assertFalse(connection.debuglevel)
+        def __init__(self, h, p):
+            self.hostname = h
+            self.port = p
+            self.quitted = False
+            self.closed = False
+            self.debuglevel = 0
+            SMTP._inst.append(self)
 
-    def test_with_debug(self):
-        connection = self.mailer.smtp_factory()
-        self.assertTrue(connection.debuglevel)
+        def set_debuglevel(self, lvl):
+            self.debuglevel = bool(lvl)
+
+        def sendmail(self, f, t, m):
+            self.fromaddr = f
+            self.toaddrs = t
+            self.msgtext = m
+
+        def login(self, username, password):
+            self.username = username
+            self.password = password
+
+        def quit(self):
+            from repoze.sendmail._compat import SSLError
+            if self.fail_on_quit:
+                raise SSLError("dang")
+            self.quitted = True
+            self.close()
+
+        def close(self):
+            self.closed = True
+
+        def has_extn(self, ext):
+            return ext in self.extns
+
+        def ehlo(self):
+            self.does_esmtp = True
+            return (self.ehlo_status, 'Hello, I am your stupid MTA mock')
+
+        helo = ehlo
+
+        def starttls(self):
+            pass
+
+    SMTP.ehlo_status = ehlo_status
+    SMTP.extns = extns
+    return SMTP
+
+
+def _makeSMTPNoEHLO(extns):
+    SMTP = _makeSMTP(None, extns)
+    class SMTPWithNoEHLO(SMTP):
+        does_esmtp = False
+
+        def helo(self):
+            return (200, 'Hello, I am your stupid MTA mock')
+
+        def ehlo(self):
+            return (502, 'I don\'t understand EHLO')
+    return SMTPWithNoEHLO
 
 
 def test_suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestSMTPMailer))
-    suite.addTest(unittest.makeSuite(TestSMTPMailerWithNoEHLO))
-    suite.addTest(unittest.makeSuite(TestSMTPMailerWithSMTPDebug))
-    return suite
+    return unittest.TestSuite((
+        unittest.makeSuite(TestSMTPMailer),
+        unittest.makeSuite(TestSMTPMailerWithNoEHLO),
+    ))
