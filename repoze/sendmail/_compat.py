@@ -30,5 +30,5 @@ except ImportError: #pragma NO COVER Python 2
 
 if PY_2: # pragma: no cover
     encodestring = base64.encodestring
-else:
+else: # pragma: no cover
     encodestring = base64.encodebytes

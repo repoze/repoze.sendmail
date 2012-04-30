@@ -15,9 +15,9 @@ from email.message import Message
 from smtplib import SMTP
 try:
     from socket import ssl
-except ImportError:
+except ImportError: #pragma NO COVER
     HAVE_SSL = False
-else:
+else: #pragma NO COVER
     HAVE_SSL = True
     del ssl
 
