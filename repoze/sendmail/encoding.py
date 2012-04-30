@@ -39,7 +39,7 @@ def encode_message(message,
     encoding.  Finally, all other header are left in `ascii` if
     possible or encoded to `latin_1` or `utf-8` as a whole.
 
-    The return is a bytest string of the whole message.
+    The return is a byte string of the whole message.
     """
     for key, value in message.items():
         if key.lower() in addr_headers:
