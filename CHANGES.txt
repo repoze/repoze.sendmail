@@ -1,6 +1,11 @@
 Change history
 ~~~~~~~~~~~~~~
 
+After 3.1
+---------
+
+- Suppress duplicate usage message output from ``qp``.
+
 3.1 (2012-03-26)
 ----------------
 
