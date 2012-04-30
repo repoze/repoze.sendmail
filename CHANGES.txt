@@ -1,6 +1,12 @@
 Change history
 ~~~~~~~~~~~~~~
 
+3.2 (Unreleased)
+----------------
+
+- Fix issue #7, handling of to/from addresses with non-ascii
+  characters when using queued mail delivery.
+
 3.1 (2012-03-26)
 ----------------
 
