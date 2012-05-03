@@ -21,10 +21,10 @@ PARAM_HEADERS = ('content-type',
                  'content-disposition')
                 
 
-def encode_message(message,
+def cleanup_message(message,
                    addr_headers=ADDR_HEADERS, param_headers=PARAM_HEADERS):
     """
-    Encode a `Message` handling headers and payloads.
+    Cleanup a `Message` handling header and payload charsets.
 
     Headers are handled in the most sane way possible.  Address names
     are left in `ascii` if possible or encoded to `latin_1` or `utf-8`
@@ -36,7 +36,8 @@ def encode_message(message,
     encoding.  Finally, all other header are left in `ascii` if
     possible or encoded to `latin_1` or `utf-8` as a whole.
 
-    The return is a byte string of the whole message.
+    The message is modified in place and is also returned in such a
+    state that it can be safely encoded to ascii.
     """
     for key, value in message.items():
         if key.lower() in addr_headers:
@@ -72,7 +73,31 @@ def encode_message(message,
         if PY_2:
             payload = encoded
         message.set_payload(payload, charset=best)
+    elif isinstance(payload, list):
+        for part in payload:
+            cleanup_message(part)
 
+    return message
+
+
+def encode_message(message,
+                   addr_headers=ADDR_HEADERS, param_headers=PARAM_HEADERS):
+    """
+    Encode a `Message` handling headers and payloads.
+
+    Headers are handled in the most sane way possible.  Address names
+    are left in `ascii` if possible or encoded to `latin_1` or `utf-8`
+    and finally encoded according to RFC 2047 without encoding the
+    address, something the `email` stdlib package doesn't do.
+    Parameterized headers such as `filename` in the
+    `Content-Disposition` header, have their values encoded properly
+    while leaving the rest of the header to be handled without
+    encoding.  Finally, all other header are left in `ascii` if
+    possible or encoded to `latin_1` or `utf-8` as a whole.
+
+    The return is a byte string of the whole message.
+    """
+    cleanup_message(message)
     return message.as_string().encode('ascii')
 
 
