@@ -29,7 +29,7 @@ if sys.version_info[:2] < (2, 6):
                ]
 
 setup(name='repoze.sendmail',
-      version = '3.1',
+      version = '3.2',
       url='http://www.repoze.org',
       license='ZPL 2.1',
       description='Repoze Sendmail',
