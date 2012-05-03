@@ -26,6 +26,7 @@ from email.utils import make_msgid
 from zope.interface import implementer
 from repoze.sendmail.interfaces import IMailDelivery
 from repoze.sendmail.maildir import Maildir
+from repoze.sendmail import encoding
 from transaction.interfaces import IDataManager
 import transaction
 
@@ -79,6 +80,7 @@ class AbstractMailDelivery(object):
     def send(self, fromaddr, toaddrs, message):
         assert isinstance(message, Message), \
                'Message must be instance of email.message.Message'
+        encoding.cleanup_message(message)
         messageid = message['Message-Id']
         if messageid is None:
             messageid = message['Message-Id'] = make_msgid('repoze.sendmail')

@@ -207,3 +207,29 @@ class TestEncoding(unittest.TestCase):
         encoded = self._callFUT(message)
 
         self.assertTrue(encodestring(body) in encoded)
+
+    def test_encoding_multipart(self):
+        from email.mime import multipart
+        from email.mime import nonmultipart
+        from repoze.sendmail._compat import encodestring
+        from repoze.sendmail._compat import b
+
+        message = multipart.MIMEMultipart('alternative')
+
+        utf_8_encoded = b('mo \xe2\x82\xac')
+        utf_8 = utf_8_encoded.decode('utf_8')
+
+        plain_string = utf_8
+        plain_part = nonmultipart.MIMENonMultipart('plain', 'plain')
+        plain_part.set_payload(plain_string)
+        message.attach(plain_part)
+
+        html_string = '<p>'+utf_8+'</p>'
+        html_part = nonmultipart.MIMENonMultipart('text', 'html')
+        html_part.set_payload(html_string)
+        message.attach(html_part)
+
+        encoded = self._callFUT(message)
+
+        self.assertTrue(encodestring(plain_string.encode('utf_8')) in encoded)
+        self.assertTrue(encodestring(html_string.encode('utf_8')) in encoded)
