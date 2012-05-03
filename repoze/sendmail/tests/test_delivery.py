@@ -187,7 +187,7 @@ class TestQueuedMailDeliveryWithMaildir(unittest.TestCase):
 
     def testNonASCIIAddrs(self):
         import os
-        from email.message import Message
+        from email.mime import base
         import transaction
         from repoze.sendmail.delivery import QueuedMailDelivery
         from repoze.sendmail._compat import b
@@ -197,7 +197,9 @@ class TestQueuedMailDeliveryWithMaildir(unittest.TestCase):
         non_ascii = b('LaPe\xc3\xb1a').decode('utf-8')
         fromaddr = non_ascii+' <jim@example.com>'
         toaddrs = (non_ascii+' <guido@recip.com>',)
-        message = Message()
+        message = base.MIMEBase('text', 'plain')
+        message['From'] = fromaddr
+        message['To'] = ','.join(toaddrs)
 
         delivery.send(fromaddr, toaddrs, message)
         self.assertTrue(os.listdir(os.path.join(self.maildir_path, 'tmp')))
