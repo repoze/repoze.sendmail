@@ -1,3 +1,4 @@
+from __future__ import with_statement
 import errno
 import logging
 import os
@@ -232,7 +233,8 @@ class QueueProcessor(object):
             #        return
 
             # read message file and send contents
-            fromaddr, toaddrs, message = self._parseMessage(open(filename))
+            with open(filename) as f:
+                fromaddr, toaddrs, message = self._parseMessage(f)
             try:
                 self.mailer.send(fromaddr, toaddrs, message)
             except smtplib.SMTPResponseException:
