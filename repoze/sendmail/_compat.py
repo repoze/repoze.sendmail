@@ -4,11 +4,15 @@ import codecs
 
 try:
     text_type = unicode
+    def from_octets(seq_of_ints):
+        return b''.join([chr(x) for x in seq_of_ints])
 except NameError: #pragma NO COVER
     PY_2 = False
     text_type = str
     def b(x):
         return codecs.latin_1_encode(x)[0]
+    def from_octets(seq_of_ints):
+        return bytes(seq_of_ints)
 else:
     PY_2 = True
     b = str

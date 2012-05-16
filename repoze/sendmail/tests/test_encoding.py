@@ -209,10 +209,12 @@ class TestEncoding(unittest.TestCase):
         self.assertTrue(encodestring(body) in encoded)
 
     def test_encoding_multipart(self):
+        from email.mime import application
         from email.mime import multipart
         from email.mime import nonmultipart
-        from repoze.sendmail._compat import encodestring
         from repoze.sendmail._compat import b
+        from repoze.sendmail._compat import encodestring
+        from repoze.sendmail._compat import from_octets
 
         message = multipart.MIMEMultipart('alternative')
 
@@ -229,7 +231,13 @@ class TestEncoding(unittest.TestCase):
         html_part.set_payload(html_string)
         message.attach(html_part)
 
+        binary = from_octets([x for x in range(256)])
+        binary_b64 = encodestring(binary)
+        binary_part = application.MIMEApplication(binary)
+        message.attach(binary_part)
+
         encoded = self._callFUT(message)
 
         self.assertTrue(encodestring(plain_string.encode('utf_8')) in encoded)
         self.assertTrue(encodestring(html_string.encode('utf_8')) in encoded)
+        self.assertTrue(binary_b64 in encoded)
