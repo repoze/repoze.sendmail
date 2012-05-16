@@ -5,7 +5,7 @@ import codecs
 try:
     text_type = unicode
     def from_octets(seq_of_ints):
-        return b''.join([chr(x) for x in seq_of_ints])
+        return ''.join([chr(x) for x in seq_of_ints])
 except NameError: #pragma NO COVER
     PY_2 = False
     text_type = str
