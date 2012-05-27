@@ -4,15 +4,15 @@ Change history
 3.2 (2012-05-03)
 ----------------
 
-- Fix issue #7, handling of to/from addresses with non-ascii
+- Issue #7:  fixed handling of to/from addresses with non-ascii
   characters when using queued mail delivery.
 
-- Suppress duplicate usage message output from ``qp``.
+- Suppressed duplicate usage message output from ``qp``.
 
 3.1 (2012-03-26)
 ----------------
 
-- ``qp`` queue processor mail delivery didn't work in 3.0.
+- Fixed ``qp`` queue processor mail delivery under Python 3.0.
 
 - Added 'setup.py dev' alias (runs ``setup.py develop`` plus installs
   ``nose`` and ``coverage``).
@@ -20,14 +20,15 @@ Change history
 3.0 (2012-03-20)
 ----------------
 
-- Fix `Message-Id` handling (see http://bugs.repoze.org/issue177).
+- Fixed `Message-Id` handling (see http://bugs.repoze.org/issue177).
 
-- Provide improved support for encoding messages to bytes.  It should now be
+- Provided improved support for encoding messages to bytes.  It should now be
   possible to represent your messages in `email.message.Message` objects just
   with unicode (excepting bytes for binary attachments) and the mailer will
   handler it as appropriate.
 
-- cPython 2.5, 2.6, 2.7, 3.2, jython 2.5 and pypy 1.8 compatibility.
+- Added tests for cPython 2.5, 2.6, 2.7, 3.2, jython 2.5 and pypy 1.8
+  compatibility.
 
 2.3 (2011-05-17)
 ----------------
