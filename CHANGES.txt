@@ -1,6 +1,15 @@
 Change history
 ~~~~~~~~~~~~~~
 
+After 3.2 (unreleased)
+----------------------
+
+- Improved test for SSL feature under Python 3.x.
+
+- Added new tests for proper encoding of binary attachments.
+
+- Cauterized resource leak warnings under Python 3.2.
+
 3.2 (2012-05-03)
 ----------------
 
