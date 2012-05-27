@@ -24,7 +24,7 @@ requires = ['setuptools',
 if sys.version_info[:2] < (2, 6):
     # BBB Python 2.5 compat
     requires = ['setuptools',
-                'zope.interface>=3.6.0',
+                'zope.interface>=3.6.0,<4.0dev',
                 'transaction<1.2',
                ]
 
