@@ -47,7 +47,7 @@ class MailDataManager(object):
             self.onAbort()
 
     def sortKey(self):
-        return id(self)
+        return str(id(self))
 
     # No subtransaction support.
     def abort_sub(self, transaction):
