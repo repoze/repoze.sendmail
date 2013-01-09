@@ -21,15 +21,8 @@ requires = ['setuptools',
             'zope.interface>=3.6.0',
             'transaction']
 
-if sys.version_info[:2] < (2, 6):
-    # BBB Python 2.5 compat
-    requires = ['setuptools',
-                'zope.interface>=3.6.0,<4.0dev',
-                'transaction<1.2',
-               ]
-
 setup(name='repoze.sendmail',
-      version = '3.2',
+      version = '4.0dev',
       url='http://www.repoze.org',
       license='ZPL 2.1',
       description='Repoze Sendmail',
@@ -43,13 +36,13 @@ setup(name='repoze.sendmail',
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2.5",
+        "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.2",
+        "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: Jython",
         "Programming Language :: Python :: Implementation :: PyPy",
         ],
       packages=find_packages(),

@@ -1,8 +1,15 @@
 Change history
 ~~~~~~~~~~~~~~
 
-After 3.2 (unreleased)
-----------------------
+4.0b1 (unreleased)
+------------------
+
+- Dropped support for Jython until a Jython-2.7-compatible version of
+  ``zope.interface`` becomes available.
+
+- Dropped support for Python 2.5.
+
+- Added suupport for Python 3.3.
 
 - Improved test for SSL feature under Python 3.x.
 
