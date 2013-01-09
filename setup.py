@@ -11,8 +11,6 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-import sys
-
 from setuptools import setup, find_packages
 
 testing_extras = ['nose', 'coverage']
@@ -22,7 +20,7 @@ requires = ['setuptools',
             'transaction']
 
 setup(name='repoze.sendmail',
-      version = '4.0dev',
+      version = '4.0b1',
       url='http://www.repoze.org',
       license='ZPL 2.1',
       description='Repoze Sendmail',
