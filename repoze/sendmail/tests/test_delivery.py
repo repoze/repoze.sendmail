@@ -38,6 +38,10 @@ class TestMailDataManager(unittest.TestCase):
         self.assertEqual(manager.callable, object)
         self.assertEqual(manager.args, (1, 2))
 
+    def test_sortKey(self):
+        manager = self._makeOne()
+        self.assertEqual(manager.sortKey(), str(id(manager)))
+
 
 class TestDirectMailDelivery(unittest.TestCase):
 
