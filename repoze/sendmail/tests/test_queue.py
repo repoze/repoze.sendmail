@@ -5,13 +5,15 @@ import sys
 from tempfile import mkdtemp
 from unittest import TestCase
 
-# BBB Python 2.5 & 3 compat
-b = str
+# BBB Python 2 & 3 compat
 try:
-    str = unicode
+    u = unicode
 except NameError: # pragma: no cover
     import codecs
+    u = str
     def b(x): return codecs.latin_1_encode(x)[0]
+else:
+    b = str
 
 try:
     from io import StringIO
@@ -45,6 +47,7 @@ class BizzarreMailError(IOError):
     pass
 
 
+@implementer(IMailer)
 class BrokenMailerStub(object):
 
     def __init__(self, *args, **kw):
@@ -53,10 +56,8 @@ class BrokenMailerStub(object):
     def send(self, fromaddr, toaddrs, message):
         raise BizzarreMailError("bad things happened while sending mail")
 
-# BBB Python 2.5 compat
-BrokenMailerStub = implementer(IMailer)(BrokenMailerStub)
 
-
+@implementer(IMailer)
 class SMTPResponseExceptionMailerStub(object):
 
     def __init__(self, code):
@@ -64,10 +65,6 @@ class SMTPResponseExceptionMailerStub(object):
 
     def send(self, fromaddr, toaddrs, message):
         raise smtplib.SMTPResponseException(self.code,  'Serious Error')
-
-# BBB Python 2.5 compat
-SMTPResponseExceptionMailerStub = implementer(IMailer)(
-    SMTPResponseExceptionMailerStub)
 
 
 class TestQueueProcessor(TestCase):
@@ -87,7 +84,7 @@ class TestQueueProcessor(TestCase):
         msg = ('Header: value\n'
                '\n'
                'Body\n')
-        f, t, m = self.qp._parseMessage(StringIO(str(hdr + msg)))
+        f, t, m = self.qp._parseMessage(StringIO(u(hdr + msg)))
         self.assertEquals(f, 'foo@example.com')
         self.assertEquals(t, ('bar@example.com', 'baz@example.com'))
         self.assertEquals(m.as_string(), msg)

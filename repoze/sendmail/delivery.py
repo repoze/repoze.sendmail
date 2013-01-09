@@ -30,6 +30,7 @@ from repoze.sendmail import encoding
 from transaction.interfaces import IDataManager
 import transaction
 
+@implementer(IDataManager)
 class MailDataManager(object):
 
     def __init__(self, callable, args=(), onAbort=None):
@@ -71,9 +72,6 @@ class MailDataManager(object):
 
     tpc_abort = abort
 
-# BBB Python 2.5 compat
-MailDataManager = implementer(IDataManager)(MailDataManager)
-
 
 class AbstractMailDelivery(object):
 
@@ -91,6 +89,7 @@ class AbstractMailDelivery(object):
         return messageid
 
 
+@implementer(IMailDelivery)
 class DirectMailDelivery(AbstractMailDelivery):
 
     def __init__(self, mailer):
@@ -100,10 +99,8 @@ class DirectMailDelivery(AbstractMailDelivery):
         return MailDataManager(self.mailer.send,
                                args=(fromaddr, toaddrs, message))
 
-# BBB Python 2.5 compat
-DirectMailDelivery = implementer(IMailDelivery)(DirectMailDelivery)
 
-
+@implementer(IMailDelivery)
 class QueuedMailDelivery(AbstractMailDelivery):
 
     def __init__(self, queuePath):
@@ -119,9 +116,6 @@ class QueuedMailDelivery(AbstractMailDelivery):
         maildir = Maildir(self.queuePath, True)
         tx_message = maildir.add(message)
         return MailDataManager(tx_message.commit, onAbort=tx_message.abort)
-
-# BBB Python 2.5 compat
-QueuedMailDelivery = implementer(IMailDelivery)(QueuedMailDelivery)
 
 
 def copy_message(message):

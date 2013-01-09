@@ -151,9 +151,7 @@ class QueueProcessor(object):
             try:
                 # find the age of the tmp file (if it exists)
                 mtime = os.stat(tmp_filename)[stat.ST_MTIME]
-            except OSError:
-                # BBB Python 2.5 compat
-                e = sys.exc_info()[1]
+            except OSError as e:
                 if e.errno == errno.ENOENT: # file does not exist
                     # the tmp file could not be stated because it
                     # doesn't exist, that's fine, keep going
@@ -180,9 +178,7 @@ class QueueProcessor(object):
                         return
                     # if we get here, the file existed, but was too
                     # old, so it was unlinked
-                except OSError: #pragma NO COVER
-                    # BBB Python 2.5 compat
-                    e = sys.exc_info()[1]
+                except OSError as e: #pragma NO COVER
                     if e.errno == errno.ENOENT: # file does not exist
                         # it looks like someone else removed the tmp
                         # file, that's fine, we'll try to deliver the
@@ -196,9 +192,7 @@ class QueueProcessor(object):
             # more processes to touch the file "simultaneously")
             try:
                 os.utime(filename, None)
-            except OSError: #pragma NO COVER
-                # BBB Python 2.5 compat
-                e = sys.exc_info()[1]
+            except OSError as e: #pragma NO COVER
                 if e.errno == errno.ENOENT: # file does not exist
                     # someone removed the message before we could
                     # touch it, no need to complain, we'll just keep
@@ -212,9 +206,7 @@ class QueueProcessor(object):
             # also sending this message
             try:
                 _os_link(filename, tmp_filename)
-            except OSError: #pragma NO COVER
-                # BBB Python 2.5 compat
-                e = sys.exc_info()[1]
+            except OSError as e: #pragma NO COVER
                 if e.errno == errno.EEXIST: # file exists, *nix
                     # it looks like someone else is sending this
                     # message too; we'll try again later
@@ -237,9 +229,7 @@ class QueueProcessor(object):
                 fromaddr, toaddrs, message = self._parseMessage(f)
             try:
                 self.mailer.send(fromaddr, toaddrs, message)
-            except smtplib.SMTPResponseException:
-                # BBB Python 2.5 compat
-                e = sys.exc_info()[1]
+            except smtplib.SMTPResponseException as e:
                 if 500 <= e.smtp_code <= 599:
                     # permanent error, ditch the message
                     self.log.error(
@@ -253,9 +243,7 @@ class QueueProcessor(object):
 
             try:
                 os.remove(filename)
-            except OSError: #pragma NO COVER
-                # BBB Python 2.5 compat
-                e = sys.exc_info()[1]
+            except OSError as e: #pragma NO COVER
                 if e.errno == errno.ENOENT: # file does not exist
                     # someone else unlinked the file; oh well
                     pass
@@ -265,9 +253,7 @@ class QueueProcessor(object):
 
             try:
                 os.remove(tmp_filename)
-            except OSError: #pragma NO COVER
-                # BBB Python 2.5 compat
-                e = sys.exc_info()[1]
+            except OSError as e: #pragma NO COVER
                 if e.errno == errno.ENOENT: # file does not exist
                     # someone else unlinked the file; oh well
                     pass

@@ -243,9 +243,7 @@ class FakeOsModule(object):
     def rename(self, old, new):
         self._renamed_files += ((old, new), )
 
-    def open(self, filename, flags,
-             mode=511  # BBB Python 2 vs 3, 0o777 in octal
-             ):
+    def open(self, filename, flags, mode=0o777):
         import errno
         if self._exception is not None:
             raise self._exception

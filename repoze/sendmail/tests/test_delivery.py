@@ -16,27 +16,54 @@ import unittest
 
 class TestMailDataManager(unittest.TestCase):
 
-    def testInterface(self):
+    def _getTargetClass(self):
+        from repoze.sendmail.delivery import MailDataManager
+        return MailDataManager
+
+    def _makeOne(self, callable=object, args=(), onAbort=None):
+        return self._getTargetClass()(callable, args, onAbort)
+
+    def test_class_conforms_to_IDataManager(self):
+        from transaction.interfaces import IDataManager
+        from zope.interface.verify import verifyClass
+        verifyClass(IDataManager, self._getTargetClass())
+
+    def test_instance_conforms_to_IDataManager(self):
         from transaction.interfaces import IDataManager
         from zope.interface.verify import verifyObject
-        from repoze.sendmail.delivery import MailDataManager
-        manager = MailDataManager(object, (1, 2))
-        verifyObject(IDataManager, manager)
+        verifyObject(IDataManager, self._makeOne())
+
+    def test_ctor(self):
+        manager = self._makeOne(object, (1, 2))
         self.assertEqual(manager.callable, object)
         self.assertEqual(manager.args, (1, 2))
 
+
 class TestDirectMailDelivery(unittest.TestCase):
 
-    def testInterface(self):
+    def _getTargetClass(self):
+        from repoze.sendmail.delivery import DirectMailDelivery
+        return DirectMailDelivery
+
+    def _makeOne(self, mailer=None):
+        return self._getTargetClass()(mailer)
+
+    def test_class_conforms_to_IMailDelivery(self):
+        from zope.interface.verify import verifyClass
+        from repoze.sendmail.interfaces import IMailDelivery
+        verifyClass(IMailDelivery, self._getTargetClass())
+
+    def test_instance_conforms_to_IMailDelivery(self):
         from zope.interface.verify import verifyObject
         from repoze.sendmail.interfaces import IMailDelivery
-        from repoze.sendmail.delivery import DirectMailDelivery
+        verifyObject(IMailDelivery, self._makeOne())
+
+    def test_ctor(self):
         mailer = _makeMailerStub()
-        delivery = DirectMailDelivery(mailer)
-        verifyObject(IMailDelivery, delivery)
+        delivery = self._makeOne(mailer)
         self.assertEqual(delivery.mailer, mailer)
 
-    def testSend(self):
+    def test_send(self):
         from repoze.sendmail.delivery import DirectMailDelivery
         import transaction
         from email.message import Message
@@ -79,7 +106,7 @@ class TestDirectMailDelivery(unittest.TestCase):
         transaction.abort()
         self.assertEqual(mailer.sent_messages, [])
 
-    def testMakeMessageId(self):
+    def test_send_returns_messageId(self):
         from repoze.sendmail.delivery import DirectMailDelivery
         from email.message import Message
         mailer = _makeMailerStub()
@@ -112,15 +139,28 @@ class TestQueuedMailDelivery(unittest.TestCase):
         MaildirMessageStub.commited_messages = []
         MaildirMessageStub.aborted_messages = []
 
-    def testInterface(self):
+    def _getTargetClass(self):
+        from repoze.sendmail.delivery import QueuedMailDelivery
+        return QueuedMailDelivery
+
+    def _makeOne(self, queuePath='/tmp'):
+        return self._getTargetClass()(queuePath)
+
+    def test_class_conforms_to_IMailDelivery(self):
+        from zope.interface.verify import verifyClass
+        from repoze.sendmail.interfaces import IMailDelivery
+        verifyClass(IMailDelivery, self._getTargetClass())
+
+    def test_instance_conforms_to_IMailDelivery(self):
         from zope.interface.verify import verifyObject
         from repoze.sendmail.interfaces import IMailDelivery
-        from repoze.sendmail.delivery import QueuedMailDelivery
-        delivery = QueuedMailDelivery('/path/to/mailbox')
-        verifyObject(IMailDelivery, delivery)
+        verifyObject(IMailDelivery, self._makeOne())
+
+    def test_ctor(self):
+        delivery = self._makeOne('/path/to/mailbox')
         self.assertEqual(delivery.queuePath, '/path/to/mailbox')
 
-    def testSend(self):
+    def test_send(self):
         from email.message import Message
         import transaction
         from repoze.sendmail.delivery import QueuedMailDelivery
@@ -185,14 +225,19 @@ class TestQueuedMailDeliveryWithMaildir(unittest.TestCase):
         import shutil
         shutil.rmtree(self.dir)
 
-    def testNonASCIIAddrs(self):
+    def _getTargetClass(self):
+        from repoze.sendmail.delivery import QueuedMailDelivery
+        return QueuedMailDelivery
+
+    def _makeOne(self, queuePath='/tmp'):
+        return self._getTargetClass()(queuePath)
+
+    def test_send_w_non_ASCII_addrs(self):
         import os
         from email.mime import base
         import transaction
-        from repoze.sendmail.delivery import QueuedMailDelivery
         from repoze.sendmail._compat import b
-        from repoze.sendmail._compat import text_type
-        delivery = QueuedMailDelivery(self.maildir_path)
+        delivery = self._makeOne(self.maildir_path)
 
         non_ascii = b('LaPe\xc3\xb1a').decode('utf-8')
         fromaddr = non_ascii+' <jim@example.com>'
@@ -253,11 +298,10 @@ class MaildirStub(object):
 def _makeMailerStub(*args, **kw):
     from zope.interface import implementer
     from repoze.sendmail.interfaces import IMailer
+    implementer(IMailer)
     class MailerStub(object):
         def __init__(self, *args, **kw):
             self.sent_messages = []
         def send(self, fromaddr, toaddrs, message):
             self.sent_messages.append((fromaddr, toaddrs, message))
-    # BBB Python 2.5 compat
-    MailerStub = implementer(IMailer)(MailerStub)
     return MailerStub(*args, **kw)

@@ -86,11 +86,9 @@ class Maildir(object):
             try:
                 fd = os.open(filename,
                              os.O_CREAT|os.O_EXCL|os.O_WRONLY,
-                             384  # BBB Python 2 vs 3, 0o600 in octal
+                             0o600
                              )
-            except OSError:
-                # BBB Python 2.5 compat
-                e = sys.exc_info()[1]
+            except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
                 # File exists

@@ -27,6 +27,7 @@ from repoze.sendmail.interfaces import IMailer
 from repoze.sendmail._compat import SSLError
 
 
+@implementer(IMailer)
 class SMTPMailer(object):
 
     smtp = SMTP  #allow replacement for testing.
@@ -86,6 +87,3 @@ class SMTPMailer(object):
         except SSLError:
             #something weird happened while quiting
             connection.close()
-
-# BBB Python 2.5 compat
-SMTPMailer = implementer(IMailer)(SMTPMailer)
