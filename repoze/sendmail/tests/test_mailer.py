@@ -16,7 +16,6 @@ import unittest
 
 class TestSMTPMailer(unittest.TestCase):
 
-
     def _getTargetClass(self):
         from repoze.sendmail.mailer import SMTPMailer
         return SMTPMailer
@@ -169,6 +168,37 @@ class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
         # This test requires ESMTP, which we're intentionally not enabling
         # here, so pass.
         pass
+
+
+class TestSendmailMailer(unittest.TestCase):
+
+    def _getTargetClass(self):
+        from repoze.sendmail.mailer import SendmailMailer
+        return SendmailMailer
+
+    def _makeOne(self):
+        return self._getTargetClass()()
+
+    def test_send_commandline_recipients(self):
+        from email.message import Message
+        mailer = self._makeOne()
+        fromaddr = 'me@example.com'
+        toaddrs = ('you@example.com', 'him@example.com')
+        msg = Message()
+        msg['Headers'] = 'headers'
+        msg.set_payload('bodybodybody\n-- \nsig\n')
+        mailer.send(fromaddr, toaddrs, msg)
+
+    def test_send_header_recipients(self):
+        from email.message import Message
+        mailer = self._makeOne()
+        fromaddr = 'me@example.com'
+        toaddrs = ('you@example.com', 'him@example.com')
+        msg = Message()
+        msg['To'] = ','.join(toaddrs)
+        msg.set_payload('bodybodybody\n-- \nsig\n')
+        mailer.send(fromaddr, None, msg)
+        
 
 
 def _makeSMTP(ehlo_status=200, extns=set(['starttls',])):

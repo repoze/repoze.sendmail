@@ -12,6 +12,7 @@
 #
 ##############################################################################
 from email.message import Message
+import os
 from smtplib import SMTP
 try:
     import ssl
@@ -87,3 +88,83 @@ class SMTPMailer(object):
         except SSLError:
             #something weird happened while quiting
             connection.close()
+
+
+@implementer(IMailer)
+class SendmailMailer(object):
+    """Provides for /usr/sbin/sendmail mailing functionality
+    Class Defaults ( override in __init__ constructor )
+        `sendmail_app`
+            sendmail binary location
+            '/usr/sbin/sendmail'
+        `sendmail_template_no_recipients`
+            command line argument used to invoke sendmail when no recipients
+            are passed in to `send`
+                "%(sendmail_app)s -t -i -f %(sender)s"
+        `sendmail_template_recipients`
+            command line argument used to invoke sendmail when recipients are
+              provided to `send`
+                "%(sendmail_app)s -i -f %(sender)s %(recipients)"
+        
+        all default templates expect/require a sender as sendmail will use the
+        system default if no sender is provided
+
+    Standard Sendmail command-line arguments :
+        Useful if constructing a new `sendmail_template`
+        * for more info see http://linux.die.net/man/8/sendmail.sendmail *
+        sendmail [options] recipients
+        -f sender | Set the envelope sender address.  
+                    This is where delivery problems are sent to
+                    Sets the name of the ''from'' person (i.e., the envelope 
+                    sender of the mail). This address may also be used in the 
+                    From: header if that header is missing during initial 
+                    submission. The envelope sender address is used as the 
+                    recipient for delivery status notifications and may also 
+                    appear in a Return-Path: header. -f should only be used by
+                    ''trusted'' users (normally root, daemon, and network) or 
+                    if the person you are trying to become is the same as the 
+                    person you are. Otherwise, an X-Authentication-Warning 
+                    header will be added to the message.
+        -i        | When  reading  a message from standard input, don't treat 
+                    a line with only a . character as the end of input. 
+                    Ignore dots alone on lines by themselves in incoming 
+                    messages. This should be set if you are reading data from 
+                    a file.
+        -t        | Read message for recipients. To:, Cc:, and Bcc: lines will
+                    be scanned for recipient addresses. The Bcc: line will be 
+                    deleted before transmission.
+
+
+    """
+    sendmail_app = '/usr/sbin/sendmail'
+    sendmail_template_no_recipients = "%(sendmail_app)s -t -i -f %(sender)s"
+    sendmail_template_recipients = "%(sendmail_app)s -i -f %(sender)s %(recipients)s"
+
+    def __init__(self, sendmail_app=None, sendmail_template_no_recipients=None , sendmail_template_recipients=None ):
+        """see class docstring for details on accepted kwargs"""
+        if sendmail_app :
+            self.sendmail_app = sendmail_app
+        if sendmail_template_no_recipients :
+            self.sendmail_template_no_recipients = sendmail_template_no_recipients
+        if sendmail_template_recipients :
+            self.sendmail_template_recipients = sendmail_template_recipients
+
+    def send(self, fromaddr=None, toaddrs=None, message=None):
+        if isinstance(message, Message):
+            message = message.as_string()
+        if toaddrs and len(toaddrs):
+            toaddrs = ','.join(toaddrs)
+            sendmail_template = self.sendmail_template_recipients
+        else:
+            sendmail_template = self.sendmail_template_no_recipients
+        
+        p= os.popen( sendmail_template % { 
+                'sendmail_app':self.sendmail_app , 
+                'sender' : fromaddr ,
+                'recipients' : toaddrs
+                },
+            "w")
+        p.write(message)
+        status = p.close()
+        if status :
+            raise RuntimeError("Could not excecute sendmail properly")
