@@ -104,7 +104,7 @@ class SendmailMailer(object):
         `sendmail_template_recipients`
             command line argument used to invoke sendmail when recipients are
               provided to `send`
-                "%(sendmail_app)s -i -f %(sender)s %(recipients)"
+                "%(sendmail_app)s -t -i -f %(sender)s %(recipients)"
         
         all default templates expect/require a sender as sendmail will use the
         system default if no sender is provided
