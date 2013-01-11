@@ -138,7 +138,7 @@ class SendmailMailer(object):
     """
     sendmail_app = '/usr/sbin/sendmail'
     sendmail_template_no_recipients = "%(sendmail_app)s -t -i -f %(sender)s"
-    sendmail_template_recipients = "%(sendmail_app)s -i -f %(sender)s %(recipients)s"
+    sendmail_template_recipients = "%(sendmail_app)s -t -i -f %(sender)s %(recipients)s"
 
     def __init__(self, sendmail_app=None, sendmail_template_no_recipients=None , sendmail_template_recipients=None ):
         """see class docstring for details on accepted kwargs"""
