@@ -95,6 +95,7 @@ class TestEncoding(unittest.TestCase):
         self.assertTrue(b('<rpatterson@example.com>') in encoded)
 
     def test_encoding_utf_8_headers(self):
+        from email import header
         from repoze.sendmail._compat import b
         utf_8_encoded = b('mo \xe2\x82\xac')
         utf_8 = utf_8_encoded.decode('utf_8')
@@ -105,14 +106,21 @@ class TestEncoding(unittest.TestCase):
         message['To'] = to
         from_ = utf_8 + ' Patterson <rpatterson@example.com>'
         message['From'] = from_
-        subject = 'I know what you did last ' + utf_8
+        subject = 'I know what you did last '
+        subject_fill = header.MAXLINELEN - len(
+            b('Subject: ') + subject.encode('utf-8') + utf_8_encoded) - 18
+        subject += ''.join('.' for idx in range(subject_fill)) + ' ' + utf_8
         message['Subject'] = subject
 
         encoded = self._callFUT(message)
+        encoded_subject = ''.join(
+            header.decode_header(line)[0][0].decode('utf-8')
+            for line in message['Subject'].split('\n'))
 
         self.assertTrue(b('To: =?utf') in encoded)
         self.assertTrue(b('From: =?utf') in encoded)
         self.assertTrue(b('Subject: =?utf') in encoded)
+        self.assertEqual(subject, encoded_subject)
         self.assertTrue(b('<chrism@example.com>') in encoded)
         self.assertTrue(b('<chrisr@example.com>') in encoded)
         self.assertTrue(b('<rpatterson@example.com>') in encoded)
