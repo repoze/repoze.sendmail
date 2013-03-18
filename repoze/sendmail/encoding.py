@@ -19,7 +19,7 @@ ADDR_HEADERS = ('resent-from',
 
 PARAM_HEADERS = ('content-type',
                  'content-disposition')
-                
+
 
 def cleanup_message(message,
                    addr_headers=ADDR_HEADERS, param_headers=PARAM_HEADERS):
