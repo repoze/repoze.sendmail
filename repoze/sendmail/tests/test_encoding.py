@@ -249,3 +249,30 @@ class TestEncoding(unittest.TestCase):
         self.assertTrue(encodestring(plain_string.encode('utf_8')) in encoded)
         self.assertTrue(encodestring(html_string.encode('utf_8')) in encoded)
         self.assertTrue(binary_b64 in encoded)
+
+    def test_encoding_multipart_quopri(self):
+        import quopri
+        from email.mime import multipart
+        from email.mime import nonmultipart
+        from repoze.sendmail._compat import b
+
+        latin_1_encoded = b('LaPe\xf1a')
+        latin_1 = latin_1_encoded.decode('latin_1')
+        plain_string = 'I know what you did last ' + latin_1
+
+        message = multipart.MIMEMultipart('alternative')
+
+        plain_part = nonmultipart.MIMENonMultipart('plain', 'plain')
+        plain_part.set_payload(plain_string)
+        message.attach(plain_part)
+
+        html_string = '<p>' + plain_string + '</p>'
+        html_part = nonmultipart.MIMENonMultipart('text', 'html')
+        html_part.set_payload(html_string)
+        message.attach(html_part)
+
+        encoded = self._callFUT(message)
+
+        self.assertEqual(
+            encoded.count(quopri.encodestring(plain_string.encode('latin_1'))),
+            2)
