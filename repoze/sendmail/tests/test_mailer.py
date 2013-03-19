@@ -145,10 +145,7 @@ class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
 
     def _makeOne(self, port=None, extns=set(['starttls'])):
         klass = self._getTargetClass()
-        if port is None:
-            mailer = klass()
-        else:
-            mailer = klass('localhost', port)
+        mailer = klass()
         smtp = _makeSMTPNoEHLO(extns)
         mailer.smtp = smtp
         return mailer, smtp

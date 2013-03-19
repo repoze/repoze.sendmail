@@ -172,4 +172,4 @@ class SendmailMailer(object):
 
         Expects the same call signature as subprocess.Popen.
         """
-        return subprocess.Popen(*args, **kw)
+        return subprocess.Popen(*args, **kw)  # pragma NO COVER
