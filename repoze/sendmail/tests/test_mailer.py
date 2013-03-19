@@ -13,6 +13,8 @@
 ##############################################################################
 import unittest
 
+from repoze.sendmail import mailer
+
 
 class TestSMTPMailer(unittest.TestCase):
 
@@ -173,8 +175,7 @@ class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
 class TestSendmailMailer(unittest.TestCase):
 
     def _getTargetClass(self):
-        from repoze.sendmail.mailer import SendmailMailer
-        return SendmailMailer
+        return SendmailMailerStub
 
     def _makeOne(self):
         return self._getTargetClass()()
@@ -188,6 +189,10 @@ class TestSendmailMailer(unittest.TestCase):
         msg['Headers'] = 'headers'
         msg.set_payload('bodybodybody\n-- \nsig\n')
         mailer.send(fromaddr, toaddrs, msg)
+        self.assertEquals(
+            ["/usr/sbin/sendmail", "-t", "-i", "-f", "me@example.com",
+             "you@example.com", "him@example.com"],
+            mailer.popens[0].args[0])
 
     def test_send_header_recipients(self):
         from email.message import Message
@@ -198,10 +203,36 @@ class TestSendmailMailer(unittest.TestCase):
         msg['To'] = ','.join(toaddrs)
         msg.set_payload('bodybodybody\n-- \nsig\n')
         mailer.send(fromaddr, None, msg)
-        
+        self.assertEquals(
+            ["/usr/sbin/sendmail", "-t", "-i", "-f", "me@example.com"],
+            mailer.popens[0].args[0])
 
 
-def _makeSMTP(ehlo_status=200, extns=set(['starttls',])):
+class SendmailMailerStub(mailer.SendmailMailer):
+
+    popens = ()
+
+    def _popen(self, *args, **kw):
+        p = PopenStub(*args, **kw)
+        self.popens += (p, )
+        return p
+
+
+class PopenStub(object):
+
+    returncode = 0
+
+    def __init__(self, *args, **kw):
+        self.args = args
+        self.kw = kw
+        self.inputs = []
+
+    def communicate(self, input):
+        self.inputs.append(input)
+        return '', ''
+
+
+def _makeSMTP(ehlo_status=200, extns=set(['starttls'])):
     class SMTP(object):
         fail_on_quit = False
         _inst = []
