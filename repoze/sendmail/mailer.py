@@ -16,10 +16,11 @@ import subprocess
 from smtplib import SMTP
 try:
     import ssl
-except ImportError: #pragma NO COVER
+except ImportError:  # pragma NO COVER
     HAVE_SSL = False
-else: #pragma NO COVER
+else:  # pragma NO COVER
     HAVE_SSL = True
+    ssl  # pyflakes
     del ssl
 
 from zope.interface import implementer
@@ -31,7 +32,7 @@ from repoze.sendmail._compat import SSLError
 @implementer(IMailer)
 class SMTPMailer(object):
 
-    smtp = SMTP  #allow replacement for testing.
+    smtp = SMTP  # allow replacement for testing.
 
     def __init__(self, hostname='localhost', port=25,
                  username=None, password=None,
@@ -66,7 +67,7 @@ class SMTPMailer(object):
                         '(code=%s, response=%s)' % (code, response))
 
         # encryption support
-        have_tls =  connection.has_extn('starttls')
+        have_tls = connection.has_extn('starttls')
         if not have_tls and self.force_tls:
             raise RuntimeError('TLS is not available but TLS is required')
 
@@ -86,13 +87,15 @@ class SMTPMailer(object):
         try:
             connection.quit()
         except SSLError:
-            #something weird happened while quiting
+            # something weird happened while quiting
             connection.close()
 
 
 @implementer(IMailer)
 class SendmailMailer(object):
-    """Provides for /usr/sbin/sendmail mailing functionality
+    """
+    Provides for /usr/sbin/sendmail mailing functionality
+
     Class Defaults ( override in __init__ constructor )
         `sendmail_app`
             sendmail binary location
@@ -105,7 +108,7 @@ class SendmailMailer(object):
             command line argument used to invoke sendmail when recipients are
               provided to `send`
                 "%(sendmail_app)s -t -i -f %(sender)s %(recipients)"
-        
+
         all default templates expect/require a sender as sendmail will use the
         system default if no sender is provided
 
@@ -113,25 +116,25 @@ class SendmailMailer(object):
         Useful if constructing a new `sendmail_template`
         * for more info see http://linux.die.net/man/8/sendmail.sendmail *
         sendmail [options] recipients
-        -f sender | Set the envelope sender address.  
+        -f sender | Set the envelope sender address.
                     This is where delivery problems are sent to
-                    Sets the name of the ''from'' person (i.e., the envelope 
-                    sender of the mail). This address may also be used in the 
-                    From: header if that header is missing during initial 
-                    submission. The envelope sender address is used as the 
-                    recipient for delivery status notifications and may also 
+                    Sets the name of the ''from'' person (i.e., the envelope
+                    sender of the mail). This address may also be used in the
+                    From: header if that header is missing during initial
+                    submission. The envelope sender address is used as the
+                    recipient for delivery status notifications and may also
                     appear in a Return-Path: header. -f should only be used by
-                    ''trusted'' users (normally root, daemon, and network) or 
-                    if the person you are trying to become is the same as the 
-                    person you are. Otherwise, an X-Authentication-Warning 
+                    ''trusted'' users (normally root, daemon, and network) or
+                    if the person you are trying to become is the same as the
+                    person you are. Otherwise, an X-Authentication-Warning
                     header will be added to the message.
-        -i        | When  reading  a message from standard input, don't treat 
-                    a line with only a . character as the end of input. 
-                    Ignore dots alone on lines by themselves in incoming 
-                    messages. This should be set if you are reading data from 
+        -i        | When  reading  a message from standard input, don't treat
+                    a line with only a . character as the end of input.
+                    Ignore dots alone on lines by themselves in incoming
+                    messages. This should be set if you are reading data from
                     a file.
         -t        | Read message for recipients. To:, Cc:, and Bcc: lines will
-                    be scanned for recipient addresses. The Bcc: line will be 
+                    be scanned for recipient addresses. The Bcc: line will be
                     deleted before transmission.
 
 
@@ -142,7 +145,7 @@ class SendmailMailer(object):
 
     def __init__(self, sendmail_app=None, sendmail_template=None):
         """see class docstring for details on accepted kwargs"""
-        if sendmail_app :
+        if sendmail_app:
             self.sendmail_app = sendmail_app
         if sendmail_template:
             self.sendmail_template = sendmail_template

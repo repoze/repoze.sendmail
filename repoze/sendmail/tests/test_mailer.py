@@ -22,7 +22,7 @@ class TestSMTPMailer(unittest.TestCase):
         from repoze.sendmail.mailer import SMTPMailer
         return SMTPMailer
 
-    def _makeOne(self, port=None, ehlo_status=200, extns=set(['starttls',])):
+    def _makeOne(self, port=None, ehlo_status=200, extns=set(['starttls'])):
         klass = self._getTargetClass()
         if port is None:
             mailer = klass()
@@ -34,7 +34,7 @@ class TestSMTPMailer(unittest.TestCase):
 
     def test_send(self):
         from email.message import Message
-        for run in (1,2):
+        for run in (1, ):
             if run == 2:
                 mailer, smtp = self._makeOne(port=25)
             else:
@@ -78,8 +78,8 @@ class TestSMTPMailer(unittest.TestCase):
         fromaddr = 'me@example.com'
         toaddrs = ('you@example.com', 'him@example.com')
         headers = 'Headers: headers'
-        body='bodybodybody\n-- \nsig\n'
-        msgtext = headers+'\n\n'+body
+        body = 'bodybodybody\n-- \nsig\n'
+        msgtext = headers + '\n\n' + body
         msg = message_from_string(msgtext)
         mailer.username = 'foo'
         mailer.password = 'evil'
@@ -107,8 +107,8 @@ class TestSMTPMailer(unittest.TestCase):
             fromaddr = 'me@example.com'
             toaddrs = ('you@example.com', 'him@example.com')
             headers = 'Headers: headers'
-            body='bodybodybody\n-- \nsig\n'
-            msgtext = headers+'\n\n'+body
+            body = 'bodybodybody\n-- \nsig\n'
+            msgtext = headers + '\n\n' + body
             msg = message_from_string(msgtext)
             mailer.send(fromaddr, toaddrs, msg)
             self.assertEqual(len(smtp._inst), 1)
@@ -143,7 +143,7 @@ class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
         from repoze.sendmail.mailer import SMTPMailer
         return SMTPMailer
 
-    def _makeOne(self, port=None, extns=set(['starttls',])):
+    def _makeOne(self, port=None, extns=set(['starttls'])):
         klass = self._getTargetClass()
         if port is None:
             mailer = klass()
@@ -286,6 +286,7 @@ def _makeSMTP(ehlo_status=200, extns=set(['starttls'])):
 
 def _makeSMTPNoEHLO(extns):
     SMTP = _makeSMTP(None, extns)
+
     class SMTPWithNoEHLO(SMTP):
         does_esmtp = False
 

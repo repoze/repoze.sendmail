@@ -250,8 +250,8 @@ class TestQueuedMailDeliveryWithMaildir(unittest.TestCase):
         delivery = self._makeOne(self.maildir_path)
 
         non_ascii = b('LaPe\xc3\xb1a').decode('utf-8')
-        fromaddr = non_ascii+' <jim@example.com>'
-        toaddrs = (non_ascii+' <guido@recip.com>',)
+        fromaddr = non_ascii + ' <jim@example.com>'
+        toaddrs = (non_ascii + ' <guido@recip.com>',)
         message = base.MIMEBase('text', 'plain')
         message['From'] = fromaddr
         message['To'] = ','.join(toaddrs)
@@ -305,13 +305,16 @@ class MaildirStub(object):
         self.msgs.append(m)
         return m
 
+
 def _makeMailerStub(*args, **kw):
     from zope.interface import implementer
     from repoze.sendmail.interfaces import IMailer
     implementer(IMailer)
+
     class MailerStub(object):
         def __init__(self, *args, **kw):
             self.sent_messages = []
+
         def send(self, fromaddr, toaddrs, message):
             self.sent_messages.append((fromaddr, toaddrs, message))
     return MailerStub(*args, **kw)
