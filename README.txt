@@ -91,7 +91,7 @@ interface ( which is likely provided by exim, postfix or qmail ) via a binary
 at '/usr/sbin/sendmail' you can simply opt to use the following classes :
 
   mailer = SendmailMailer()
-  delivery = SendmailDelivery(mailer)
+  delivery = DirectMailDelivery(mailer)
 
 you may also customize this delivery with the location of another binary:
 

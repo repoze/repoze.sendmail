@@ -101,17 +101,6 @@ class DirectMailDelivery(AbstractMailDelivery):
 
 
 @implementer(IMailDelivery)
-class SendmailDelivery(AbstractMailDelivery):
-
-    def __init__(self, mailer):
-        self.mailer = mailer
-
-    def createDataManager(self, fromaddr, toaddrs, message):
-        return MailDataManager(self.mailer.send,
-                               args=(fromaddr, toaddrs, message))
-
-
-@implementer(IMailDelivery)
 class QueuedMailDelivery(AbstractMailDelivery):
 
     def __init__(self, queuePath):
