@@ -186,7 +186,7 @@ class TestSendmailMailer(unittest.TestCase):
         msg['Headers'] = 'headers'
         msg.set_payload('bodybodybody\n-- \nsig\n')
         mailer.send(fromaddr, toaddrs, msg)
-        self.assertEquals(
+        self.assertEqual(
             ["/usr/sbin/sendmail", "-t", "-i", "-f", "me@example.com",
              "you@example.com", "him@example.com"],
             mailer.popens[0].args[0])

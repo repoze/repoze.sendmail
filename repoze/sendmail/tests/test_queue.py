@@ -85,9 +85,9 @@ class TestQueueProcessor(TestCase):
                '\n'
                'Body\n')
         f, t, m = self.qp._parseMessage(StringIO(u(hdr + msg)))
-        self.assertEquals(f, 'foo@example.com')
-        self.assertEquals(t, ('bar@example.com', 'baz@example.com'))
-        self.assertEquals(m.as_string(), msg)
+        self.assertEqual(f, 'foo@example.com')
+        self.assertEqual(t, ('bar@example.com', 'baz@example.com'))
+        self.assertEqual(m.as_string(), msg)
 
     def test_delivery(self):
         self.filename = os.path.join(self.dir, 'message')
@@ -100,13 +100,13 @@ class TestQueueProcessor(TestCase):
         self.qp.send_messages()
         
         sent_message = self.qp.mailer.sent_messages[0]
-        self.assertEquals(sent_message[0], 'foo@example.com')
-        self.assertEquals(sent_message[1], 
+        self.assertEqual(sent_message[0], 'foo@example.com')
+        self.assertEqual(sent_message[1], 
                           ('bar@example.com', 'baz@example.com'))
-        self.assertEquals(sent_message[2].as_string(), 
+        self.assertEqual(sent_message[2].as_string(), 
                           'Header: value\n\nBody\n')
         self.assertFalse(os.path.exists(self.filename), 'File exists')
-        self.assertEquals(self.qp.log.infos,
+        self.assertEqual(self.qp.log.infos,
                           [('Mail from %s to %s sent.',
                             ('foo@example.com',
                              'bar@example.com, baz@example.com'),
@@ -122,7 +122,7 @@ class TestQueueProcessor(TestCase):
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
-        self.assertEquals(self.qp.log.errors,
+        self.assertEqual(self.qp.log.errors,
                           [('Error while sending mail from %s to %s.',
                             ('foo@example.com',
                              'bar@example.com, baz@example.com'),
@@ -136,7 +136,7 @@ class TestQueueProcessor(TestCase):
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
-        self.assertEquals(self.qp.log.errors,
+        self.assertEqual(self.qp.log.errors,
                           [('Error while sending mail : %s ',
                             (self.filename,),
                             {'exc_info': True})])
@@ -155,7 +155,7 @@ class TestQueueProcessor(TestCase):
 
         # File must remail were it was, so it will be retried
         self.assertTrue(os.path.exists(self.filename))
-        self.assertEquals(self.qp.log.errors,
+        self.assertEqual(self.qp.log.errors,
                           [('Error while sending mail from %s to %s.',
                             ('foo@example.com',
                              'bar@example.com, baz@example.com'),
@@ -204,10 +204,10 @@ class TestQueueProcessor(TestCase):
         try:
             self.qp.send_messages()
 
-            self.assertEquals(self.qp.mailer.sent_messages, [])
+            self.assertEqual(self.qp.mailer.sent_messages, [])
             self.assertTrue(os.path.exists(self.filename),
                             'File does not exist')
-            self.assertEquals(self.qp.log.infos, [])
+            self.assertEqual(self.qp.log.infos, [])
         finally:
             os.unlink(tmp_filename)
 
@@ -232,14 +232,14 @@ class TestQueueProcessor(TestCase):
         self.qp.send_messages()
 
         sent_message = self.qp.mailer.sent_messages[0]
-        self.assertEquals(sent_message[0], 'foo@example.com')
-        self.assertEquals(sent_message[1], 
+        self.assertEqual(sent_message[0], 'foo@example.com')
+        self.assertEqual(sent_message[1], 
                           ('bar@example.com', 'baz@example.com'))
-        self.assertEquals(sent_message[2].as_string(), 
+        self.assertEqual(sent_message[2].as_string(), 
                           'Header: value\n\nBody\n')
         self.assertFalse(os.path.exists(self.filename),
                          'File still exists')
-        self.assertEquals(self.qp.log.infos,
+        self.assertEqual(self.qp.log.infos,
                           [('Mail from %s to %s sent.',
                             ('foo@example.com',
                              'bar@example.com, baz@example.com'),
@@ -281,13 +281,13 @@ class TestConsoleApp(TestCase):
         # Simplest case that works
         cmdline = "qp %s" % self.dir
         app = ConsoleApp(cmdline.split())
-        self.assertEquals("qp", app.script_name)
+        self.assertEqual("qp", app.script_name)
         self.assertFalse(app._error)
-        self.assertEquals(self.dir, app.queue_path)
-        self.assertEquals("localhost", app.hostname)
-        self.assertEquals(25, app.port)
-        self.assertEquals(None, app.username)
-        self.assertEquals(None, app.password)
+        self.assertEqual(self.dir, app.queue_path)
+        self.assertEqual("localhost", app.hostname)
+        self.assertEqual(25, app.port)
+        self.assertEqual(None, app.username)
+        self.assertEqual(None, app.password)
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
         self.assertFalse(app.debug_smtp)
@@ -296,13 +296,13 @@ class TestConsoleApp(TestCase):
         # Simplest case that doesn't work
         cmdline = "qp"
         app, logged = self._captureLoggedErrors(cmdline)
-        self.assertEquals("qp", app.script_name)
+        self.assertEqual("qp", app.script_name)
         self.assertTrue(app._error)
-        self.assertEquals(None, app.queue_path)
-        self.assertEquals("localhost", app.hostname)
-        self.assertEquals(25, app.port)
-        self.assertEquals(None, app.username)
-        self.assertEquals(None, app.password)
+        self.assertEqual(None, app.queue_path)
+        self.assertEqual("localhost", app.hostname)
+        self.assertEqual(25, app.port)
+        self.assertEqual(None, app.username)
+        self.assertEqual(None, app.password)
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
         self.assertFalse(app.debug_smtp)
@@ -316,13 +316,13 @@ class TestConsoleApp(TestCase):
                         --debug-smtp
                         %s""" % self.dir
         app = ConsoleApp(cmdline.split())
-        self.assertEquals("qp", app.script_name)
+        self.assertEqual("qp", app.script_name)
         self.assertFalse(app._error)
-        self.assertEquals(self.dir, app.queue_path)
-        self.assertEquals("foo", app.hostname)
-        self.assertEquals(75, app.port)
-        self.assertEquals("chris", app.username)
-        self.assertEquals("rossi", app.password)
+        self.assertEqual(self.dir, app.queue_path)
+        self.assertEqual("foo", app.hostname)
+        self.assertEqual(75, app.port)
+        self.assertEqual("chris", app.username)
+        self.assertEqual("rossi", app.password)
         self.assertTrue(app.force_tls)
         self.assertFalse(app.no_tls)
         self.assertTrue(app.debug_smtp)
@@ -398,13 +398,13 @@ class TestConsoleApp(TestCase):
         # Override most everything
         cmdline = """qp --config %s""" % ini_path
         app = ConsoleApp(cmdline.split())
-        self.assertEquals("qp", app.script_name)
+        self.assertEqual("qp", app.script_name)
         self.assertFalse(app._error)
-        self.assertEquals("hammer/dont/hurt/em", app.queue_path)
-        self.assertEquals("testhost", app.hostname)
-        self.assertEquals(2525, app.port)
-        self.assertEquals("Chris", app.username)
-        self.assertEquals("Rossi", app.password)
+        self.assertEqual("hammer/dont/hurt/em", app.queue_path)
+        self.assertEqual("testhost", app.hostname)
+        self.assertEqual(2525, app.port)
+        self.assertEqual("Chris", app.username)
+        self.assertEqual("Rossi", app.password)
         self.assertFalse(app.force_tls)
         self.assertTrue(app.no_tls)
 
@@ -415,13 +415,13 @@ class TestConsoleApp(TestCase):
 
         cmdline = """qp --config %s %s""" % (ini_path, self.dir)
         app = ConsoleApp(cmdline.split())
-        self.assertEquals("qp", app.script_name)
+        self.assertEqual("qp", app.script_name)
         self.assertFalse(app._error)
-        self.assertEquals(self.dir, app.queue_path)
-        self.assertEquals("localhost", app.hostname)
-        self.assertEquals(25, app.port)
-        self.assertEquals(None, app.username)
-        self.assertEquals(None, app.password)
+        self.assertEqual(self.dir, app.queue_path)
+        self.assertEqual("localhost", app.hostname)
+        self.assertEqual(25, app.port)
+        self.assertEqual(None, app.username)
+        self.assertEqual(None, app.password)
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
 
