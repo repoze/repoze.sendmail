@@ -177,8 +177,8 @@ class TestSendmailMailer(unittest.TestCase):
     def _getTargetClass(self):
         return SendmailMailerStub
 
-    def _makeOne(self):
-        return self._getTargetClass()()
+    def _makeOne(self, *args, **kw):
+        return self._getTargetClass()(*args, **kw)
 
     def test_send_commandline_recipients(self):
         from email.message import Message
@@ -195,16 +195,22 @@ class TestSendmailMailer(unittest.TestCase):
             mailer.popens[0].args[0])
 
     def test_send_header_recipients(self):
+        import subprocess
         from email.message import Message
-        mailer = self._makeOne()
+        mailer = self._makeOne(
+            sendmail_app='/usr/local/sbin/sendmail',
+            sendmail_template=[
+                "{sendmail_app}", "-t", "-f", "{sender}"],
+            returncode=1)
         fromaddr = 'me@example.com'
         toaddrs = ('you@example.com', 'him@example.com')
         msg = Message()
         msg['To'] = ','.join(toaddrs)
         msg.set_payload('bodybodybody\n-- \nsig\n')
-        mailer.send(fromaddr, None, msg)
-        self.assertEquals(
-            ["/usr/sbin/sendmail", "-t", "-i", "-f", "me@example.com"],
+        self.assertRaises(subprocess.CalledProcessError,
+                          mailer.send, fromaddr, None, msg)
+        self.assertEqual(
+            ["/usr/local/sbin/sendmail", "-t", "-f", "me@example.com"],
             mailer.popens[0].args[0])
 
 
@@ -212,7 +218,12 @@ class SendmailMailerStub(mailer.SendmailMailer):
 
     popens = ()
 
+    def __init__(self, *args, **kw):
+        self.returncode = kw.pop('returncode', 0)
+        super(SendmailMailerStub, self).__init__(*args, **kw)
+
     def _popen(self, *args, **kw):
+        kw['returncode'] = self.returncode
         p = PopenStub(*args, **kw)
         self.popens += (p, )
         return p
@@ -220,12 +231,11 @@ class SendmailMailerStub(mailer.SendmailMailer):
 
 class PopenStub(object):
 
-    returncode = 0
-
     def __init__(self, *args, **kw):
         self.args = args
         self.kw = kw
         self.inputs = []
+        self.returncode = kw.get('returncode', 0)
 
     def communicate(self, input):
         self.inputs.append(input)
