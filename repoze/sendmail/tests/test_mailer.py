@@ -34,7 +34,7 @@ class TestSMTPMailer(unittest.TestCase):
 
     def test_send(self):
         from email.message import Message
-        for run in (1, ):
+        for run in (1, 2):
             if run == 2:
                 mailer, smtp = self._makeOne(port=25)
             else:
