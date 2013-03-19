@@ -6,6 +6,8 @@ Change history
 
 - TBD
 
+- Pull #15 - Extended repoze.sendmail with configurable `/usr/sbin/sendmail` binary support
+
 4.0b1 (2013-01-09)
 ------------------
 
