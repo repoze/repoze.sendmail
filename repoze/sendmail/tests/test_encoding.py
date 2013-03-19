@@ -51,7 +51,7 @@ class TestEncoding(unittest.TestCase):
     def _makeMessage(self):
         from email.message import Message
         return Message()
-    
+
     def test_encoding_ascii_headers(self):
         from repoze.sendmail._compat import b
         to = ', '.join(['Chris McDonough <chrism@example.com>',
@@ -68,8 +68,8 @@ class TestEncoding(unittest.TestCase):
         self.assertTrue(
             b('To: Chris McDonough <chrism@example.com>, "Chris Rossi,')
             in encoded)
-        self.assertTrue(b('From: ')+from_.encode('ascii') in encoded)
-        self.assertTrue(b('Subject: ')+subject.encode('ascii') in encoded)
+        self.assertTrue(b('From: ') + from_.encode('ascii') in encoded)
+        self.assertTrue(b('Subject: ') + subject.encode('ascii') in encoded)
 
     def test_encoding_latin_1_headers(self):
         from repoze.sendmail._compat import b
@@ -95,6 +95,7 @@ class TestEncoding(unittest.TestCase):
         self.assertTrue(b('<rpatterson@example.com>') in encoded)
 
     def test_encoding_utf_8_headers(self):
+        from email import header
         from repoze.sendmail._compat import b
         utf_8_encoded = b('mo \xe2\x82\xac')
         utf_8 = utf_8_encoded.decode('utf_8')
@@ -105,29 +106,36 @@ class TestEncoding(unittest.TestCase):
         message['To'] = to
         from_ = utf_8 + ' Patterson <rpatterson@example.com>'
         message['From'] = from_
-        subject = 'I know what you did last ' + utf_8
+        subject = 'I know what you did last '
+        subject_fill = header.MAXLINELEN - len(
+            b('Subject: ') + subject.encode('utf-8') + utf_8_encoded) - 18
+        subject += ''.join('.' for idx in range(subject_fill)) + ' ' + utf_8
         message['Subject'] = subject
 
         encoded = self._callFUT(message)
+        encoded_subject = ''.join(
+            header.decode_header(line)[0][0].decode('utf-8')
+            for line in message['Subject'].split('\n'))
 
         self.assertTrue(b('To: =?utf') in encoded)
         self.assertTrue(b('From: =?utf') in encoded)
         self.assertTrue(b('Subject: =?utf') in encoded)
+        self.assertEqual(subject, encoded_subject)
         self.assertTrue(b('<chrism@example.com>') in encoded)
         self.assertTrue(b('<chrisr@example.com>') in encoded)
         self.assertTrue(b('<rpatterson@example.com>') in encoded)
-    
+
     def test_encoding_ascii_header_parameters(self):
         from repoze.sendmail._compat import b
         message = self._makeMessage()
         message['Content-Disposition'] = 'attachment; filename=foo.ppt'
 
         encoded = self._callFUT(message)
-        
+
         self.assertTrue(
             b('Content-Disposition: attachment; filename="foo.ppt"')
             in encoded)
-    
+
     def test_encoding_latin_1_header_parameters(self):
         from repoze.sendmail._compat import b
         from repoze.sendmail._compat import quote
@@ -138,12 +146,12 @@ class TestEncoding(unittest.TestCase):
             'attachment; filename=' + latin_1 + '.ppt')
 
         encoded = self._callFUT(message)
-        
+
         self.assertTrue(
             b("Content-Disposition: attachment; filename*=") in encoded)
         self.assertTrue(b("latin_1''") + quote(latin_1_encoded).encode('ascii')
                         in encoded)
-    
+
     def test_encoding_utf_8_header_parameters(self):
         from repoze.sendmail._compat import b
         from repoze.sendmail._compat import quote
@@ -151,10 +159,10 @@ class TestEncoding(unittest.TestCase):
         utf_8 = utf_8_encoded.decode('utf_8')
         message = self._makeMessage()
         message['Content-Disposition'] = (
-            'attachment; filename=' + utf_8 +'.ppt')
+            'attachment; filename=' + utf_8 + '.ppt')
 
         encoded = self._callFUT(message)
-        
+
         self.assertTrue(
             b("Content-Disposition: attachment; filename*=") in encoded)
         self.assertTrue(b("utf_8''") + quote(utf_8_encoded).encode('ascii')
@@ -187,7 +195,7 @@ class TestEncoding(unittest.TestCase):
         from repoze.sendmail._compat import encodestring
         utf_8_encoded = b('mo \xe2\x82\xac')
         utf_8 = utf_8_encoded.decode('utf_8')
-        body = 'I know what you did last '+ utf_8
+        body = 'I know what you did last ' + utf_8
         message = self._makeMessage()
         message.set_payload(body)
 
@@ -226,7 +234,7 @@ class TestEncoding(unittest.TestCase):
         plain_part.set_payload(plain_string)
         message.attach(plain_part)
 
-        html_string = '<p>'+utf_8+'</p>'
+        html_string = '<p>' + utf_8 + '</p>'
         html_part = nonmultipart.MIMENonMultipart('text', 'html')
         html_part.set_payload(html_string)
         message.attach(html_part)

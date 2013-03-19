@@ -4,7 +4,9 @@ Change history
 4.0 (unreleased)
 ------------------
 
-- TBD
+- Issue #13: fixed handling of headers with with multibyte unicode
+  characters at the point where the header is split into multiple
+  lines.
 
 - Pull #15 - Extended repoze.sendmail with configurable `/usr/sbin/sendmail` binary support
 

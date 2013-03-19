@@ -150,6 +150,17 @@ class TestQueuedMailDelivery(unittest.TestCase):
     def _makeOne(self, queuePath='/tmp'):
         return self._getTargetClass()(queuePath)
 
+    def _makeMessage(self):
+        from email.message import Message
+        message = Message()
+        message['From'] = 'Jim <jim@example.org>'
+        message['To'] = 'some-zope-coders:;'
+        message['Date'] = 'Date: Mon, 19 May 2003 10:17:36 -0400'
+        message['Message-Id'] = '<20030519.1234@example.org>'
+
+        message.set_payload('This is just an example\n')
+        return message
+
     def test_class_conforms_to_IMailDelivery(self):
         from zope.interface.verify import verifyClass
         from repoze.sendmail.interfaces import IMailDelivery
@@ -165,7 +176,6 @@ class TestQueuedMailDelivery(unittest.TestCase):
         self.assertEqual(delivery.queuePath, '/path/to/mailbox')
 
     def test_send(self):
-        from email.message import Message
         import transaction
         from repoze.sendmail.delivery import QueuedMailDelivery
         from repoze.sendmail._compat import text_type
@@ -173,14 +183,8 @@ class TestQueuedMailDelivery(unittest.TestCase):
         fromaddr = 'jim@example.com'
         toaddrs = ('guido@example.com',
                    'steve@example.com')
-        message = Message()
-        message['From'] = 'Jim <jim@example.org>'
-        message['To'] = 'some-zope-coders:;'
-        message['Date'] = 'Date: Mon, 19 May 2003 10:17:36 -0400'
-        message['Message-Id'] = ext_msgid = '<20030519.1234@example.org>'
-        message['Subject'] = 'example'
-        message.set_payload('This is just an example\n')
 
+        message = self._makeMessage()
         msgid = delivery.send(fromaddr, toaddrs, message)
         self.assertEqual(msgid, '<20030519.1234@example.org>')
         self.assertEqual(MaildirMessageStub.commited_messages, [])
@@ -194,6 +198,7 @@ class TestQueuedMailDelivery(unittest.TestCase):
             message['X-Actually-To']), ','.join(toaddrs))
 
         MaildirMessageStub.commited_messages = []
+        message = self._makeMessage()
         msgid = delivery.send(fromaddr, toaddrs, message)
         self.assertTrue('@' in msgid)
         self.assertEqual(MaildirMessageStub.commited_messages, [])
@@ -203,10 +208,11 @@ class TestQueuedMailDelivery(unittest.TestCase):
         self.assertEqual(MaildirMessageStub.commited_messages[0].get_payload(),
                          'This is just an example\n')
         self.assertEqual(message['Message-Id'], msgid)
-        self.assertEqual(message['Message-Id'], ext_msgid)
+        self.assertEqual(message['Message-Id'], '<20030519.1234@example.org>')
         self.assertEqual(MaildirMessageStub.aborted_messages, [])
 
         MaildirMessageStub.commited_messages = []
+        message = self._makeMessage()
         msgid = delivery.send(fromaddr, toaddrs, message)
         self.assertEqual(MaildirMessageStub.commited_messages, [])
         self.assertEqual(MaildirMessageStub.aborted_messages, [])

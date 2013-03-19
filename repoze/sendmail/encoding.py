@@ -1,5 +1,5 @@
 from email import utils
-from email import charset
+from email import header
 
 from repoze.sendmail._compat import PY_2
 from repoze.sendmail._compat import text_type
@@ -19,7 +19,7 @@ ADDR_HEADERS = ('resent-from',
 
 PARAM_HEADERS = ('content-type',
                  'content-disposition')
-                
+
 
 def cleanup_message(message,
                    addr_headers=ADDR_HEADERS, param_headers=PARAM_HEADERS):
@@ -46,7 +46,8 @@ def cleanup_message(message,
                 best, encoded = best_charset(name)
                 if PY_2:
                     name = encoded
-                name = charset.Charset(best).header_encode(name)
+                name = header.Header(
+                    name, charset=best, header_name=key).encode()
                 addrs.append(utils.formataddr((name, addr)))
             value = ', '.join(addrs)
             message.replace_header(key, value)
@@ -64,7 +65,8 @@ def cleanup_message(message,
             best, encoded = best_charset(value)
             if PY_2:
                 value = encoded
-            value = charset.Charset(best).header_encode(value)
+            value = header.Header(
+                value, charset=best, header_name=key).encode()
             message.replace_header(key, value)
 
     payload = message.get_payload()

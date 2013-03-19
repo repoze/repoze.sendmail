@@ -15,10 +15,8 @@ finds, is included for convenience.
 specific to running in a Zope context has been removed, making this version
 more generally useful to users of other frameworks.
 
-Note that repoze.sendmail works only under Python 2.5+ (it will not work
-under 2.4) and Python 3.2+.  Note that the ``transaction`` package, which
-this package depends on, must be less than 1.2 to work under Python 2.5 (1.2
-is 2.6-and-better).
+Note that repoze.sendmail works only under Python 2.6+ (it will not work
+under 2.4 / 2.5) and Python 3.2+.
 
 ==============
 Basic Tutorial
