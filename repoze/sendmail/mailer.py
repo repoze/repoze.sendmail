@@ -12,7 +12,7 @@
 #
 ##############################################################################
 from email.message import Message
-import os
+import subprocess
 from smtplib import SMTP
 try:
     import ssl
@@ -137,34 +137,36 @@ class SendmailMailer(object):
 
     """
     sendmail_app = '/usr/sbin/sendmail'
-    sendmail_template_no_recipients = "%(sendmail_app)s -t -i -f %(sender)s"
-    sendmail_template_recipients = "%(sendmail_app)s -t -i -f %(sender)s %(recipients)s"
+    sendmail_template = [
+        "{sendmail_app}", "-t", "-i", "-f", "{sender}"]
 
-    def __init__(self, sendmail_app=None, sendmail_template_no_recipients=None , sendmail_template_recipients=None ):
+    def __init__(self, sendmail_app=None, sendmail_template=None):
         """see class docstring for details on accepted kwargs"""
         if sendmail_app :
             self.sendmail_app = sendmail_app
-        if sendmail_template_no_recipients :
-            self.sendmail_template_no_recipients = sendmail_template_no_recipients
-        if sendmail_template_recipients :
-            self.sendmail_template_recipients = sendmail_template_recipients
+        if sendmail_template:
+            self.sendmail_template = sendmail_template
 
     def send(self, fromaddr=None, toaddrs=None, message=None):
         if isinstance(message, Message):
             message = message.as_string()
-        if toaddrs and len(toaddrs):
-            toaddrs = ','.join(toaddrs)
-            sendmail_template = self.sendmail_template_recipients
-        else:
-            sendmail_template = self.sendmail_template_no_recipients
-        
-        p= os.popen( sendmail_template % { 
-                'sendmail_app':self.sendmail_app , 
-                'sender' : fromaddr ,
-                'recipients' : toaddrs
-                },
-            "w")
-        p.write(message)
-        status = p.close()
-        if status :
-            raise RuntimeError("Could not excecute sendmail properly")
+        if toaddrs is None:
+            toaddrs = []
+
+        args = [arg.format(sendmail_app=self.sendmail_app,
+                           sender=fromaddr,
+                           recipients=toaddrs)
+                for arg in self.sendmail_template] + list(toaddrs)
+        p = self._popen(args)
+        stdoutdata, stderrdata = p.communicate(message)
+        if p.returncode:
+            raise subprocess.CalledProcessError(
+                "Could not excecute sendmail properly", args)
+
+    def _popen(self, *args, **kw):
+        """
+        Invoke the actual sendmail subprocess.
+
+        Expects the same call signature as subprocess.Popen.
+        """
+        return subprocess.Popen(*args, **kw)
