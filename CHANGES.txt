@@ -1,14 +1,15 @@
 Change history
 ~~~~~~~~~~~~~~
 
-4.0 (unreleased)
+4.0b2 (2013-03-28)
 ------------------
 
 - Issue #13: fixed handling of headers with with multibyte unicode
   characters at the point where the header is split into multiple
   lines.
 
-- Pull #15 - Extended repoze.sendmail with configurable `/usr/sbin/sendmail` binary support
+- Pull #15 - Extended repoze.sendmail with configurable `/usr/sbin/sendmail`
+  binary support
 
 4.0b1 (2013-01-09)
 ------------------
