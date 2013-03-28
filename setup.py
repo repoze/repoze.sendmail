@@ -20,7 +20,7 @@ requires = ['setuptools',
             'transaction']
 
 setup(name='repoze.sendmail',
-      version = '4.0b2',
+      version = '4.0dev',
       url='http://www.repoze.org',
       license='ZPL 2.1',
       description='Repoze Sendmail',
