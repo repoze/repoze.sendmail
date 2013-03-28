@@ -166,10 +166,11 @@ class SendmailMailer(object):
             raise subprocess.CalledProcessError(
                 "Could not excecute sendmail properly", args)
 
-    def _popen(self, *args, **kw):
+    def _popen(self, *args, **kw): # pragma NO COVER
         """
         Invoke the actual sendmail subprocess.
 
         Expects the same call signature as subprocess.Popen.
         """
-        return subprocess.Popen(*args, **kw)  # pragma NO COVER
+        kw['stdin'] = subprocess.PIPE
+        return subprocess.Popen(*args, **kw) 
