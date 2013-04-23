@@ -1,16 +1,13 @@
-.. repoze.sendmail documentation master file, created by
-   sphinx-quickstart on Tue Apr 23 15:48:33 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to repoze.sendmail's documentation!
-===========================================
+:mod:`repoze.sendmail` documentation
+====================================
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
+   narr
+   changes
 
 
 Indices and tables
