@@ -20,6 +20,12 @@ requires = ['setuptools',
             'zope.interface>=3.6.0',
             'transaction']
 
+with open('README.rst') as f:
+    README = f.read()
+
+with open('CHANGES.rst') as f:
+    CHANGES = f.read()
+
 setup(name='repoze.sendmail',
       version = '4.0dev',
       url='http://www.repoze.org',
@@ -27,10 +33,7 @@ setup(name='repoze.sendmail',
       description='Repoze Sendmail',
       author='Chris Rossi',
       author_email='repoze-dev@lists.repoze.org',
-      long_description='\n\n'.join([
-          open('README.txt').read(),
-          open('CHANGES.txt').read(),
-          ]),
+      long_description='\n\n'.join([README, CHANGES]),
       classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
