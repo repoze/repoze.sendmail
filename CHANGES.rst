@@ -4,7 +4,11 @@ Change history
 Next release
 ------------
 
-- ...
+- Add support for bulding docs and testing doctest snippets under ``tox``.
+
+- Add ``setup.py docs`` alias (installs Sphinx).
+
+- Converted docs to Sphinx.
 
 4.0b2 (2013-03-28)
 ------------------
