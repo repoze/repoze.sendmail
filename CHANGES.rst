@@ -1,8 +1,8 @@
 Change history
 ~~~~~~~~~~~~~~
 
-Next release
-------------
+4.0 (2013-04-23)
+----------------
 
 - Add support for bulding docs and testing doctest snippets under ``tox``.
 
