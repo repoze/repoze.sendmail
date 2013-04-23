@@ -8,3 +8,4 @@ env*/
 nosetests.xml
 repoze/sendmail/coverage.xml
 
+docs/_build

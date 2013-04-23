@@ -14,6 +14,7 @@
 from setuptools import setup, find_packages
 
 testing_extras = ['nose', 'coverage']
+docs_extras = ['Sphinx', 'repoze.sphinx.autointerface']
 
 requires = ['setuptools',
             'zope.interface>=3.6.0',
@@ -56,5 +57,6 @@ setup(name='repoze.sendmail',
           """,
       extras_require = {
         'testing': requires + testing_extras,
+        'docs': requires + docs_extras,
       },
 )
