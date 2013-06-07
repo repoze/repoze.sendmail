@@ -27,14 +27,14 @@ def cleanup_message(message,
     Cleanup a `Message` handling header and payload charsets.
 
     Headers are handled in the most sane way possible.  Address names
-    are left in `ascii` if possible or encoded to `latin_1` or `utf-8`
+    are left in `ascii` if possible or encoded to `latin1` or `utf-8`
     and finally encoded according to RFC 2047 without encoding the
     address, something the `email` stdlib package doesn't do.
     Parameterized headers such as `filename` in the
     `Content-Disposition` header, have their values encoded properly
     while leaving the rest of the header to be handled without
     encoding.  Finally, all other header are left in `ascii` if
-    possible or encoded to `latin_1` or `utf-8` as a whole.
+    possible or encoded to `latin1` or `utf-8` as a whole.
 
     The message is modified in place and is also returned in such a
     state that it can be safely encoded to ascii.
@@ -88,14 +88,14 @@ def encode_message(message,
     Encode a `Message` handling headers and payloads.
 
     Headers are handled in the most sane way possible.  Address names
-    are left in `ascii` if possible or encoded to `latin_1` or `utf-8`
+    are left in `ascii` if possible or encoded to `latin1` or `utf-8`
     and finally encoded according to RFC 2047 without encoding the
     address, something the `email` stdlib package doesn't do.
     Parameterized headers such as `filename` in the
     `Content-Disposition` header, have their values encoded properly
     while leaving the rest of the header to be handled without
     encoding.  Finally, all other header are left in `ascii` if
-    possible or encoded to `latin_1` or `utf-8` as a whole.
+    possible or encoded to `latin1` or `utf-8` as a whole.
 
     The return is a byte string of the whole message.
     """
@@ -107,10 +107,10 @@ def best_charset(text):
     """
     Find the most human-readable and/or conventional encoding for unicode text.
 
-    Prefers `ascii` or `latin_1` and falls back to `utf_8`.
+    Prefers `ascii` or `latin1` and falls back to `utf-8`.
     """
     encoded = text
-    for charset in 'ascii', 'latin_1', 'utf_8':
+    for charset in 'ascii', 'latin1', 'utf-8':
         try:
             encoded = text.encode(charset)
         except UnicodeError:
