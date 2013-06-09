@@ -30,15 +30,15 @@ class Test_best_charset(unittest.TestCase):
     def test_w_latin_1(self):
         from repoze.sendmail._compat import b
         latin_1_encoded = b('LaPe\xf1a')
-        best, encoded = self._callFUT(latin_1_encoded.decode('latin_1'))
-        self.assertEqual(best, 'latin_1')
+        best, encoded = self._callFUT(latin_1_encoded.decode('iso-8859-1'))
+        self.assertEqual(best, 'iso-8859-1')
         self.assertEqual(encoded, latin_1_encoded)
 
     def test_w_utf_8(self):
         from repoze.sendmail._compat import b
         utf_8_encoded = b('mo \xe2\x82\xac')
-        best, encoded = self._callFUT(utf_8_encoded.decode('utf_8'))
-        self.assertEqual(best, 'utf_8')
+        best, encoded = self._callFUT(utf_8_encoded.decode('utf-8'))
+        self.assertEqual(best, 'utf-8')
         self.assertEqual(encoded, utf_8_encoded)
 
 
@@ -74,7 +74,7 @@ class TestEncoding(unittest.TestCase):
     def test_encoding_latin_1_headers(self):
         from repoze.sendmail._compat import b
         latin_1_encoded = b('LaPe\xf1a')
-        latin_1 = latin_1_encoded.decode('latin_1')
+        latin_1 = latin_1_encoded.decode('iso-8859-1')
         to = ', '.join([
             '"' + latin_1 + ' McDonough, M.D." <chrism@example.com>',
             'Chris Rossi <chrisr@example.com>'])
@@ -98,7 +98,7 @@ class TestEncoding(unittest.TestCase):
         from email import header
         from repoze.sendmail._compat import b
         utf_8_encoded = b('mo \xe2\x82\xac')
-        utf_8 = utf_8_encoded.decode('utf_8')
+        utf_8 = utf_8_encoded.decode('utf-8')
         to = ', '.join([
             '"' + utf_8 + ' McDonough, M.D." <chrism@example.com>',
             'Chris Rossi <chrisr@example.com>'])
@@ -117,9 +117,9 @@ class TestEncoding(unittest.TestCase):
             header.decode_header(line)[0][0].decode('utf-8')
             for line in message['Subject'].split('\n'))
 
-        self.assertTrue(b('To: =?utf') in encoded)
-        self.assertTrue(b('From: =?utf') in encoded)
-        self.assertTrue(b('Subject: =?utf') in encoded)
+        self.assertTrue(b('To: =?utf-8?') in encoded)
+        self.assertTrue(b('From: =?utf-8?') in encoded)
+        self.assertTrue(b('Subject: =?utf-8?') in encoded)
         self.assertEqual(subject, encoded_subject)
         self.assertTrue(b('<chrism@example.com>') in encoded)
         self.assertTrue(b('<chrisr@example.com>') in encoded)
@@ -140,7 +140,7 @@ class TestEncoding(unittest.TestCase):
         from repoze.sendmail._compat import b
         from repoze.sendmail._compat import quote
         latin_1_encoded = b('LaPe\xf1a')
-        latin_1 = latin_1_encoded.decode('latin_1')
+        latin_1 = latin_1_encoded.decode('iso-8859-1')
         message = self._makeMessage()
         message['Content-Disposition'] = (
             'attachment; filename=' + latin_1 + '.ppt')
@@ -149,14 +149,15 @@ class TestEncoding(unittest.TestCase):
 
         self.assertTrue(
             b("Content-Disposition: attachment; filename*=") in encoded)
-        self.assertTrue(b("latin_1''") + quote(latin_1_encoded).encode('ascii')
+        self.assertTrue(
+            b("iso-8859-1''") + quote(latin_1_encoded).encode('ascii')
                         in encoded)
 
     def test_encoding_utf_8_header_parameters(self):
         from repoze.sendmail._compat import b
         from repoze.sendmail._compat import quote
         utf_8_encoded = b('mo \xe2\x82\xac')
-        utf_8 = utf_8_encoded.decode('utf_8')
+        utf_8 = utf_8_encoded.decode('utf-8')
         message = self._makeMessage()
         message['Content-Disposition'] = (
             'attachment; filename=' + utf_8 + '.ppt')
@@ -165,7 +166,7 @@ class TestEncoding(unittest.TestCase):
 
         self.assertTrue(
             b("Content-Disposition: attachment; filename*=") in encoded)
-        self.assertTrue(b("utf_8''") + quote(utf_8_encoded).encode('ascii')
+        self.assertTrue(b("utf-8''") + quote(utf_8_encoded).encode('ascii')
                         in encoded)
 
     def test_encoding_ascii_body(self):
@@ -181,27 +182,28 @@ class TestEncoding(unittest.TestCase):
         import quopri
         from repoze.sendmail._compat import b
         latin_1_encoded = b('LaPe\xf1a')
-        latin_1 = latin_1_encoded.decode('latin_1')
+        latin_1 = latin_1_encoded.decode('iso-8859-1')
         body = 'I know what you did last ' + latin_1
         message = self._makeMessage()
         message.set_payload(body)
 
         encoded = self._callFUT(message)
 
-        self.assertTrue(quopri.encodestring(body.encode('latin_1')) in encoded)
+        self.assertTrue(
+            quopri.encodestring(body.encode('iso-8859-1')) in encoded)
 
     def test_encoding_utf_8_body(self):
         from repoze.sendmail._compat import b
         from repoze.sendmail._compat import encodestring
         utf_8_encoded = b('mo \xe2\x82\xac')
-        utf_8 = utf_8_encoded.decode('utf_8')
-        body = 'I know what you did last ' + utf_8
+        utf_8 = utf_8_encoded.decode('utf-8')
+        body = 'I know what you did last '+ utf_8
         message = self._makeMessage()
         message.set_payload(body)
 
         encoded = self._callFUT(message)
 
-        self.assertTrue(encodestring(body.encode('utf_8')) in encoded)
+        self.assertTrue(encodestring(body.encode('utf-8')) in encoded)
 
     def test_binary_body(self):
         from email.mime import application
@@ -227,7 +229,7 @@ class TestEncoding(unittest.TestCase):
         message = multipart.MIMEMultipart('alternative')
 
         utf_8_encoded = b('mo \xe2\x82\xac')
-        utf_8 = utf_8_encoded.decode('utf_8')
+        utf_8 = utf_8_encoded.decode('utf-8')
 
         plain_string = utf_8
         plain_part = nonmultipart.MIMENonMultipart('plain', 'plain')
@@ -246,8 +248,8 @@ class TestEncoding(unittest.TestCase):
 
         encoded = self._callFUT(message)
 
-        self.assertTrue(encodestring(plain_string.encode('utf_8')) in encoded)
-        self.assertTrue(encodestring(html_string.encode('utf_8')) in encoded)
+        self.assertTrue(encodestring(plain_string.encode('utf-8')) in encoded)
+        self.assertTrue(encodestring(html_string.encode('utf-8')) in encoded)
         self.assertTrue(binary_b64 in encoded)
 
     def test_encoding_multipart_quopri(self):
