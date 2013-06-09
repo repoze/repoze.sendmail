@@ -1,6 +1,13 @@
 Change history
 ~~~~~~~~~~~~~~
 
+Unreleased
+----------
+
+- Replace 'utf_8' encoding name with preferred spelling ('utf-8').
+
+- Replace 'latin_1' encoding name with preferred spelling ('iso-8859-1')
+
 4.0 (2013-04-23)
 ----------------
 
