@@ -6,6 +6,7 @@ import smtplib
 import stat
 import sys
 import time
+import codecs
 
 from email.parser import Parser
 from email import header
@@ -113,6 +114,7 @@ class QueueProcessor(object):
         fromaddr = message['X-Actually-From']
         if fromaddr is not None:
             decoded_fromaddr = header.decode_header(fromaddr)
+
             assert len(decoded_fromaddr) == 1, 'From header has multiple parts.'
             encoded_fromaddr, charset = decoded_fromaddr[0]
             if charset is not None:
@@ -225,7 +227,7 @@ class QueueProcessor(object):
             #        return
 
             # read message file and send contents
-            with open(filename) as f:
+            with codecs.open(filename, 'r', 'iso-8859-1') as f:
                 fromaddr, toaddrs, message = self._parseMessage(f)
             try:
                 self.mailer.send(fromaddr, toaddrs, message)
