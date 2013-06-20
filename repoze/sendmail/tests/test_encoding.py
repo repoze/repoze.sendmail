@@ -289,3 +289,19 @@ class TestEncoding(unittest.TestCase):
         encoded = self._callFUT(message)
         self.assertTrue(type(encoded), str)
         
+class FooTest(unittest.TestCase):
+    def test_it(self):
+        import StringIO
+        import os
+        from email.parser import Parser
+        from email.generator import Generator
+        here = os.path.dirname(os.path.abspath(__file__))
+        fp = open(os.path.join(here, 'fixture', 'unicode_chars.eml'))
+        parser = Parser()
+        message = parser.parse(fp)
+        f = StringIO.StringIO()
+        writer = Generator(f, False)
+        writer.flatten(message)
+        result = f.getvalue()
+        # emulation of what encode_message wants to do will fail
+        #result.encode('ascii')
