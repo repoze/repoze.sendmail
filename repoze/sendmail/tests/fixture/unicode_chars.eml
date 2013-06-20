@@ -1,0 +1,29 @@
+From chrism@plope.com Wed Jun 19 23:54:20 2013
+Return-Path: <chrism@plope.com>
+Delivered-To: chrism@plope.com
+Received: from localhost (localhost [127.0.0.1]) by mail.palladion.com
+ (Postfix) with ESMTP id 536ED792E for <chrism@plope.com>; Wed, 19 Jun 2013
+ 23:54:20 +0000 (UTC)
+X-Virus-Scanned: Debian amavisd-new at mail.palladion.com
+X-Spam-Flag: NO
+X-Spam-Score: -0.502
+X-Spam-Level: 
+X-Spam-Status: No, score=-0.502 tagged_above=-9999 required=6.31
+ tests=[BAYES_05=-0.5, NO_RECEIVED=-0.001, NO_RELAYS=-0.001] autolearn=ham
+Received: from mail.palladion.com ([127.0.0.1]) by localhost
+ (mail.palladion.com [127.0.0.1]) (amavisd-new, port 10024) with ESMTP id
+ CDgYhhyzzlFL for <chrism@plope.com>; Wed, 19 Jun 2013 23:54:19 +0000 (UTC)
+Message-ID: <1371686057.3821.13.camel@thinkx>
+Subject: unicode chars
+From: Chris McDonough <chrism@plope.com>
+To: chrism@plope.com
+Date: Wed, 19 Jun 2013 19:54:17 -0400
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+X-Evolution-Source: 1355375122.31759.1@thinko
+Content-Transfer-Encoding: 8bit
+
+ĀāĂăĄąĆćĈĉĊċČčĎď
+
+
+

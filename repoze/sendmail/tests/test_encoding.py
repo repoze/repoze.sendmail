@@ -278,3 +278,14 @@ class TestEncoding(unittest.TestCase):
         self.assertEqual(
             encoded.count(quopri.encodestring(plain_string.encode('latin_1'))),
             2)
+
+    def test_encoding_from_string(self):
+        import os
+        from email.parser import Parser
+        here = os.path.dirname(os.path.abspath(__file__))
+        fp = open(os.path.join(here, 'fixture', 'unicode_chars.eml'))
+        parser = Parser()
+        message = parser.parse(fp)
+        encoded = self._callFUT(message)
+        self.assertTrue(type(encoded), str)
+        
