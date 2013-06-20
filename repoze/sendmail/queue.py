@@ -6,7 +6,6 @@ import smtplib
 import stat
 import sys
 import time
-import codecs
 
 from email.parser import Parser
 from email import header
@@ -227,7 +226,7 @@ class QueueProcessor(object):
             #        return
 
             # read message file and send contents
-            with codecs.open(filename, 'r', 'iso-8859-1') as f:
+            with open(filename) as f:
                 fromaddr, toaddrs, message = self._parseMessage(f)
             try:
                 self.mailer.send(fromaddr, toaddrs, message)
