@@ -448,7 +448,9 @@ class ConsoleApp(object):
         self._error = True
 
 def run_console(): #pragma NO COVERAGE
-    logging.basicConfig()
+    logging.basicConfig(
+        format='%(asctime)s %(message)s'
+        )
     app = ConsoleApp()
     app.main()
 
