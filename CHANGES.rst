@@ -8,6 +8,8 @@ Unreleased
 
 - Replace 'latin_1' encoding name with preferred spelling ('iso-8859-1')
 
+- Include the time of the message when logging errors from the queue processor.
+
 4.0 (2013-04-23)
 ----------------
 
