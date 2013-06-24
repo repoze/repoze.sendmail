@@ -71,10 +71,10 @@ def cleanup_message(message,
 
     payload = message.get_payload()
     if payload and isinstance(payload, text_type):
-        best, encoded = best_charset(payload)
-        if PY_2:
-            payload = encoded
-        message.set_payload(payload, charset=best)
+        charset = message.get_charset()
+        if not charset:
+            charset, encoded = best_charset(payload)
+            message.set_payload(payload, charset=charset)
     elif isinstance(payload, list):
         for part in payload:
             cleanup_message(part)

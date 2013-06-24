@@ -10,6 +10,9 @@ Unreleased
 
 - Include the time of the message when logging errors from the queue processor.
 
+- response.MIMEPart now correctly sets the charset of the email payload if it's
+  one of the content_type parameters of the Message or Attachment.
+
 4.0 (2013-04-23)
 ----------------
 
