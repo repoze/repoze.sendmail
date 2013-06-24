@@ -55,6 +55,8 @@ class SMTPMailer(object):
         port = str(self.port)
         timeout = 10
         if self.ssl:
+            if self.smtp_ssl is None:
+                raise RuntimeError('No SSL available, cannot send via SSL')
             connection = self.smtp_ssl(hostname, port, timeout=timeout)
         else:
             connection = self.smtp(hostname, port, timeout=timeout)

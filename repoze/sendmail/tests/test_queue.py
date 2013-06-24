@@ -313,7 +313,7 @@ class TestConsoleApp(TestCase):
         # Use (almost) all of the options
         cmdline = """qp --hostname foo --port 75
                         --username chris --password rossi --force-tls
-                        --debug-smtp
+                        --debug-smtp --ssl
                         %s""" % self.dir
         app = ConsoleApp(cmdline.split())
         self.assertEqual("qp", app.script_name)
@@ -324,6 +324,7 @@ class TestConsoleApp(TestCase):
         self.assertEqual("chris", app.username)
         self.assertEqual("rossi", app.password)
         self.assertTrue(app.force_tls)
+        self.assertTrue(app.ssl)
         self.assertFalse(app.no_tls)
         self.assertTrue(app.debug_smtp)
 

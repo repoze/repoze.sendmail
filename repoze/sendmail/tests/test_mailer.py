@@ -72,6 +72,19 @@ class TestSMTPMailer(unittest.TestCase):
         self.assertRaises(RuntimeError, mailer.send,
                           fromaddr, toaddrs, msg)
 
+    def test_ssl_required_not_available(self):
+        mailer, smtp = self._makeOne(extns=set())
+        mailer.ssl = True
+        mailer.smtp_ssl = None
+        self.assertRaises(RuntimeError, mailer.smtp_factory)
+
+    def test_ssl_required_and_available(self):
+        mailer, smtp = self._makeOne(extns=set())
+        mailer.ssl = True
+        mailer.smtp_ssl = smtp
+        result = mailer.smtp_factory()
+        self.assertTrue(result.is_factory)
+        
     def test_send_auth(self):
         from email import message_from_string
         mailer, smtp = self._makeOne()
@@ -241,6 +254,7 @@ class PopenStub(object):
 
 def _makeSMTP(ehlo_status=200, extns=set(['starttls'])):
     class SMTP(object):
+        is_factory = True
         fail_on_quit = False
         _inst = []
 
