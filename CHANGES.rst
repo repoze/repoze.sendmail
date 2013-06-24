@@ -8,10 +8,14 @@ Unreleased
 
 - Replace 'latin_1' encoding name with preferred spelling ('iso-8859-1')
 
-- Include the time of the message when logging errors from the queue processor.
+- Include the time of the error when logging errors from the queue processor.
 
 - response.MIMEPart now correctly sets the charset of the email payload if it's
   one of the content_type parameters of the Message or Attachment.
+
+- The SMTPMailer now accepts an "ssl" argument, which, if passed, will cause
+  the SMTP factory to return an SMTP_SSL connection instead of a plain old
+  SMTP connection.
 
 4.0 (2013-04-23)
 ----------------

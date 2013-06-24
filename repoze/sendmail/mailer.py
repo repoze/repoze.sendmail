@@ -14,14 +14,17 @@
 from email.message import Message
 import subprocess
 from smtplib import SMTP
+
 try:
     import ssl
 except ImportError:  # pragma NO COVER
     HAVE_SSL = False
+    SMTP_SSL = None
 else:  # pragma NO COVER
     HAVE_SSL = True
     ssl  # pyflakes
     del ssl
+    from smtplib import SMTP_SSL
 
 from zope.interface import implementer
 from repoze.sendmail.encoding import encode_message
@@ -33,20 +36,28 @@ from repoze.sendmail._compat import SSLError
 class SMTPMailer(object):
 
     smtp = SMTP  # allow replacement for testing.
+    smtp_ssl = SMTP_SSL # allow replacement for testing.
 
     def __init__(self, hostname='localhost', port=25,
                  username=None, password=None,
-                 no_tls=False, force_tls=False, debug_smtp=False):
+                 no_tls=False, force_tls=False, ssl=False, debug_smtp=False):
         self.hostname = hostname
         self.port = port
         self.username = username
         self.password = password
         self.force_tls = force_tls
         self.no_tls = no_tls
+        self.ssl = ssl
         self.debug_smtp = debug_smtp
 
     def smtp_factory(self):
-        connection = self.smtp(self.hostname, str(self.port))
+        hostname = self.hostname
+        port = str(self.port)
+        timeout = 10
+        if self.ssl:
+            connection = self.smtp_ssl(hostname, port, timeout=timeout)
+        else:
+            connection = self.smtp(hostname, port, timeout=timeout)
         connection.set_debuglevel(self.debug_smtp)
         return connection
 

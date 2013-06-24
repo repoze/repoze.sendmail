@@ -321,6 +321,7 @@ class ConsoleApp(object):
     password = None
     force_tls = False
     no_tls = False
+    ssl = False
     queue_path = None
     debug_smtp = False
 
@@ -328,13 +329,17 @@ class ConsoleApp(object):
         self.script_name = argv[0]
         self._load_config()
         self._process_args(argv[1:])
-        self.mailer = SMTPMailer(self.hostname,
-                                 self.port,
-                                 self.username,
-                                 self.password,
-                                 self.no_tls,
-                                 self.force_tls,
-                                 self.debug_smtp)
+        self.mailer = SMTPMailer(
+            hostname=self.hostname,
+            port=self.port,
+            username=self.username,
+            password=self.password,
+            no_tls=self.no_tls,
+            force_tls=self.force_tls,
+            ssl=self.ssl,
+            debug_smtp=self.debug_smtp,
+            )
+        
     def main(self):
         if self._error:
             return
@@ -376,6 +381,9 @@ class ConsoleApp(object):
 
             elif arg == "--no-tls":
                 self.no_tls = True
+
+            elif arg == "--ssl":
+                self.ssl = True
 
             elif arg == "--config":
                 if not args:
@@ -428,6 +436,7 @@ class ConsoleApp(object):
             "no_tls",
             "queue_path",
             "debug_smtp",
+            "ssl",
         ]
         defaults = dict([(name, str(getattr(self, name))) for name in names])
         config = ConfigParser(defaults)
@@ -439,6 +448,7 @@ class ConsoleApp(object):
         self.password = string_or_none(config.get(section, "password"))
         self.force_tls = boolean(config.get(section, "force_tls"))
         self.no_tls = boolean(config.get(section, "no_tls"))
+        self.ssl = boolean(config.get(section, "ssl"))
         self.queue_path = string_or_none(config.get(section, "queue_path"))
         self.debug_smtp = string_or_none(config.get(section, "debug_smtp"))
 
@@ -447,11 +457,11 @@ class ConsoleApp(object):
         _log_error(self._usage % {"script_name": self.script_name})
         self._error = True
 
-def run_console(): #pragma NO COVERAGE
+def run_console(argv=sys.argv): #pragma NO COVERAGE
     logging.basicConfig(
         format='%(asctime)s %(message)s'
         )
-    app = ConsoleApp()
+    app = ConsoleApp(argv=argv)
     app.main()
 
 if __name__ == "__main__": #pragma NO COVERAGE
