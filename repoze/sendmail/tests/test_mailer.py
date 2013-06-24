@@ -244,12 +244,13 @@ def _makeSMTP(ehlo_status=200, extns=set(['starttls'])):
         fail_on_quit = False
         _inst = []
 
-        def __init__(self, h, p):
+        def __init__(self, h, p, **params):
             self.hostname = h
             self.port = p
             self.quitted = False
             self.closed = False
             self.debuglevel = 0
+            self.params = params
             SMTP._inst.append(self)
 
         def set_debuglevel(self, lvl):

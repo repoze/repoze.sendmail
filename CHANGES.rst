@@ -17,6 +17,9 @@ Unreleased
   the SMTP factory to return an SMTP_SSL connection instead of a plain old
   SMTP connection.
 
+- The SMTPMailer now uses a 10-second timeout by default, used when an
+  SMTP connection is made but the server does not respond in enough time.
+
 4.0 (2013-04-23)
 ----------------
 
