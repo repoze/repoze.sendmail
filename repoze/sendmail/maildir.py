@@ -17,7 +17,6 @@ from __future__ import with_statement
 Read/write access to `Maildir` folders.
 """
 
-import sys
 import os
 import errno
 import socket
