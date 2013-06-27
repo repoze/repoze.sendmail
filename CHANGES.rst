@@ -1,8 +1,8 @@
 Change history
 ~~~~~~~~~~~~~~
 
-Unreleased
-----------
+4.1 (2013-06-26)
+----------------
 
 - Replace 'utf_8' encoding name with preferred spelling ('utf-8').
 
