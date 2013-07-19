@@ -86,6 +86,28 @@ class TestTransactionMails(unittest.TestCase):
 
 
 
+        ## ok, can we do multiple savepoints ?
+        
+        active_transaction = transaction.manager.get()
+
+        mailer.sent_messages = []
+        transaction.begin()
+        sp_outer = transaction.savepoint()
+        for i in range(1,7) :
+            sp = transaction.savepoint()
+            body = bodies_all[i]
+            message = sample_message(body=body)
+            msgid = delivery.send(fromaddr, toaddrs, message)
+            self.assertEqual(msgid, '<20030519.1234@example.org>')
+            self.assertEqual(mailer.sent_messages, [])
+            sp3 = transaction.savepoint()
+            sp3.rollback()
+            if i in bodies_bad :
+                sp.rollback()
+        sp_outer.rollback()
+        
+
+
 def sample_message( body="This is just an example"):
     ( fromaddr , toaddrs ) = fromaddr_toaddrs()
     message = Message()

@@ -108,22 +108,19 @@ class MailDataManager(object):
         # only join a transaction ONCE
         if not is_resource_in_transaction( self , self.transaction ):
             self.transaction.join(self)
-            
+        
 
     def _finish(self,final_state):
         if DEBUG_FLOW : log.debug("MailDataManager._finish")
         assert self.transaction is not None
         self.state = final_state
-        self._resetTransaction()
     
 
-    def _resetTransaction(self):
-        if DEBUG_FLOW : log.debug("MailDataManager._resetTransaction")
-        self.last_note = getattr(self.transaction, 'description', None)
-        self.transaction = None
-
-        self.state = MaiDataManagerState.INIT
+    def _resetState(self):
+        if DEBUG_FLOW : log.debug("MailDataManager._resetState")
         self.tpc_phase = 0
+        self.state = MaiDataManagerState.INIT
+
 
 
     def commit( self, trans ):
@@ -135,14 +132,17 @@ class MailDataManager(object):
 
     def abort(self, trans):
         """Throw away changes made before the commit process has started
+        
         """
         if DEBUG_FLOW : log.debug("MailDataManager.abort")
         assert (self.transaction is not None), "Must have transaction"
         assert (trans is self.transaction), "Must not change transactions"
-        assert is_resource_in_transaction( self , self.transaction ) , "Must be in the transaction"
         assert (self.tpc_phase == 0), "Must be called outside of tpc"
 
-        self._resetTransaction()
+        ## we might not be in the transaction
+        ## if we've already bee removed, we still seem to be listening in for the events
+        ## this only seems to happen during multiple levels of nested transactions
+        ## assert is_resource_in_transaction( self , self.transaction ) , "Must be in the transaction"
 
         if self.onAbort:
             self.onAbort()
@@ -228,7 +228,7 @@ class MailDataManager(object):
         if DEBUG_FLOW : log.debug("MailDataManager.tpc_abort | %s , %s" , self.state , self.tpc_phase)
         assert trans is self.transaction, "Must not change transactions"
         assert self.tpc_phase != 0, "Must be called inside of tpc"
-        assert self.state is not MaiDataManagerState.COMMITTED, "not in a commit!"
+        assert self.state is not MaiDataManagerState.TPC_FINISHED, "not after a commit!"
         
         self._finish(MaiDataManagerState.TPC_ABORTED)
 
