@@ -168,6 +168,7 @@ class SendmailMailer(object):
         if not isinstance(message, Message):
             raise ValueError(
                'Message must be instance of email.message.Message')
+        message = encode_message(message)
         if toaddrs is None:
             toaddrs = []
 

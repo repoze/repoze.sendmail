@@ -259,6 +259,10 @@ class PopenStub(object):
         self.returncode = kw.get('returncode', 0)
 
     def communicate(self, input):
+        # 'input' must be bytes.  See:
+        # http://docs.python.org/3/library/subprocess.html
+        #                                    #subprocess.Popen.communicate
+        assert isinstance(input, bytes)
         self.inputs.append(input)
         return '', ''
 
