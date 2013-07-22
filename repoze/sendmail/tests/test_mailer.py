@@ -52,6 +52,12 @@ class TestSMTPMailer(unittest.TestCase):
             self.assertTrue(inst.quitted)
             self.assertTrue(inst.closed)
 
+    def test_send_w_non_message(self):
+        fromaddr = 'me@example.com'
+        toaddrs = ('you@example.com', 'him@example.com')
+        mailer, smtp = self._makeOne()
+        self.assertRaises(ValueError, mailer.send, fromaddr, toaddrs, b'')
+
     def test_fail_ehlo(self):
         from email.message import Message
         mailer, smtp = self._makeOne(ehlo_status=100)
@@ -236,6 +242,12 @@ class TestSendmailMailer(unittest.TestCase):
         self.assertEqual(
             ["/usr/local/sbin/sendmail", "-t", "-f", "me@example.com"],
             mailer.popens[0].args[0])
+
+    def test_send_w_non_message(self):
+        fromaddr = 'me@example.com'
+        toaddrs = ('you@example.com', 'him@example.com')
+        mailer = self._makeOne()
+        self.assertRaises(ValueError, mailer.send, fromaddr, toaddrs, b'')
 
 
 class PopenStub(object):

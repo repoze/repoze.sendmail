@@ -64,8 +64,9 @@ class SMTPMailer(object):
         return connection
 
     def send(self, fromaddr, toaddrs, message):
-        assert isinstance(message, Message), \
-               'Message must be instance of email.message.Message'
+        if not isinstance(message, Message):
+            raise ValueError(
+               'Message must be instance of email.message.Message')
         message = encode_message(message)
 
         connection = self.smtp_factory()
@@ -164,8 +165,9 @@ class SendmailMailer(object):
             self.sendmail_template = sendmail_template
 
     def send(self, fromaddr=None, toaddrs=None, message=None):
-        if isinstance(message, Message):
-            message = message.as_string()
+        if not isinstance(message, Message):
+            raise ValueError(
+               'Message must be instance of email.message.Message')
         if toaddrs is None:
             toaddrs = []
 
