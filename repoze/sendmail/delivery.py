@@ -35,7 +35,10 @@ import transaction
 import logging
 log = logging.getLogger(__name__)
 
-
+#
+# DEBUG_FLOW is useful when mapping out the interactions with `transaction`
+# It just prints out the current function name / state
+#
 DEBUG_FLOW = False 
 if DEBUG_FLOW :
     import sys
@@ -46,6 +49,10 @@ if DEBUG_FLOW :
 
     
 class MaiDataManagerState(object):
+    """MaiDataManagerState consolidates all the possible MDM and TPC states.
+    Most of these are not needed and were removed from the actual logic.
+    This was modeled loosely after the Zope.Sqlaclhemy extension.
+    """
     INIT = 0
     NO_WORK = 1
     COMMITTED = 2
@@ -60,6 +67,14 @@ class MaiDataManagerState(object):
 
 
 def is_resource_in_transaction(resource,trans):
+    """Early versions of this package immediately joined a MDM into a 
+    transaction:
+        > transaction.get().join( createDataManager() )
+    This behavior was harder to test with , and it was easy to add an object 
+    into a transaction multiple times.  The `transaction` package doesn't raise 
+    an error if that happens, so random errors with the TPC state occur as the 
+    same element has every phase called multiple times.
+    """
     if resource in trans._resources :
         return True
     return False
@@ -70,9 +85,16 @@ def is_resource_in_transaction(resource,trans):
 class MailDataManager(object):
 
     def __init__(self, callable, args=(), onAbort=None):
-        """We expect to :
+        """When creating a MailDataManager, we expect to :
             1. NOT be in a transaction on creation
-            2. DO be joined into a transaction
+            2. DO be joined into a transaction afterwards
+            
+            __init__ is given a `callable` function and `args` to pass into it.
+            
+            if everything goes as planned, during the tpc_finish phase we call:
+            
+                self.callable(*self.args)
+            
         """
         if DEBUG_FLOW : log.debug("MailDataManager.__init__")
         self.callable = callable
@@ -95,28 +117,42 @@ class MailDataManager(object):
         
 
     def join_transaction(self,trans=None):
+        """join the object into a transaction.  
+        if no transaction is specified, it will call `transaction.manager.get()`
+        if the object is already in a transaction, it will raise an error.
+        
+        """
         if DEBUG_FLOW : log.debug("MailDataManager.join_transaction")
+        
+        _transaction_old = self.transaction
         
         # are we specifying a transaction to join ?
         if trans is not None:
             self.transaction = trans
-
-        # If this is the first change in the transaction, join the transaction
-        if self.transaction is None :
+        # if we haven't specified the transactions, join the current one
+        else:
             self.transaction = self.transaction_manager.get()
+            
+        # if we changed transactions...
+        if _transaction_old and ( _transaction_old != self.transaction ) :
+            if is_resource_in_transaction( self , _transaction_old ):
+                raise ValueError("""Item is in the former transaction. It must\
+                be removed before it can be added to a new transaction""")
 
-        # only join a transaction ONCE
+        # only join the transaction ONCE; if we're already in it, no worries.
         if not is_resource_in_transaction( self , self.transaction ):
             self.transaction.join(self)
         
 
     def _finish(self,final_state):
+        """this method might not be needed"""
         if DEBUG_FLOW : log.debug("MailDataManager._finish")
         assert self.transaction is not None
         self.state = final_state
     
 
     def _resetState(self):
+        """this method might not be needed"""
         if DEBUG_FLOW : log.debug("MailDataManager._resetState")
         self.tpc_phase = 0
         self.state = MaiDataManagerState.INIT
@@ -139,10 +175,12 @@ class MailDataManager(object):
         assert (trans is self.transaction), "Must not change transactions"
         assert (self.tpc_phase == 0), "Must be called outside of tpc"
 
-        ## we might not be in the transaction
-        ## if we've already bee removed, we still seem to be listening in for the events
-        ## this only seems to happen during multiple levels of nested transactions
-        ## assert is_resource_in_transaction( self , self.transaction ) , "Must be in the transaction"
+        ## the following was used for testing:
+        ##   we might not be in the transaction
+        ##   if we've already been removed, we still seem to be listening in for 
+        ##   the events.  this only seems to happen during multiple levels of 
+        ##   nested transactions
+        # assert is_resource_in_transaction( self , self.transaction ) , "Must be in the transaction"
 
         if self.onAbort:
             self.onAbort()
@@ -171,29 +209,26 @@ class MailDataManager(object):
     ###
 
     def savepoint(self):
+        """we create a custom `MailDataSavepoint` object , which has a 
+        `rollback` method.
+        the custom instance doesn't actually do anything. `transaction` does it 
+        all.
+        """
         if DEBUG_FLOW : log.debug("MailDataManager.savepoint")
         if DEBUG_FLOW : log.debug(self.transaction._resources)
-        #
-        #   we create a custom MailDataSavepoint object , which just has a rollback
-        #   the custom instance doesn't actually do anything. transaction does it all.
-        #
         return MailDataSavepoint(self)
 
     def _savepoint_rollback(self, savepoint):
+        """called by the custom savepoint object `MailDataSavepoint`
+        this doesn't actually do anything. `transaction` does it all."""
         if DEBUG_FLOW : log.debug("MailDataManager._savepoint_rollback")
         if DEBUG_FLOW : log.debug(self.transaction._resources)
-        #
-        #   called by the custom savepoint MailDataSavepoint
-        #   this doesn't actually do anything. transaction does it all.
-        #
 
 
 
     ###
     ### Two Phase Support
     ###
-
-
 
     def tpc_begin(self, trans, subtransaction=False):
         if DEBUG_FLOW : log.debug("MailDataManager.tpc_begin | %s , %s" , self.state , self.tpc_phase)
@@ -238,17 +273,13 @@ class MailDataManager(object):
 class MailDataSavepoint:
 
     def __init__(self, mail_data_manager ):
-        #
-        #   we don't actually do anything here. transaction does it all.
-        #
+        """We don't actually do anything here. transaction does it all."""
         if DEBUG_FLOW : log.debug("MailDataSavepoint.__init__")
         self.mail_data_manager = mail_data_manager
 
 
     def rollback(self):
-        #
-        #   we don't actually do anything here. transaction does it all.
-        #
+        """We don't actually do anything here. transaction does it all."""
         if DEBUG_FLOW : log.debug("MailDataSavepoint.rollback")
         self.mail_data_manager._savepoint_rollback(self)
 
@@ -256,6 +287,16 @@ class MailDataSavepoint:
 
 
 class AbstractMailDelivery(object):
+    """Base class for mail delivery.   
+    
+        calling `send` will create a managed message -- the result of 
+            `self.createDataManager(fromaddr,toaddrs,message)`
+        
+        The managed message should be an instance of `MailDataManager` or
+        another class that implements `IDataManager` or `ISavepointDataManager`
+        
+        The managed message is immediately joined into the current transaction.
+    """
 
     def send(self, fromaddr, toaddrs, message):
         if DEBUG_FLOW : log.debug("AbstractMailDelivery.send")
