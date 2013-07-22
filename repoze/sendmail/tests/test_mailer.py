@@ -13,7 +13,6 @@
 ##############################################################################
 import unittest
 
-from repoze.sendmail import mailer
 
 
 class TestSMTPMailer(unittest.TestCase):
@@ -185,6 +184,21 @@ class TestSMTPMailerWithNoEHLO(TestSMTPMailer):
 class TestSendmailMailer(unittest.TestCase):
 
     def _getTargetClass(self):
+        from repoze.sendmail import mailer
+
+        class SendmailMailerStub(mailer.SendmailMailer):
+
+            popens = ()
+
+            def __init__(self, *args, **kw):
+                self.returncode = kw.pop('returncode', 0)
+                super(SendmailMailerStub, self).__init__(*args, **kw)
+
+            def _popen(self, *args, **kw):
+                kw['returncode'] = self.returncode
+                p = PopenStub(*args, **kw)
+                self.popens += (p, )
+                return p
         return SendmailMailerStub
 
     def _makeOne(self, *args, **kw):
@@ -222,21 +236,6 @@ class TestSendmailMailer(unittest.TestCase):
         self.assertEqual(
             ["/usr/local/sbin/sendmail", "-t", "-f", "me@example.com"],
             mailer.popens[0].args[0])
-
-
-class SendmailMailerStub(mailer.SendmailMailer):
-
-    popens = ()
-
-    def __init__(self, *args, **kw):
-        self.returncode = kw.pop('returncode', 0)
-        super(SendmailMailerStub, self).__init__(*args, **kw)
-
-    def _popen(self, *args, **kw):
-        kw['returncode'] = self.returncode
-        p = PopenStub(*args, **kw)
-        self.popens += (p, )
-        return p
 
 
 class PopenStub(object):
