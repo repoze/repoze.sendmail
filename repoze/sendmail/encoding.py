@@ -71,10 +71,11 @@ def cleanup_message(message,
 
     payload = message.get_payload()
     if payload and isinstance(payload, text_type):
-        charset = message.get_charset()
-        if not charset:
-            charset, encoded = best_charset(payload)
-            message.set_payload(payload, charset=charset)
+        if message['Content-Transfer-Encoding'] not in ('base64', 'quoted-printable'):
+            charset = message.get_charset()
+            if not charset:
+                charset, encoded = best_charset(payload)
+                message.set_payload(payload, charset=charset)
     elif isinstance(payload, list):
         for part in payload:
             cleanup_message(part)
