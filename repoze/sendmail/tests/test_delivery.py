@@ -129,6 +129,43 @@ class TestDirectMailDelivery(unittest.TestCase):
         self.assertTrue('.repoze.sendmail@' in msgid)
         self.assertEqual(message['Message-Id'],  msgid)
 
+    def test_alternate_transaction_manager(self):
+        from repoze.sendmail.delivery import DirectMailDelivery
+        from email.message import Message
+        import transaction
+        mailer = _makeMailerStub()
+        delivery = DirectMailDelivery(mailer)
+        tm = transaction.TransactionManager()
+        delivery.transaction_manager = tm
+        fromaddr = "Jim <jim@example.com>"
+        toaddrs = ('Guido <guido@example.com>',
+                   'Steve <steve@example.com>')
+        message = Message()
+        message["From"] = fromaddr
+        message["To"] = ",".join(toaddrs)
+        message["Date"] = "Date: Mon, 19 May 2003 10:17:36 -0400"
+        message["Subject"] = "example"
+        message.set_payload("This is just an example\n")
+
+        msgid = delivery.send(fromaddr, toaddrs, message)
+
+        transaction.commit()
+        self.assertEqual(len(mailer.sent_messages), 0)
+        t = tm.get()
+        data_manager = t._resources[0]
+        self.assertTrue(data_manager.transaction_manager is tm)
+        t.commit()
+        self.assertEqual(len(mailer.sent_messages), 1)
+        self.assertEqual(mailer.sent_messages[0][0], fromaddr)
+        self.assertEqual(mailer.sent_messages[0][1], toaddrs)
+        self.assertEqual(mailer.sent_messages[0][2].get_payload(),
+                         "This is just an example\n")
+
+        mailer.sent_messages = []
+        msgid = delivery.send(fromaddr, toaddrs, message)
+        tm.get().abort()
+        self.assertEqual(len(mailer.sent_messages), 0)
+
 
 class TestQueuedMailDelivery(unittest.TestCase):
 
