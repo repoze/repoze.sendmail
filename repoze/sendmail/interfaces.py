@@ -43,11 +43,14 @@ Sending e-mail from and applications works as follows:
     - 'SendmailMailer` sends all messages using the `sendmail` command.
 """
 
-from zope.interface import Interface
+from zope.interface import Attribute, Interface
 
 class IMailDelivery(Interface):
     """Send an email to a group of people.
     """
+
+    transaction_manager = Attribute("The transaction manager to use.")
+
     def send(fromaddr, toaddrs, message):
         """Send an email message.
 

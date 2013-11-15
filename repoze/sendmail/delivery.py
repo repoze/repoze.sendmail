@@ -33,12 +33,15 @@ import transaction
 @implementer(IDataManager)
 class MailDataManager(object):
 
-    def __init__(self, callable, args=(), onAbort=None):
+    def __init__(self, callable, args=(), onAbort=None,
+                 transaction_manager=None):
         self.callable = callable
         self.args = args
         self.onAbort = onAbort
-        # Use the default thread transaction manager.
-        self.transaction_manager = transaction.manager
+        if transaction_manager is None:
+            # Use the default thread transaction manager.
+            transaction_manager = transaction.manager
+        self.transaction_manager = transaction_manager
 
     def commit(self, transaction):
         pass
@@ -75,6 +78,8 @@ class MailDataManager(object):
 
 class AbstractMailDelivery(object):
 
+    transaction_manager = transaction.manager
+
     def send(self, fromaddr, toaddrs, message):
         assert isinstance(message, Message), \
                'Message must be instance of email.message.Message'
@@ -84,7 +89,8 @@ class AbstractMailDelivery(object):
             messageid = message['Message-Id'] = make_msgid('repoze.sendmail')
         if message['Date'] is None:
             message['Date'] = formatdate()
-        transaction.get().join(
+        tm = self.transaction_manager
+        tm.get().join(
             self.createDataManager(fromaddr, toaddrs, message))
         return messageid
 
@@ -97,7 +103,8 @@ class DirectMailDelivery(AbstractMailDelivery):
 
     def createDataManager(self, fromaddr, toaddrs, message):
         return MailDataManager(self.mailer.send,
-                               args=(fromaddr, toaddrs, message))
+                               args=(fromaddr, toaddrs, message),
+                               transaction_manager=self.transaction_manager)
 
 
 @implementer(IMailDelivery)
@@ -115,7 +122,8 @@ class QueuedMailDelivery(AbstractMailDelivery):
         message['X-Actually-To'] = Header(','.join(toaddrs), 'utf-8')
         maildir = Maildir(self.queuePath, True)
         tx_message = maildir.add(message)
-        return MailDataManager(tx_message.commit, onAbort=tx_message.abort)
+        return MailDataManager(tx_message.commit, onAbort=tx_message.abort,
+                               transaction_manager=self.transaction_manager)
 
 
 def copy_message(message):
