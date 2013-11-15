@@ -1,6 +1,12 @@
 Change history
 ~~~~~~~~~~~~~~
 
+unreleased
+----------
+
+- Mail Delivery utilities now get the transaction manager from an
+  attribute, making it easier to override.
+
 4.1 (2013-06-26)
 ----------------
 

@@ -110,3 +110,5 @@ Contributors
 - Ross Patterson, 2012/03/13
 
 - Jonathan Vanasco, 2013/03/19
+
+- Patrick Strawderman, 2013/11/15
