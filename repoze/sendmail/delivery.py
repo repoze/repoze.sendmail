@@ -144,12 +144,6 @@ class MailDataManager(object):
         if DEBUG_FLOW : log.debug("MailDataManager.sortKey")
         return str(id(self))
 
-    def abort_sub(self, trans):
-        raise ValueError("abort_sub")
-
-    def commit_sub(self, trans):
-        raise ValueError("commit_sub")
-
     def savepoint(self):
         """Create a custom `MailDataSavepoint` object
 
