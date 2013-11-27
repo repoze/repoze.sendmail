@@ -298,6 +298,67 @@ class TestMailDataManager(unittest.TestCase):
         self.assertEqual(mdm.state, MailDataManagerState.TPC_ABORTED)
 
 
+class TestAbstractMailDelivery(unittest.TestCase):
+
+    def _getTargetClass(self):
+        from repoze.sendmail.delivery import AbstractMailDelivery
+        return AbstractMailDelivery
+
+    def _makeOne(self):
+        return self._getTargetClass()()
+
+    def test_send_w_bad_message(self):
+        amd = self._makeOne()
+        self.assertRaises(ValueError, amd.send,
+            'sender@example.com', ['recipient@example.com'], object())
+
+    def test_send_w_bare_message(self):
+        import email.message
+        class DummyDM(object):
+            joined = False
+            extent = []
+            def __init__(self, frm, to, msg):
+                self.frm = frm
+                self.to = to
+                self.msg = msg
+                self.extent.append(self)
+            def join_transaction(self):
+                self._joined = True
+        amd = self._makeOne()
+        amd.createDataManager = DummyDM
+        msg = email.message.Message()
+        amd.send('sender@example.com', ['recipient@example.com'], msg)
+        self.assertTrue('repoze.sendmail@' in msg['Message-Id'])
+        self.assertTrue('Date' in msg)
+        self.assertEqual(len(DummyDM.extent), 1)
+        self.assertTrue(DummyDM.extent[0]._joined)
+
+    def test_send_w_populated_message(self):
+        import email.message
+        MESSAGE_ID = '12345@example.com'
+        DATE = 'Wed, 02 Oct 2002 08:00:00 EST'
+        class DummyDM(object):
+            joined = False
+            extent = []
+            def __init__(self, frm, to, msg):
+                self.frm = frm
+                self.to = to
+                self.msg = msg
+                self.extent.append(self)
+            def join_transaction(self):
+                self._joined = True
+        amd = self._makeOne()
+        amd.createDataManager = DummyDM
+        msg = email.message.Message()
+        msg['Message-Id'] = MESSAGE_ID
+        msg['Date'] = DATE
+        amd.send('sender@example.com', ['recipient@example.com'], msg)
+        self.assertEqual(msg['Message-Id'], MESSAGE_ID)
+        self.assertEqual(msg['Date'], DATE)
+        self.assertEqual(len(DummyDM.extent), 1)
+        self.assertTrue(DummyDM.extent[0]._joined)
+
+
 class TestDirectMailDelivery(unittest.TestCase):
 
     def _getTargetClass(self):
