@@ -34,13 +34,44 @@ class TestMailDataManager(unittest.TestCase):
         verifyObject(IDataManager, self._makeOne())
 
     def test_ctor(self):
-        manager = self._makeOne(object, (1, 2))
-        self.assertEqual(manager.callable, object)
-        self.assertEqual(manager.args, (1, 2))
+        mdm = self._makeOne(object, (1, 2))
+        self.assertEqual(mdm.callable, object)
+        self.assertEqual(mdm.args, (1, 2))
+
+    def test_join_transaction_implicit(self):
+        import transaction
+        with transaction.manager as tm:
+            mdm = self._makeOne(object)
+            mdm.join_transaction()
+            self.assertEqual(tm._resources, [mdm])
+            self.assertTrue(mdm.transaction is tm)
+
+    def test_join_transaction_explicit(self):
+        mdm = self._makeOne(object)
+        tm = DummyTransactionManager()
+        mdm.join_transaction(tm)
+        self.assertEqual(tm._resources, (mdm,))
+        self.assertTrue(mdm.transaction is tm)
+
+    def test_join_transaction_conflict(self):
+        mdm = self._makeOne(object)
+        tm1 = DummyTransactionManager()
+        tm2 = DummyTransactionManager()
+        mdm.join_transaction(tm1)
+        self.assertRaises(ValueError, mdm.join_transaction, tm2)
+        self.assertTrue(mdm.transaction is tm1)
+
+    def test_join_transaction_duplicated(self):
+        mdm = self._makeOne(object)
+        tm = DummyTransactionManager()
+        mdm.join_transaction(tm)
+        mdm.join_transaction(tm)
+        self.assertEqual(tm._resources, (mdm,))
+        self.assertTrue(mdm.transaction is tm)
 
     def test_sortKey(self):
-        manager = self._makeOne()
-        self.assertEqual(manager.sortKey(), str(id(manager)))
+        mdm = self._makeOne()
+        self.assertEqual(mdm.sortKey(), str(id(mdm)))
 
 
 class TestDirectMailDelivery(unittest.TestCase):
@@ -355,3 +386,10 @@ def _makeMailerStub(*args, **kw):
         def send(self, fromaddr, toaddrs, message):
             self.sent_messages.append((fromaddr, toaddrs, message))
     return MailerStub(*args, **kw)
+
+
+class DummyTransactionManager(object):
+    _resources = ()
+
+    def join(self, resource):
+        self._resources += (resource,)
