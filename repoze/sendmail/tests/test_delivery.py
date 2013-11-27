@@ -40,34 +40,105 @@ class TestMailDataManager(unittest.TestCase):
 
     def test_join_transaction_implicit(self):
         import transaction
-        with transaction.manager as tm:
+        with transaction.manager as txn:
             mdm = self._makeOne(object)
             mdm.join_transaction()
-            self.assertEqual(tm._resources, [mdm])
-            self.assertTrue(mdm.transaction is tm)
+            self.assertEqual(txn._resources, [mdm])
+            self.assertTrue(mdm.transaction is txn)
 
     def test_join_transaction_explicit(self):
         mdm = self._makeOne(object)
-        tm = DummyTransactionManager()
-        mdm.join_transaction(tm)
-        self.assertEqual(tm._resources, (mdm,))
-        self.assertTrue(mdm.transaction is tm)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        self.assertEqual(txn._resources, (mdm,))
+        self.assertTrue(mdm.transaction is txn)
 
     def test_join_transaction_conflict(self):
         mdm = self._makeOne(object)
-        tm1 = DummyTransactionManager()
-        tm2 = DummyTransactionManager()
-        mdm.join_transaction(tm1)
-        self.assertRaises(ValueError, mdm.join_transaction, tm2)
-        self.assertTrue(mdm.transaction is tm1)
+        txn1 = DummyTransaction()
+        txn2 = DummyTransaction()
+        mdm.join_transaction(txn1)
+        self.assertRaises(ValueError, mdm.join_transaction, txn2)
+        self.assertTrue(mdm.transaction is txn1)
 
     def test_join_transaction_duplicated(self):
         mdm = self._makeOne(object)
-        tm = DummyTransactionManager()
-        mdm.join_transaction(tm)
-        mdm.join_transaction(tm)
-        self.assertEqual(tm._resources, (mdm,))
-        self.assertTrue(mdm.transaction is tm)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.join_transaction(txn)
+        self.assertEqual(txn._resources, (mdm,))
+        self.assertTrue(mdm.transaction is txn)
+
+    def test__finish_wo_transaction(self):
+        mdm = self._makeOne(object)
+        self.assertRaises(ValueError, mdm._finish, 2)
+
+    def test__finish_w_transaction(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm._finish(2)
+        self.assertEqual(mdm.state, 2)
+
+    def test_commit_wo_transaction(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        self.assertRaises(ValueError, mdm.commit, txn)
+
+    def test_commit_w_foreign_transaction(self):
+        mdm = self._makeOne(object)
+        txn1 = DummyTransaction()
+        mdm.join_transaction(txn1)
+        txn2 = DummyTransaction()
+        self.assertRaises(ValueError, mdm.commit, txn2)
+
+    def test_commit_w_TPC(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.tpc_phase = 1
+        mdm.commit(txn) # no raise
+
+    def test_commit_w_same_transaction(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.commit(txn) # no raise
+
+    def test_abort_wo_transaction(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        self.assertRaises(ValueError, mdm.abort, txn)
+
+    def test_abort_w_foreign_transaction(self):
+        mdm = self._makeOne(object)
+        txn1 = DummyTransaction()
+        mdm.join_transaction(txn1)
+        txn2 = DummyTransaction()
+        self.assertRaises(ValueError, mdm.abort, txn2)
+
+    def test_abort_w_TPC(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.tpc_phase = 1
+        self.assertRaises(ValueError, mdm.abort, txn)
+
+    def test_abort_w_same_transaction(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.abort(txn) # no raise
+
+    def test_abort_w_onAbort(self):
+        _called = []
+        def _onAbort():
+            _called.append(True)
+        mdm = self._makeOne(object, onAbort=_onAbort)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.abort(txn) # no raise
+        self.assertEqual(_called, [True])
 
     def test_sortKey(self):
         mdm = self._makeOne()
@@ -388,7 +459,7 @@ def _makeMailerStub(*args, **kw):
     return MailerStub(*args, **kw)
 
 
-class DummyTransactionManager(object):
+class DummyTransaction(object):
     _resources = ()
 
     def join(self, resource):

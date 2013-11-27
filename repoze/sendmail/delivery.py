@@ -117,20 +117,26 @@ class MailDataManager(object):
 
     def _finish(self, final_state):
         if DEBUG_FLOW : log.debug("MailDataManager._finish")
-        assert self.transaction is not None
+        if self.transaction is None:
+            raise ValueError("Not in a transaction")
         self.state = final_state
 
     def commit(self, trans):
         if DEBUG_FLOW : log.debug("MailDataManager.commit")
+        if self.transaction is None:
+            raise ValueError("Not in a transaction")
+        if self.transaction is not trans:
+            raise ValueError("In a different transaction")
+        # OK to call ``commit`` w/ TPC underway
 
     def abort(self, trans):
-        """Throw away changes made before the commit process has started
-        """
         if DEBUG_FLOW : log.debug("MailDataManager.abort")
-        assert (self.transaction is not None), "Must have transaction"
-        assert (trans is self.transaction), "Must not change transactions"
-        assert (self.tpc_phase == 0), "Must be called outside of tpc"
-
+        if self.transaction is None:
+            raise ValueError("Not in a transaction")
+        if self.transaction is not trans:
+            raise ValueError("In a different transaction")
+        if self.tpc_phase != 0:
+            raise ValueError("TPC in progress")
         if self.onAbort:
             self.onAbort()
 
