@@ -39,7 +39,7 @@ log = logging.getLogger(__name__)
 # It just prints out the current function name / state
 #
 DEBUG_FLOW = False
-if DEBUG_FLOW :
+if DEBUG_FLOW: #pragma NO COVER
     import sys
     log.setLevel(logging.DEBUG)
     h1 = logging.StreamHandler(sys.stdout)
@@ -65,86 +65,63 @@ class MaiDataManagerState(object):
 
 @implementer(ISavepointDataManager)
 class MailDataManager(object):
+    """When creating a MailDataManager, we expect to :
+        1. NOT be in a transaction on creation
+        2. DO be joined into a transaction afterwards
 
+        __init__ is given a `callable` function and `args` to pass into it.
+
+        If everything goes as planned, during the tpc_finish phase we call:
+
+            self.callable(*self.args)
+    """
     def __init__(self, callable, args=(), onAbort=None,
                  transaction_manager=None):
-        """When creating a MailDataManager, we expect to :
-            1. NOT be in a transaction on creation
-            2. DO be joined into a transaction afterwards
-
-            __init__ is given a `callable` function and `args` to pass into it.
-
-            If everything goes as planned, during the tpc_finish phase we call:
-
-                self.callable(*self.args)
-        """
         if DEBUG_FLOW : log.debug("MailDataManager.__init__")
         self.callable = callable
         self.args = args
         self.onAbort = onAbort
         if transaction_manager is None:
-            # Use the default thread transaction manager.
             transaction_manager = transaction.manager
         self.transaction_manager = transaction_manager
-
-        # Our transaction state:
         self.transaction = None
-
-        #   What state are we in
         self.state = MaiDataManagerState.INIT
-
-        #   What phase, if any, of two-phase commit we are in:
         self.tpc_phase = 0
-
-        # store the onAbort
-        self.onAbort = onAbort
 
     def join_transaction(self, trans=None):
         """Join the object into a transaction.
 
         If no transaction is specified, use ``transaction.manager.get()``.
 
-        Raise an error if the object is already in a transaction.
+        Raise an error if the object is already in a different transaction.
         """
         if DEBUG_FLOW : log.debug("MailDataManager.join_transaction")
 
-        _transaction_old = self.transaction
+        _before = self.transaction
 
-        # are we specifying a transaction to join ?
         if trans is not None:
-            self.transaction = trans
-        # if we haven't specified the transactions, join the current one
+            _after = trans
         else:
-            self.transaction = self.transaction_manager.get()
+            _after = self.transaction_manager.get()
 
-        # if we changed transactions...
-        if _transaction_old and _transaction_old != self.transaction:
-            if self in _transaction_old._resources:
+        if _before is not None and _before is not _after:
+            if self in _before._resources:
                 raise ValueError("Item is in the former transaction. "
                         "It must be removed before it can be added "
                         "to a new transaction")
 
-        # only join the transaction ONCE; if we're already in it, no worries.
-        if not self in self.transaction._resources:
-            self.transaction.join(self)
+        if self not in _after._resources:
+            _after.join(self)
+
+        self.transaction = _after
 
     def _finish(self, final_state):
-        """this method might not be needed"""
         if DEBUG_FLOW : log.debug("MailDataManager._finish")
         assert self.transaction is not None
         self.state = final_state
 
-    def _resetState(self):
-        """this method might not be needed"""
-        if DEBUG_FLOW : log.debug("MailDataManager._resetState")
-        self.tpc_phase = 0
-        self.state = MaiDataManagerState.INIT
-
-
-
     def commit(self, trans):
         if DEBUG_FLOW : log.debug("MailDataManager.commit")
-        pass
 
     def abort(self, trans):
         """Throw away changes made before the commit process has started
@@ -161,17 +138,12 @@ class MailDataManager(object):
         if DEBUG_FLOW : log.debug("MailDataManager.sortKey")
         return str(id(self))
 
-    # No subtransaction support ?
     def abort_sub(self, trans):
         raise ValueError("abort_sub")
 
-    # No subtransaction support ?
     def commit_sub(self, trans):
         raise ValueError("commit_sub")
 
-    ###
-    ### Savepoint Support
-    ###
     def savepoint(self):
         """Create a custom `MailDataSavepoint` object
 
