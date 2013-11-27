@@ -199,7 +199,6 @@ class MailDataManager(object):
             raise ValueError("Not in a transaction")
         if self.transaction is not trans:
             raise ValueError("In a different transaction")
-        assert trans is self.transaction, "Must not change transactions"
         if self.tpc_phase == 0:
             raise ValueError("TPC phase error: %d" % self.tpc_phase)
         if self.state is MailDataManagerState.TPC_FINISHED:
@@ -229,12 +228,10 @@ class AbstractMailDelivery(object):
 
     The managed message is immediately joined into the current transaction.
     """
-    transaction_manager = transaction.manager
-
     def send(self, fromaddr, toaddrs, message):
         if DEBUG_FLOW : log.debug("AbstractMailDelivery.send")
-        assert isinstance(message, Message), \
-               'Message must be instance of email.message.Message'
+        if not isinstance(message, Message):
+            raise ValueError('Message must be email.message.Message')
         encoding.cleanup_message(message)
         messageid = message['Message-Id']
         if messageid is None:
@@ -249,9 +246,12 @@ class AbstractMailDelivery(object):
 @implementer(IMailDelivery)
 class DirectMailDelivery(AbstractMailDelivery):
 
-    def __init__(self, mailer):
+    def __init__(self, mailer, transaction_manager=None):
         if DEBUG_FLOW : log.debug("DirectMailDelivery.__init__")
         self.mailer = mailer
+        if transaction_manager is None:
+            transaction_manager = transaction.manager
+        self.transaction_manager = transaction_manager
 
     def createDataManager(self, fromaddr, toaddrs, message):
         if DEBUG_FLOW : log.debug("DirectMailDelivery.createDataManager")
@@ -266,9 +266,12 @@ class QueuedMailDelivery(AbstractMailDelivery):
     queuePath = property(lambda self: self._queuePath)
     processor_thread = None
 
-    def __init__(self, queuePath):
+    def __init__(self, queuePath, transaction_manager=None):
         if DEBUG_FLOW : log.debug("QueuedMailDelivery.__init__")
         self._queuePath = queuePath
+        if transaction_manager is None:
+            transaction_manager = transaction.manager
+        self.transaction_manager = transaction_manager
 
     def createDataManager(self, fromaddr, toaddrs, message):
         if DEBUG_FLOW : log.debug("QueuedMailDelivery.createDataManager")
