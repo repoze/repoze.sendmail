@@ -46,8 +46,8 @@ if DEBUG_FLOW: #pragma NO COVER
     log.addHandler(h1)
 
 
-class MaiDataManagerState(object):
-    """MaiDataManagerState consolidates all the possible MDM and TPC states.
+class MailDataManagerState(object):
+    """MailDataManagerState consolidates all the possible MDM and TPC states.
     Most of these are not needed and were removed from the actual logic.
     This was modeled loosely after the Zope.Sqlaclhemy extension.
     """
@@ -85,7 +85,7 @@ class MailDataManager(object):
             transaction_manager = transaction.manager
         self.transaction_manager = transaction_manager
         self.transaction = None
-        self.state = MaiDataManagerState.INIT
+        self.state = MailDataManagerState.INIT
         self.tpc_phase = 0
 
     def join_transaction(self, trans=None):
@@ -152,66 +152,70 @@ class MailDataManager(object):
         """
         if DEBUG_FLOW : log.debug("MailDataManager.savepoint")
         if DEBUG_FLOW : log.debug(self.transaction._resources)
+        if self.transaction is None:
+            raise ValueError("Not in a transaction")
         return MailDataSavepoint(self)
 
-    def _savepoint_rollback(self, savepoint):
-        """Called by the custom savepoint object `MailDataSavepoint`.
-
-        Don't actually do anything. `transaction` does it all.
-        """
-        if DEBUG_FLOW : log.debug("MailDataManager._savepoint_rollback")
-        if DEBUG_FLOW : log.debug(self.transaction._resources)
-
-    ###
-    ### Two Phase Support
-    ###
     def tpc_begin(self, trans, subtransaction=False):
         if DEBUG_FLOW : log.debug("MailDataManager.tpc_begin | %s , %s",
                                     self.state , self.tpc_phase)
-        assert trans is self.transaction, "Must not change transactions"
-        assert self.tpc_phase == 0 , "Must be called outside of tpc"
-        assert not subtransaction
-
-        # begin
+        if self.transaction is None:
+            raise ValueError("Not in a transaction")
+        if self.transaction is not trans:
+            raise ValueError("In a different transaction")
+        if self.tpc_phase != 0:
+            raise ValueError("TPC in progress")
+        if subtransaction:
+            raise ValueError("Subtransactions not supported")
         self.tpc_phase = 1
 
     def tpc_vote(self, trans):
         if DEBUG_FLOW : log.debug("MailDataManager.tpc_vote | %s , %s",
                                   self.state , self.tpc_phase)
-        assert trans is self.transaction, "Must not change transactions"
-        assert self.tpc_phase == 1, "Must be called in first phase of tpc"
-        # vote
+        if self.transaction is None:
+            raise ValueError("Not in a transaction")
+        if self.transaction is not trans:
+            raise ValueError("In a different transaction")
+        if self.tpc_phase != 1:
+            raise ValueError("TPC phase error: %d" % self.tpc_phase)
         self.tpc_phase = 2
 
     def tpc_finish(self, trans):
         if DEBUG_FLOW : log.debug("MailDataManager.tpc_finish | %s , %s",
                                   self.state , self.tpc_phase)
-        assert trans is self.transaction, "Must not change transactions"
-        assert self.tpc_phase == 2, "Must be called in second phase of tpc"
+        if self.transaction is None:
+            raise ValueError("Not in a transaction")
+        if self.transaction is not trans:
+            raise ValueError("In a different transaction")
+        if self.tpc_phase != 2:
+            raise ValueError("TPC phase error: %d" % self.tpc_phase)
         self.callable(*self.args)
-        self._finish(MaiDataManagerState.TPC_FINISHED)
+        self._finish(MailDataManagerState.TPC_FINISHED)
 
     def tpc_abort(self, trans):
         if DEBUG_FLOW : log.debug("MailDataManager.tpc_abort | %s , %s",
                                   self.state , self.tpc_phase)
+        if self.transaction is None:
+            raise ValueError("Not in a transaction")
+        if self.transaction is not trans:
+            raise ValueError("In a different transaction")
         assert trans is self.transaction, "Must not change transactions"
-        assert self.tpc_phase != 0, "Must be called inside of tpc"
-        assert self.state is not MaiDataManagerState.TPC_FINISHED, "not after a commit!"
-        self._finish(MaiDataManagerState.TPC_ABORTED)
+        if self.tpc_phase == 0:
+            raise ValueError("TPC phase error: %d" % self.tpc_phase)
+        if self.state is MailDataManagerState.TPC_FINISHED:
+            raise ValueError("TPC already finished")
+        self._finish(MailDataManagerState.TPC_ABORTED)
 
 
 @implementer(IDataManagerSavepoint)
 class MailDataSavepoint:
-
-    def __init__(self, mail_data_manager ):
-        """We don't actually do anything here. transaction does it all."""
+    """Don't actually do anything; transaction does it all.
+    """
+    def __init__(self, mail_data_manager):
         if DEBUG_FLOW : log.debug("MailDataSavepoint.__init__")
-        self.mail_data_manager = mail_data_manager
 
     def rollback(self):
-        """We don't actually do anything here. transaction does it all."""
         if DEBUG_FLOW : log.debug("MailDataSavepoint.rollback")
-        self.mail_data_manager._savepoint_rollback(self)
 
 
 class AbstractMailDelivery(object):
