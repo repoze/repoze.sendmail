@@ -22,7 +22,6 @@ from email.header import Header
 from email.parser import Parser
 from email.utils import formatdate
 from email.utils import make_msgid
-import logging
 
 from zope.interface import implementer
 from repoze.sendmail.interfaces import IMailDelivery
@@ -31,19 +30,6 @@ from repoze.sendmail import encoding
 import transaction
 from transaction.interfaces import ISavepointDataManager
 from transaction.interfaces import IDataManagerSavepoint
-
-log = logging.getLogger(__name__)
-
-#
-# DEBUG_FLOW is useful when mapping out the interactions with `transaction`
-# It just prints out the current function name / state
-#
-DEBUG_FLOW = False
-if DEBUG_FLOW: #pragma NO COVER
-    import sys
-    log.setLevel(logging.DEBUG)
-    h1 = logging.StreamHandler(sys.stdout)
-    log.addHandler(h1)
 
 
 class MailDataManagerState(object):
@@ -77,7 +63,6 @@ class MailDataManager(object):
     """
     def __init__(self, callable, args=(), onAbort=None,
                  transaction_manager=None):
-        if DEBUG_FLOW : log.debug("MailDataManager.__init__")
         self.callable = callable
         self.args = args
         self.onAbort = onAbort
@@ -95,8 +80,6 @@ class MailDataManager(object):
 
         Raise an error if the object is already in a different transaction.
         """
-        if DEBUG_FLOW : log.debug("MailDataManager.join_transaction")
-
         _before = self.transaction
 
         if trans is not None:
@@ -116,13 +99,11 @@ class MailDataManager(object):
         self.transaction = _after
 
     def _finish(self, final_state):
-        if DEBUG_FLOW : log.debug("MailDataManager._finish")
         if self.transaction is None:
             raise ValueError("Not in a transaction")
         self.state = final_state
 
     def commit(self, trans):
-        if DEBUG_FLOW : log.debug("MailDataManager.commit")
         if self.transaction is None:
             raise ValueError("Not in a transaction")
         if self.transaction is not trans:
@@ -130,7 +111,6 @@ class MailDataManager(object):
         # OK to call ``commit`` w/ TPC underway
 
     def abort(self, trans):
-        if DEBUG_FLOW : log.debug("MailDataManager.abort")
         if self.transaction is None:
             raise ValueError("Not in a transaction")
         if self.transaction is not trans:
@@ -141,7 +121,6 @@ class MailDataManager(object):
             self.onAbort()
 
     def sortKey(self):
-        if DEBUG_FLOW : log.debug("MailDataManager.sortKey")
         return str(id(self))
 
     def savepoint(self):
@@ -150,15 +129,11 @@ class MailDataManager(object):
         Although it has a `rollback` method, the custom instance doesn't
         actually do anything. `transaction` does it all.
         """
-        if DEBUG_FLOW : log.debug("MailDataManager.savepoint")
-        if DEBUG_FLOW : log.debug(self.transaction._resources)
         if self.transaction is None:
             raise ValueError("Not in a transaction")
         return MailDataSavepoint(self)
 
     def tpc_begin(self, trans, subtransaction=False):
-        if DEBUG_FLOW : log.debug("MailDataManager.tpc_begin | %s , %s",
-                                    self.state , self.tpc_phase)
         if self.transaction is None:
             raise ValueError("Not in a transaction")
         if self.transaction is not trans:
@@ -170,8 +145,6 @@ class MailDataManager(object):
         self.tpc_phase = 1
 
     def tpc_vote(self, trans):
-        if DEBUG_FLOW : log.debug("MailDataManager.tpc_vote | %s , %s",
-                                  self.state , self.tpc_phase)
         if self.transaction is None:
             raise ValueError("Not in a transaction")
         if self.transaction is not trans:
@@ -181,8 +154,6 @@ class MailDataManager(object):
         self.tpc_phase = 2
 
     def tpc_finish(self, trans):
-        if DEBUG_FLOW : log.debug("MailDataManager.tpc_finish | %s , %s",
-                                  self.state , self.tpc_phase)
         if self.transaction is None:
             raise ValueError("Not in a transaction")
         if self.transaction is not trans:
@@ -193,8 +164,6 @@ class MailDataManager(object):
         self._finish(MailDataManagerState.TPC_FINISHED)
 
     def tpc_abort(self, trans):
-        if DEBUG_FLOW : log.debug("MailDataManager.tpc_abort | %s , %s",
-                                  self.state , self.tpc_phase)
         if self.transaction is None:
             raise ValueError("Not in a transaction")
         if self.transaction is not trans:
@@ -211,10 +180,10 @@ class MailDataSavepoint:
     """Don't actually do anything; transaction does it all.
     """
     def __init__(self, mail_data_manager):
-        if DEBUG_FLOW : log.debug("MailDataSavepoint.__init__")
+        pass
 
     def rollback(self):
-        if DEBUG_FLOW : log.debug("MailDataSavepoint.rollback")
+        pass
 
 
 class AbstractMailDelivery(object):
@@ -229,7 +198,6 @@ class AbstractMailDelivery(object):
     The managed message is immediately joined into the current transaction.
     """
     def send(self, fromaddr, toaddrs, message):
-        if DEBUG_FLOW : log.debug("AbstractMailDelivery.send")
         if not isinstance(message, Message):
             raise ValueError('Message must be email.message.Message')
         encoding.cleanup_message(message)
@@ -247,14 +215,12 @@ class AbstractMailDelivery(object):
 class DirectMailDelivery(AbstractMailDelivery):
 
     def __init__(self, mailer, transaction_manager=None):
-        if DEBUG_FLOW : log.debug("DirectMailDelivery.__init__")
         self.mailer = mailer
         if transaction_manager is None:
             transaction_manager = transaction.manager
         self.transaction_manager = transaction_manager
 
     def createDataManager(self, fromaddr, toaddrs, message):
-        if DEBUG_FLOW : log.debug("DirectMailDelivery.createDataManager")
         return MailDataManager(self.mailer.send,
                                args=(fromaddr, toaddrs, message),
                                transaction_manager=self.transaction_manager)
@@ -267,14 +233,12 @@ class QueuedMailDelivery(AbstractMailDelivery):
     processor_thread = None
 
     def __init__(self, queuePath, transaction_manager=None):
-        if DEBUG_FLOW : log.debug("QueuedMailDelivery.__init__")
         self._queuePath = queuePath
         if transaction_manager is None:
             transaction_manager = transaction.manager
         self.transaction_manager = transaction_manager
 
     def createDataManager(self, fromaddr, toaddrs, message):
-        if DEBUG_FLOW : log.debug("QueuedMailDelivery.createDataManager")
         message = copy_message(message)
         message['X-Actually-From'] = Header(fromaddr, 'utf-8')
         message['X-Actually-To'] = Header(','.join(toaddrs), 'utf-8')
