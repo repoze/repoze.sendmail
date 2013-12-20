@@ -34,13 +34,329 @@ class TestMailDataManager(unittest.TestCase):
         verifyObject(IDataManager, self._makeOne())
 
     def test_ctor(self):
-        manager = self._makeOne(object, (1, 2))
-        self.assertEqual(manager.callable, object)
-        self.assertEqual(manager.args, (1, 2))
+        mdm = self._makeOne(object, (1, 2))
+        self.assertEqual(mdm.callable, object)
+        self.assertEqual(mdm.args, (1, 2))
+
+    def test_join_transaction_implicit(self):
+        import transaction
+        with transaction.manager as txn:
+            mdm = self._makeOne(object)
+            mdm.join_transaction()
+            self.assertEqual(txn._resources, [mdm])
+            self.assertTrue(mdm.transaction is txn)
+
+    def test_join_transaction_explicit(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        self.assertEqual(txn._resources, (mdm,))
+        self.assertTrue(mdm.transaction is txn)
+
+    def test_join_transaction_conflict(self):
+        mdm = self._makeOne(object)
+        txn1 = DummyTransaction()
+        txn2 = DummyTransaction()
+        mdm.join_transaction(txn1)
+        self.assertRaises(ValueError, mdm.join_transaction, txn2)
+        self.assertTrue(mdm.transaction is txn1)
+
+    def test_join_transaction_duplicated(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.join_transaction(txn)
+        self.assertEqual(txn._resources, (mdm,))
+        self.assertTrue(mdm.transaction is txn)
+
+    def test__finish_wo_transaction(self):
+        mdm = self._makeOne(object)
+        self.assertRaises(ValueError, mdm._finish, 2)
+
+    def test__finish_w_transaction(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm._finish(2)
+        self.assertEqual(mdm.state, 2)
+
+    def test_commit_wo_transaction(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        self.assertRaises(ValueError, mdm.commit, txn)
+
+    def test_commit_w_foreign_transaction(self):
+        mdm = self._makeOne(object)
+        txn1 = DummyTransaction()
+        mdm.join_transaction(txn1)
+        txn2 = DummyTransaction()
+        self.assertRaises(ValueError, mdm.commit, txn2)
+
+    def test_commit_w_TPC(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.tpc_phase = 1
+        mdm.commit(txn) # no raise
+
+    def test_commit_w_same_transaction(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.commit(txn) # no raise
+
+    def test_abort_wo_transaction(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        self.assertRaises(ValueError, mdm.abort, txn)
+
+    def test_abort_w_foreign_transaction(self):
+        mdm = self._makeOne(object)
+        txn1 = DummyTransaction()
+        mdm.join_transaction(txn1)
+        txn2 = DummyTransaction()
+        self.assertRaises(ValueError, mdm.abort, txn2)
+
+    def test_abort_w_TPC(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.tpc_phase = 1
+        self.assertRaises(ValueError, mdm.abort, txn)
+
+    def test_abort_w_same_transaction(self):
+        mdm = self._makeOne(object)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.abort(txn) # no raise
+
+    def test_abort_w_onAbort(self):
+        _called = []
+        def _onAbort():
+            _called.append(True)
+        mdm = self._makeOne(object, onAbort=_onAbort)
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.abort(txn) # no raise
+        self.assertEqual(_called, [True])
 
     def test_sortKey(self):
-        manager = self._makeOne()
-        self.assertEqual(manager.sortKey(), str(id(manager)))
+        mdm = self._makeOne()
+        self.assertEqual(mdm.sortKey(), str(id(mdm)))
+
+    def test_savepoint_wo_transaction(self):
+        mdm = self._makeOne()
+        self.assertRaises(ValueError, mdm.savepoint)
+
+    def test_savepoint_w_transaction(self):
+        from ..delivery import MailDataSavepoint
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        sp = mdm.savepoint()
+        self.assertTrue(isinstance(sp, MailDataSavepoint))
+
+    def test_tpc_begin_wo_transaction(self):
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        self.assertRaises(ValueError, mdm.tpc_begin, txn)
+
+    def test_tpc_begin_w_foreign_transaction(self):
+        mdm = self._makeOne(object)
+        txn1 = DummyTransaction()
+        mdm.join_transaction(txn1)
+        txn2 = DummyTransaction()
+        self.assertRaises(ValueError, mdm.tpc_begin, txn2)
+
+    def test_tpc_begin_already_tpc(self):
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.tpc_phase = 1
+        self.assertRaises(ValueError, mdm.tpc_begin, txn)
+
+    def test_tpc_begin_w_subtransaction(self):
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        self.assertRaises(ValueError, mdm.tpc_begin, txn, True)
+
+    def test_tpc_begin_ok(self):
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.tpc_begin(txn)
+        self.assertEqual(mdm.tpc_phase, 1)
+
+    def test_tpc_vote_wo_transaction(self):
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        self.assertRaises(ValueError, mdm.tpc_vote, txn)
+
+    def test_tpc_vote_w_foreign_transaction(self):
+        mdm = self._makeOne(object)
+        txn1 = DummyTransaction()
+        mdm.join_transaction(txn1)
+        txn2 = DummyTransaction()
+        self.assertRaises(ValueError, mdm.tpc_vote, txn2)
+
+    def test_tpc_vote_not_already_tpc(self):
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        self.assertRaises(ValueError, mdm.tpc_vote, txn)
+
+    def test_tpc_vote_ok(self):
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.tpc_phase = 1
+        mdm.tpc_vote(txn)
+        self.assertEqual(mdm.tpc_phase, 2)
+
+    def test_tpc_finish_wo_transaction(self):
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        self.assertRaises(ValueError, mdm.tpc_finish, txn)
+
+    def test_tpc_finish_w_foreign_transaction(self):
+        mdm = self._makeOne(object)
+        txn1 = DummyTransaction()
+        mdm.join_transaction(txn1)
+        txn2 = DummyTransaction()
+        self.assertRaises(ValueError, mdm.tpc_finish, txn2)
+
+    def test_tpc_finish_not_already_tpc(self):
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        self.assertRaises(ValueError, mdm.tpc_finish, txn)
+
+    def test_tpc_finish_not_voted(self):
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.tpc_phase = 1
+        self.assertRaises(ValueError, mdm.tpc_finish, txn)
+
+    def test_tpc_finish_ok(self):
+        from ..delivery import MailDataManagerState
+        _called = []
+        def _callable(*args):
+            _called.append(args)
+        mdm = self._makeOne(_callable, (1, 2))
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.tpc_phase = 2
+        mdm.tpc_finish(txn)
+        self.assertEqual(_called, [(1, 2)])
+        self.assertEqual(mdm.state, MailDataManagerState.TPC_FINISHED)
+
+    def test_tpc_abort_wo_transaction(self):
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        self.assertRaises(ValueError, mdm.tpc_abort, txn)
+
+    def test_tpc_abort_w_foreign_transaction(self):
+        mdm = self._makeOne(object)
+        txn1 = DummyTransaction()
+        mdm.join_transaction(txn1)
+        txn2 = DummyTransaction()
+        self.assertRaises(ValueError, mdm.tpc_abort, txn2)
+
+    def test_tpc_abort_not_already_tpc(self):
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        self.assertRaises(ValueError, mdm.tpc_abort, txn)
+
+    def test_tpc_abort_already_finished(self):
+        from ..delivery import MailDataManagerState
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.tpc_phase = 1
+        mdm.state = MailDataManagerState.TPC_FINISHED
+        self.assertRaises(ValueError, mdm.tpc_abort, txn)
+
+    def test_tpc_abort_begun_ok(self):
+        from ..delivery import MailDataManagerState
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.tpc_phase = 1
+        mdm.tpc_abort(txn)
+        self.assertEqual(mdm.state, MailDataManagerState.TPC_ABORTED)
+
+    def test_tpc_abort_voted_ok(self):
+        from ..delivery import MailDataManagerState
+        mdm = self._makeOne()
+        txn = DummyTransaction()
+        mdm.join_transaction(txn)
+        mdm.tpc_phase = 2
+        mdm.tpc_abort(txn)
+        self.assertEqual(mdm.state, MailDataManagerState.TPC_ABORTED)
+
+
+class TestAbstractMailDelivery(unittest.TestCase):
+
+    def _getTargetClass(self):
+        from repoze.sendmail.delivery import AbstractMailDelivery
+        return AbstractMailDelivery
+
+    def _makeOne(self):
+        return self._getTargetClass()()
+
+    def test_send_w_bad_message(self):
+        amd = self._makeOne()
+        self.assertRaises(ValueError, amd.send,
+            'sender@example.com', ['recipient@example.com'], object())
+
+    def test_send_w_bare_message(self):
+        import email.message
+        class DummyDM(object):
+            joined = False
+            extent = []
+            def __init__(self, frm, to, msg):
+                self.frm = frm
+                self.to = to
+                self.msg = msg
+                self.extent.append(self)
+            def join_transaction(self):
+                self._joined = True
+        amd = self._makeOne()
+        amd.createDataManager = DummyDM
+        msg = email.message.Message()
+        amd.send('sender@example.com', ['recipient@example.com'], msg)
+        self.assertTrue('repoze.sendmail@' in msg['Message-Id'])
+        self.assertTrue('Date' in msg)
+        self.assertEqual(len(DummyDM.extent), 1)
+        self.assertTrue(DummyDM.extent[0]._joined)
+
+    def test_send_w_populated_message(self):
+        import email.message
+        MESSAGE_ID = '12345@example.com'
+        DATE = 'Wed, 02 Oct 2002 08:00:00 EST'
+        class DummyDM(object):
+            joined = False
+            extent = []
+            def __init__(self, frm, to, msg):
+                self.frm = frm
+                self.to = to
+                self.msg = msg
+                self.extent.append(self)
+            def join_transaction(self):
+                self._joined = True
+        amd = self._makeOne()
+        amd.createDataManager = DummyDM
+        msg = email.message.Message()
+        msg['Message-Id'] = MESSAGE_ID
+        msg['Date'] = DATE
+        amd.send('sender@example.com', ['recipient@example.com'], msg)
+        self.assertEqual(msg['Message-Id'], MESSAGE_ID)
+        self.assertEqual(msg['Date'], DATE)
+        self.assertEqual(len(DummyDM.extent), 1)
+        self.assertTrue(DummyDM.extent[0]._joined)
 
 
 class TestDirectMailDelivery(unittest.TestCase):
@@ -355,3 +671,10 @@ def _makeMailerStub(*args, **kw):
         def send(self, fromaddr, toaddrs, message):
             self.sent_messages.append((fromaddr, toaddrs, message))
     return MailerStub(*args, **kw)
+
+
+class DummyTransaction(object):
+    _resources = ()
+
+    def join(self, resource):
+        self._resources += (resource,)
