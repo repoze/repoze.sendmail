@@ -4,7 +4,7 @@ Change history
 unreleased
 ----------
 
-- Add "savepoint" support to transactdional mail integration.
+- Add "savepoint" support to transactional mail integration.
 
 - Mail Delivery utilities can now be passed a transaction manager (falling
   back to the ''transaction.get()`` default), making it easier to override.
