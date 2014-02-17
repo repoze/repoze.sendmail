@@ -7,4 +7,5 @@ only be sent out when and if a transaction is committed, preventing users
 from receiving notifications about events which may not have completed
 successfully.
 
-Please see `docs/index.rst` for complete documentation.
+Please see `docs/index.rst` for complete documentation, or read the
+docs online at http://docs.repozse.org/sendmail
