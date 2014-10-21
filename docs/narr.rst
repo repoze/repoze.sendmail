@@ -101,12 +101,16 @@ If you are on a Unix/BSD machine and prefer to use the standard unix `sendmail`
 interface ( which is likely provided by exim, postfix or qmail ) via a binary
 at '/usr/sbin/sendmail' you can simply opt to use the following classes :
 
-  mailer = SendmailMailer()
-  delivery = DirectMailDelivery(mailer)
+.. code-block:: python
+
+   mailer = SendmailMailer()
+   delivery = DirectMailDelivery(mailer)
 
 you may also customize this delivery with the location of another binary:
 
-  mailer = SendmailMailer( sendmail_app='/usr/local/bin/sendmail' )
+.. code-block:: python
+
+   mailer = SendmailMailer(sendmail_app='/usr/local/bin/sendmail')
 
 
 Transaction Integration
