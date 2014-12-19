@@ -1,6 +1,11 @@
 Change history
 ~~~~~~~~~~~~~~
 
+Unreleased
+----------
+
+- Add support for Python 3.4, PyPy3.
+
 4.2 (2014-02-17)
 ----------------
 
