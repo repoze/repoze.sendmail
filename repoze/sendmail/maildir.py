@@ -52,21 +52,28 @@ class Maildir(object):
         join = os.path.join
         subdir_cur = join(self.path, 'cur')
         subdir_new = join(self.path, 'new')
-        # http://www.qmail.org/man/man5/maildir.html says:
-        #     "It is a good idea for readers to skip all filenames in new
-        #     and cur starting with a dot.  Other than this, readers
-        #     should not attempt to parse filenames."
-        new_messages = [join(subdir_new, x) for x in os.listdir(subdir_new)
-                        if not x.startswith('.')]
-        cur_messages = [join(subdir_cur, x) for x in os.listdir(subdir_cur)
-                        if not x.startswith('.')]
 
-        # Sort by modification time so earlier messages are sent before
-        # later messages during queue processing.
-        msgs_sorted = [(m, os.path.getmtime(m)) for m
-                      in new_messages + cur_messages]
-        msgs_sorted.sort(key=lambda x: x[1])
-        return iter([m[0] for m in msgs_sorted])
+        while True:
+            # http://www.qmail.org/man/man5/maildir.html says:
+            #     "It is a good idea for readers to skip all filenames in new
+            #     and cur starting with a dot.  Other than this, readers
+            #     should not attempt to parse filenames."
+            new_messages = [join(subdir_new, x) for x in os.listdir(subdir_new)
+                            if not x.startswith('.')]
+            cur_messages = [join(subdir_cur, x) for x in os.listdir(subdir_cur)
+                            if not x.startswith('.')]
+            if not new_messages and not cur_messages:
+                break
+
+            # Sort by modification time so earlier messages are sent before
+            # later messages during queue processing.
+            msgs_sorted = [(m, os.path.getmtime(m)) for m
+                          in new_messages + cur_messages]
+            msgs_sorted.sort(key=lambda x: x[1])
+            for m, mtime in msgs_sorted:
+                yield m
+
+        raise StopIteration
 
     def add(self, message):
         "See `repoze.sendmail.interfaces.IMaildir`"
