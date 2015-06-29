@@ -1,3 +1,4 @@
+import logging
 import unittest
 
 from repoze.sendmail.delivery import DirectMailDelivery
@@ -6,6 +7,10 @@ from email.message import Message
 
 
 class TestTransactionMails(unittest.TestCase):
+
+    def setUp(self):
+        import transaction
+        transaction.begin()
 
     def test_abort(self):
         import transaction
@@ -101,7 +106,44 @@ class TestTransactionMails(unittest.TestCase):
             if i in bodies_bad :
                 sp.rollback()
         sp_outer.rollback()
-        
+
+    def test_abort_after_failed_commit(self):
+        # It should be okay to call transaction.abort() after a failed
+        # commit.  (E.g. pyramid_tm does this.)
+        import transaction
+        mailer = _makeMailerStub(_failing=True)
+        delivery = DirectMailDelivery(mailer)
+        fromaddr, toaddrs = fromaddr_toaddrs()
+        message = sample_message()
+        delivery.send(fromaddr, toaddrs, message)
+
+        with DummyLogHandler():  # Avoid "no handler could be found" on stderr
+            self.assertRaises(SendFailed, transaction.commit)
+
+        # An abort after commit failure should not raise exceptions
+        transaction.abort()
+
+    def test_commit_fails_before_tpc_vote(self):
+        # If there is a failure during transaction.commit() before all
+        # data managers have voted, .abort() is called on the non-voted
+        # managers before their .tpc_finish() is called.
+        import transaction
+        mailer = _makeMailerStub()
+        delivery = DirectMailDelivery(mailer)
+        fromaddr, toaddrs = fromaddr_toaddrs()
+        message = sample_message()
+        delivery.send(fromaddr, toaddrs, message)
+
+        # Add another data manager whose tpc_vote fails before our
+        # delivery's tpc_vote gets called.
+        failing_dm = FailingDataManager(sort_key='!!! run first')
+        transaction.get().join(failing_dm)
+
+        try:
+            self.assertRaises(VoteFailure, transaction.commit)
+            self.assertEqual(mailer.sent_messages, [])
+        finally:
+            transaction.abort()
 
 
 def sample_message( body="This is just an example"):
@@ -120,19 +162,65 @@ def fromaddr_toaddrs():
     toaddrs = ('Guido <guido@example.com>',
                'Steve <steve@examplecom>')
     return ( fromaddr , toaddrs )
-    
-    
-    
+
+
+class SendFailed(Exception):
+    pass
+
+
 def _makeMailerStub(*args, **kw):
     from zope.interface import implementer
     from repoze.sendmail.interfaces import IMailer
-    implementer(IMailer)
 
+    @implementer(IMailer)
     class MailerStub(object):
         def __init__(self, *args, **kw):
+            self.failing = kw.get('_failing', False)
             self.sent_messages = []
 
         def send(self, fromaddr, toaddrs, message):
+            if self.failing:
+                raise SendFailed("send failed")
             self.sent_messages.append((fromaddr, toaddrs, message))
+
     return MailerStub(*args, **kw)
 
+
+class VoteFailure(Exception):
+    pass
+
+
+class FailingDataManager(object):
+    def __init__(self, sort_key):
+        self.sort_key = sort_key
+
+    def sortKey(self):
+        return self.sort_key
+
+    def abort(self, trans):
+        pass
+
+    def tpc_begin(self, trans):
+        pass
+
+    def commit(self, trans):
+        pass
+
+    def tpc_vote(self, trans):
+        raise VoteFailure("vote failed")
+
+    def tpc_abort(self, trans):
+        pass
+
+
+class DummyLogHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
+    def __enter__(self):
+        root_logger = logging.getLogger()
+        root_logger.addHandler(self)
+
+    def __exit__(self, typ, value, tb):
+        root_logger = logging.getLogger()
+        root_logger.removeHandler(self)
