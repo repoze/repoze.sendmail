@@ -122,7 +122,7 @@ class TestMailDataManager(unittest.TestCase):
         txn = DummyTransaction()
         mdm.join_transaction(txn)
         mdm.tpc_phase = 1
-        self.assertRaises(ValueError, mdm.abort, txn)
+        mdm.abort(txn) # no raise
 
     def test_abort_w_same_transaction(self):
         mdm = self._makeOne(object)
@@ -265,10 +265,12 @@ class TestMailDataManager(unittest.TestCase):
         self.assertRaises(ValueError, mdm.tpc_abort, txn2)
 
     def test_tpc_abort_not_already_tpc(self):
+        from ..delivery import MailDataManagerState
         mdm = self._makeOne()
         txn = DummyTransaction()
         mdm.join_transaction(txn)
-        self.assertRaises(ValueError, mdm.tpc_abort, txn)
+        mdm.tpc_abort(txn)
+        self.assertEqual(mdm.state, MailDataManagerState.TPC_ABORTED)
 
     def test_tpc_abort_already_finished(self):
         from ..delivery import MailDataManagerState
