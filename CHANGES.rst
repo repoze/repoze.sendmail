@@ -6,6 +6,12 @@ Unreleased
 
 - Add support for Python 3.4, PyPy3.
 
+- ``MailDataManager.abort`` and ``MailDataManager.tpc_abort`` are now
+  more lenient regarding when they may be called in the transaction
+  life-cycle.  They were raising exceptions in some normal
+  failed-commit situations (masking the original exception
+  responsible for the failed transaction.)
+
 4.2 (2014-02-17)
 ----------------
 
