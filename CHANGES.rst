@@ -12,6 +12,13 @@ Unreleased
   failed-commit situations (masking the original exception
   responsible for the failed transaction.)
 
+- ``MailDataManger`` now sends mail from ``tpc_vote`` rather than
+  ``tpc_finish``.  According to the `transaction documentation`_,
+  ``tpc_finish`` should never fail.
+
+.. _transaction documentation:
+   https://zodb.readthedocs.org/en/latest/transactions.html#tpc-finish
+
 4.2 (2014-02-17)
 ----------------
 

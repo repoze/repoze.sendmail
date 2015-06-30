@@ -119,7 +119,10 @@ class MailDataManager(object):
         self._do_abort()
 
     def sortKey(self):
-        return str(id(self))
+        # Currently, we only support "one-phase-commit" semantics.
+        # Try to sort last, so as to give all other data manager a
+        # chance to vote before email is sent.
+        return "~~~repoze.sendmail:%d" % id(self)
 
     def savepoint(self):
         """Create a custom `MailDataSavepoint` object
@@ -150,6 +153,7 @@ class MailDataManager(object):
         if self.tpc_phase != 1:
             raise ValueError("TPC phase error: %d" % self.tpc_phase)
         self.tpc_phase = 2
+        self.callable(*self.args)
 
     def tpc_finish(self, trans):
         if self.transaction is None:
@@ -158,7 +162,6 @@ class MailDataManager(object):
             raise ValueError("In a different transaction")
         if self.tpc_phase != 2:
             raise ValueError("TPC phase error: %d" % self.tpc_phase)
-        self.callable(*self.args)
         self._finish(MailDataManagerState.TPC_FINISHED)
 
     def tpc_abort(self, trans):
