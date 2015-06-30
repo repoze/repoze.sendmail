@@ -2,6 +2,7 @@ import logging
 import unittest
 
 from repoze.sendmail.delivery import DirectMailDelivery
+import transaction
 from email.message import Message
 
 
@@ -9,11 +10,9 @@ from email.message import Message
 class TestTransactionMails(unittest.TestCase):
 
     def setUp(self):
-        import transaction
         transaction.begin()
 
     def test_abort(self):
-        import transaction
         mailer = _makeMailerStub()
         delivery = DirectMailDelivery(mailer)
 
@@ -28,7 +27,6 @@ class TestTransactionMails(unittest.TestCase):
 
 
     def test_doom(self):
-        import transaction
         mailer = _makeMailerStub()
         delivery = DirectMailDelivery(mailer)
 
@@ -45,8 +43,6 @@ class TestTransactionMails(unittest.TestCase):
 
 
     def test_savepoint(self):
-        import transaction
-        
         mailer = _makeMailerStub()
         delivery = DirectMailDelivery(mailer)
         ( fromaddr , toaddrs ) = fromaddr_toaddrs()
@@ -110,7 +106,7 @@ class TestTransactionMails(unittest.TestCase):
     def test_abort_after_failed_commit(self):
         # It should be okay to call transaction.abort() after a failed
         # commit.  (E.g. pyramid_tm does this.)
-        import transaction
+
         mailer = _makeMailerStub(_failing=True)
         delivery = DirectMailDelivery(mailer)
         fromaddr, toaddrs = fromaddr_toaddrs()
@@ -127,7 +123,7 @@ class TestTransactionMails(unittest.TestCase):
         # If there is a failure during transaction.commit() before all
         # data managers have voted, .abort() is called on the non-voted
         # managers before their .tpc_finish() is called.
-        import transaction
+
         mailer = _makeMailerStub()
         delivery = DirectMailDelivery(mailer)
         fromaddr, toaddrs = fromaddr_toaddrs()
