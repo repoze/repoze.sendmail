@@ -8,6 +8,9 @@ Change history
 
 - Add support for Python 3.4 and 3.5.
 
+- Add ``ignore_transient`` parameter to ``QueueProcessor``, to prevent raising
+  temporary errors in some situations.  (PR #37)
+
 4.2 (2014-02-17)
 ----------------
 

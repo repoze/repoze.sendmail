@@ -76,6 +76,18 @@ in the queue.  To see all options available:
 .. code-block:: bash
 
   $ bin/qp --help
+  
+The QueueProcessor used by the console utility can also be called from Python:
+
+.. code-block:: python
+
+   qp = QueueProcessor(mailer, queue_path, ignore_transient=True)
+   qp.send_messages()
+   
+The `ignore_transient` parameter, when True, will cause the queue processor to
+ignore transient errors (any error code not between 500 and 599). This is
+useful when monitoring systems are used, to prevent filling the error reports
+with temporary errors.
 
 
 Direct SMTP Delivery
