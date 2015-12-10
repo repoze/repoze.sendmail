@@ -240,11 +240,9 @@ class QueueProcessor(object):
                     _os_link(filename, rejected_filename)
                 else:
                     # Log an error and retry later
-                    self.log.error(
-                        "Postponing sending email from %s to %s due to"
-                        " a transient error: %s",
-                        fromaddr, ", ".join(toaddrs), e.args)
-                    if not ignore_transient:
+                    if self.ignore_transient:
+                        return
+                    else:
                         raise
 
             try:
