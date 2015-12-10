@@ -94,9 +94,10 @@ def string_or_none(s):
 class QueueProcessor(object):
     log = logging.getLogger("QueueProcessor")
 
-    def __init__(self, mailer, queue_path, Maildir=Maildir):
+    def __init__(self, mailer, queue_path, Maildir=Maildir, ignore_transient=False):
         self.mailer = mailer
         self.maildir = Maildir(queue_path, create=True)
+        self.ignore_transient = ignore_transient
 
     def send_messages(self):
         for filename in self.maildir:
@@ -239,7 +240,12 @@ class QueueProcessor(object):
                     _os_link(filename, rejected_filename)
                 else:
                     # Log an error and retry later
-                    raise
+                    self.log.error(
+                        "Postponing sending email from %s to %s due to"
+                        " a transient error: %s",
+                        fromaddr, ", ".join(toaddrs), e.args)
+                    if not ignore_transient:
+                        raise
 
             try:
                 os.remove(filename)
