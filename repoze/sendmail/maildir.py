@@ -49,24 +49,34 @@ class Maildir(object):
 
     def __iter__(self):
         "See `repoze.sendmail.interfaces.IMaildir`"
-        join = os.path.join
-        subdir_cur = join(self.path, 'cur')
-        subdir_new = join(self.path, 'new')
-        # http://www.qmail.org/man/man5/maildir.html says:
-        #     "It is a good idea for readers to skip all filenames in new
-        #     and cur starting with a dot.  Other than this, readers
-        #     should not attempt to parse filenames."
-        new_messages = [join(subdir_new, x) for x in os.listdir(subdir_new)
-                        if not x.startswith('.')]
-        cur_messages = [join(subdir_cur, x) for x in os.listdir(subdir_cur)
-                        if not x.startswith('.')]
 
-        # Sort by modification time so earlier messages are sent before
-        # later messages during queue processing.
-        msgs_sorted = [(m, os.path.getmtime(m)) for m
-                      in new_messages + cur_messages]
-        msgs_sorted.sort(key=lambda x: x[1])
-        return iter([m[0] for m in msgs_sorted])
+        sent_msgs = {}
+        while True:
+            # http://www.qmail.org/man/man5/maildir.html says:
+            #     "It is a good idea for readers to skip all filenames in new
+            #     and cur starting with a dot.  Other than this, readers
+            #     should not attempt to parse filenames."
+            msgs_sorted = []
+            for subdir in ('cur', 'new'):
+                subdir_path = os.path.join(self.path, subdir)
+                sent_subdir_msgs = sent_msgs.setdefault(subdir, [])
+
+                for m in os.listdir(subdir_path):
+                    # Validate if message already sent to prevent infinte loop
+                    if not m.startswith('.') and m not in sent_subdir_msgs:
+                        sent_subdir_msgs.append(m)
+                        mpath = os.path.join(subdir_path, m)
+                        msgs_sorted.append((mpath, os.path.getmtime(mpath)))
+            if not msgs_sorted:
+                break
+
+            # Sort by modification time so earlier messages are sent before
+            # later messages during queue processing.
+            msgs_sorted.sort(key=lambda x: x[1])
+            for m, mtime in msgs_sorted:
+                yield m
+
+        raise StopIteration
 
     def add(self, message):
         "See `repoze.sendmail.interfaces.IMaildir`"

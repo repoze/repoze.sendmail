@@ -64,10 +64,29 @@ class TestMaildir(unittest.TestCase):
         from repoze.sendmail.maildir import Maildir
         m = Maildir('/path/to/maildir')
         messages = list(m)
-        self.assertEqual(messages, ['/path/to/maildir/new/1', 
+        self.assertEqual(messages, ['/path/to/maildir/cur/2',
+                                    '/path/to/maildir/cur/1',
                                     '/path/to/maildir/new/2',
-                                    '/path/to/maildir/cur/2',
-                                    '/path/to/maildir/cur/1'])
+                                    '/path/to/maildir/new/1'])
+
+    def test_iteration_when_files_added(self):
+        from repoze.sendmail.maildir import Maildir
+        m = Maildir('/path/to/maildir')
+
+        messages = []
+        for i, mpath in enumerate(m):
+            messages.append(mpath)
+            if i in (1, 3):
+                # Add one file to os.path, when Maildir is processing files
+                mtime = 10000 + i
+                self.maildir_module.os.path._add_file('/path/to/maildir/new', 'new.file.%s' % i, mtime)
+
+        self.assertEqual(messages, ['/path/to/maildir/cur/2',
+                                    '/path/to/maildir/cur/1',
+                                    '/path/to/maildir/new/2',
+                                    '/path/to/maildir/new/1',
+                                    '/path/to/maildir/new/new.file.1',
+                                    '/path/to/maildir/new/new.file.3'])
 
     def test_add(self):
         from email.message import Message
@@ -154,9 +173,16 @@ class FakeOsPathModule(object):
         self.files = dict(files)
         self.dirs = dict(dirs)
         mtimes = {}
-        for t,f in enumerate(files):
+        for t, (f, fstat) in enumerate(files):
             mtimes[f] = 9999 - t
         self._mtimes = mtimes
+
+    def _add_file(self, dirpath, filename, mtime):
+        import stat
+        filepath = self.join(dirpath, filename)
+        self.files[filepath] = stat.S_IFREG
+        self.dirs.setdefault(dirpath, []).append(filename)
+        self._mtimes[filepath] = mtime
 
     def join(self, *args):
         return '/'.join(args)
@@ -228,8 +254,7 @@ class FakeOsModule(object):
         return False
 
     def listdir(self, path):
-        listdir = dict(_listdir_files())
-        return listdir.get(path, [])
+        return self.path.dirs.get(path, [])
 
     def mkdir(self, path):
         self._made_directories += (path, )
