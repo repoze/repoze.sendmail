@@ -11,6 +11,7 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
+import os
 from setuptools import setup, find_packages
 
 testing_extras = ['nose', 'coverage']
@@ -20,14 +21,19 @@ requires = ['setuptools',
             'zope.interface>=3.6.0',
             'transaction']
 
-with open('README.rst') as f:
-    README = f.read()
+here = os.path.abspath(os.path.dirname(__file__))
+def _read_file(filename):
+    try:
+        with open(os.path.join(here, filename)) as f:
+            return f.read()
+    except IOError:  # Travis???
+        return ''
 
-with open('CHANGES.rst') as f:
-    CHANGES = f.read()
+README = _read_file('README.rst')
+CHANGES = _read_file('CHANGES.rst')
 
 setup(name='repoze.sendmail',
-      version = '4.2',
+      version = '4.3dev0',
       url='http://www.repoze.org',
       license='ZPL 2.1',
       description='Repoze Sendmail',
