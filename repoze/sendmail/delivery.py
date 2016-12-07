@@ -102,6 +102,7 @@ class MailDataManager(object):
         if self.transaction is None:
             raise ValueError("Not in a transaction")
         self.state = final_state
+        self.tpc_phase = 0
 
     def commit(self, trans):
         if self.transaction is None:
