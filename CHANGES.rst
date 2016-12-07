@@ -1,8 +1,8 @@
 Change history
 ~~~~~~~~~~~~~~
 
-Unreleased
-----------
+4.3 (unreleased)
+----------------
 
 - Drop support for Python 2.6 and 3.2.
 
