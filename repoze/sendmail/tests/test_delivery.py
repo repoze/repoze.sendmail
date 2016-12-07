@@ -79,6 +79,7 @@ class TestMailDataManager(unittest.TestCase):
         mdm.join_transaction(txn)
         mdm._finish(2)
         self.assertEqual(mdm.state, 2)
+        self.assertEqual(mdm.tpc_phase, 0)
 
     def test_commit_wo_transaction(self):
         mdm = self._makeOne(object)
@@ -251,6 +252,7 @@ class TestMailDataManager(unittest.TestCase):
         mdm.tpc_finish(txn)
         self.assertEqual(_called, [(1, 2)])
         self.assertEqual(mdm.state, MailDataManagerState.TPC_FINISHED)
+        self.assertEqual(mdm.tpc_phase, 0)
 
     def test_tpc_abort_wo_transaction(self):
         mdm = self._makeOne()
@@ -287,6 +289,7 @@ class TestMailDataManager(unittest.TestCase):
         mdm.tpc_phase = 1
         mdm.tpc_abort(txn)
         self.assertEqual(mdm.state, MailDataManagerState.TPC_ABORTED)
+        self.assertEqual(mdm.tpc_phase, 0)
 
     def test_tpc_abort_voted_ok(self):
         from ..delivery import MailDataManagerState
@@ -296,6 +299,7 @@ class TestMailDataManager(unittest.TestCase):
         mdm.tpc_phase = 2
         mdm.tpc_abort(txn)
         self.assertEqual(mdm.state, MailDataManagerState.TPC_ABORTED)
+        self.assertEqual(mdm.tpc_phase, 0)
 
 
 class TestAbstractMailDelivery(unittest.TestCase):
