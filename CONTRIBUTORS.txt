@@ -112,3 +112,5 @@ Contributors
 - Jonathan Vanasco, 2013/03/19
 
 - Patrick Strawderman, 2013/11/15
+
+- Geoffrey T. Dairiki, 2015/06/30

@@ -101,6 +101,7 @@ class MailDataManager(object):
     def _finish(self, final_state):
         if self.transaction is None:
             raise ValueError("Not in a transaction")
+        self.tpc_phase = 3
         self.state = final_state
         self.tpc_phase = 0
 
@@ -116,13 +117,13 @@ class MailDataManager(object):
             raise ValueError("Not in a transaction")
         if self.transaction is not trans:
             raise ValueError("In a different transaction")
-        if self.tpc_phase != 0:
-            raise ValueError("TPC in progress")
-        if self.onAbort:
-            self.onAbort()
+        self._do_abort()
 
     def sortKey(self):
-        return str(id(self))
+        # Currently, we only support "one-phase-commit" semantics.
+        # Try to sort last, so as to give all other data manager a
+        # chance to vote before email is sent.
+        return "~~~repoze.sendmail:%d" % id(self)
 
     def savepoint(self):
         """Create a custom `MailDataSavepoint` object
@@ -153,6 +154,7 @@ class MailDataManager(object):
         if self.tpc_phase != 1:
             raise ValueError("TPC phase error: %d" % self.tpc_phase)
         self.tpc_phase = 2
+        self.callable(*self.args)
 
     def tpc_finish(self, trans):
         if self.transaction is None:
@@ -161,7 +163,6 @@ class MailDataManager(object):
             raise ValueError("In a different transaction")
         if self.tpc_phase != 2:
             raise ValueError("TPC phase error: %d" % self.tpc_phase)
-        self.callable(*self.args)
         self._finish(MailDataManagerState.TPC_FINISHED)
 
     def tpc_abort(self, trans):
@@ -169,11 +170,15 @@ class MailDataManager(object):
             raise ValueError("Not in a transaction")
         if self.transaction is not trans:
             raise ValueError("In a different transaction")
-        if self.tpc_phase == 0:
-            raise ValueError("TPC phase error: %d" % self.tpc_phase)
-        if self.state is MailDataManagerState.TPC_FINISHED:
-            raise ValueError("TPC already finished")
-        self._finish(MailDataManagerState.TPC_ABORTED)
+        self._do_abort()
+
+    def _do_abort(self):
+        if self.state is MailDataManagerState.INIT:
+            if self.onAbort:
+                self.onAbort()
+            self._finish(MailDataManagerState.TPC_ABORTED)
+        elif self.state is not MailDataManagerState.TPC_ABORTED:
+            raise ValueError("TPC already finished: state=%d", self.state)
 
 
 @implementer(IDataManagerSavepoint)

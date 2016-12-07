@@ -8,6 +8,19 @@ Change history
 
 - Add support for Python 3.4 and 3.5.
 
+- ``MailDataManager.abort`` and ``MailDataManager.tpc_abort`` are now
+  more lenient regarding when they may be called in the transaction
+  life-cycle.  They were raising exceptions in some normal
+  failed-commit situations (masking the original exception
+  responsible for the failed transaction.)
+
+- ``MailDataManger`` now sends mail from ``tpc_vote`` rather than
+  ``tpc_finish``.  According to the `transaction documentation`_,
+  ``tpc_finish`` should never fail.
+
+.. _transaction documentation:
+   https://zodb.readthedocs.org/en/latest/transactions.html#tpc-finish
+
 4.2 (2014-02-17)
 ----------------
 

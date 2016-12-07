@@ -123,7 +123,7 @@ class TestMailDataManager(unittest.TestCase):
         txn = DummyTransaction()
         mdm.join_transaction(txn)
         mdm.tpc_phase = 1
-        self.assertRaises(ValueError, mdm.abort, txn)
+        mdm.abort(txn) # no raise
 
     def test_abort_w_same_transaction(self):
         mdm = self._makeOne(object)
@@ -143,7 +143,10 @@ class TestMailDataManager(unittest.TestCase):
 
     def test_sortKey(self):
         mdm = self._makeOne()
-        self.assertEqual(mdm.sortKey(), str(id(mdm)))
+        sort_key = mdm.sortKey()
+        self.assertTrue(sort_key > 'z')
+        self.assertTrue(sort_key > '42')
+        self.assertTrue(sort_key > '~sqlalchemy:42')
 
     def test_savepoint_wo_transaction(self):
         mdm = self._makeOne()
@@ -208,12 +211,16 @@ class TestMailDataManager(unittest.TestCase):
         self.assertRaises(ValueError, mdm.tpc_vote, txn)
 
     def test_tpc_vote_ok(self):
-        mdm = self._makeOne()
+        _called = []
+        def _callable(*args):
+            _called.append(args)
+        mdm = self._makeOne(_callable, (1, 2))
         txn = DummyTransaction()
         mdm.join_transaction(txn)
         mdm.tpc_phase = 1
         mdm.tpc_vote(txn)
         self.assertEqual(mdm.tpc_phase, 2)
+        self.assertEqual(_called, [(1, 2)])
 
     def test_tpc_finish_wo_transaction(self):
         mdm = self._makeOne()
@@ -250,7 +257,7 @@ class TestMailDataManager(unittest.TestCase):
         mdm.join_transaction(txn)
         mdm.tpc_phase = 2
         mdm.tpc_finish(txn)
-        self.assertEqual(_called, [(1, 2)])
+        self.assertEqual(_called, [])
         self.assertEqual(mdm.state, MailDataManagerState.TPC_FINISHED)
         self.assertEqual(mdm.tpc_phase, 0)
 
@@ -267,10 +274,12 @@ class TestMailDataManager(unittest.TestCase):
         self.assertRaises(ValueError, mdm.tpc_abort, txn2)
 
     def test_tpc_abort_not_already_tpc(self):
+        from ..delivery import MailDataManagerState
         mdm = self._makeOne()
         txn = DummyTransaction()
         mdm.join_transaction(txn)
-        self.assertRaises(ValueError, mdm.tpc_abort, txn)
+        mdm.tpc_abort(txn)
+        self.assertEqual(mdm.state, MailDataManagerState.TPC_ABORTED)
 
     def test_tpc_abort_already_finished(self):
         from ..delivery import MailDataManagerState
