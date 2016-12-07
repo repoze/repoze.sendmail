@@ -6,7 +6,7 @@ Change history
 
 - Drop support for Python 2.6 and 3.2.
 
-- Add support for Python 3.4, 3.5, and PyPy3.
+- Add support for Python 3.4 and 3.5.
 
 4.2 (2014-02-17)
 ----------------
