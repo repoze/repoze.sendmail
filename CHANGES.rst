@@ -8,6 +8,8 @@ Change history
 
 - Add support for Python 3.4 and 3.5.
 
+- Keep MailDir sending all queue mails
+
 4.2 (2014-02-17)
 ----------------
 
