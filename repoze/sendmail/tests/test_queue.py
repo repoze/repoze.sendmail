@@ -153,13 +153,31 @@ class TestQueueProcessor(TestCase):
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
 
-        # File must remail were it was, so it will be retried
+        # File must remain were it was, so it will be retried
         self.assertTrue(os.path.exists(self.filename))
         self.assertEqual(self.qp.log.errors,
                           [('Error while sending mail from %s to %s.',
                             ('foo@example.com',
                              'bar@example.com, baz@example.com'),
                             {'exc_info': 1})])
+
+    def test_smtp_response_error_transient_ignore_exc(self):
+        # Test a transient error but ignore exception
+        self.qp.ignore_transient = True
+        self.qp.mailer = SMTPResponseExceptionMailerStub(451)
+        self.filename = os.path.join(self.dir, 'message')
+        temp = open(self.filename, "w+b")
+        temp.write(b('X-Actually-From: foo@example.com\n')+
+                   b('X-Actually-To: bar@example.com, baz@example.com\n')+
+                   b('Header: value\n\nBody\n'))
+        temp.close()
+        self.qp.maildir.files.append(self.filename)
+        self.qp.send_messages()
+
+        # File must remain were it was, so it will be retried
+        self.assertTrue(os.path.exists(self.filename))
+        # Transient errors ignored, so log should be empty
+        self.assertEqual(self.qp.log.errors, [])
 
     def test_smtp_response_error_permanent(self):
         # Test a permanent error
