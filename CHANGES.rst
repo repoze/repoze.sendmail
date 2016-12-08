@@ -5,6 +5,8 @@ Unreleased
 ----------
 
 - Add support for Python 3.4, PyPy3.
+- Add ignore_transient parameter to QueueProcessor, to prevent raising
+  temporary errors in some situations.
 
 4.2 (2014-02-17)
 ----------------
