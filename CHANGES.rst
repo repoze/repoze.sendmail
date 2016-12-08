@@ -11,6 +11,8 @@ Change history
 - Add ``ignore_transient`` parameter to ``QueueProcessor``, to prevent raising
   temporary errors in some situations.  (PR #37)
 
+- Reset 'tpc_phase' to zero during 'tpc_abort' / 'tpc_finish'. (issue #30)
+
 4.2 (2014-02-17)
 ----------------
 
