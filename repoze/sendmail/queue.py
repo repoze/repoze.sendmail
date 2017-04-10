@@ -333,6 +333,7 @@ class ConsoleApp(object):
         self.script_name = argv[0]
         self._load_config()
         self._process_args(argv[1:])
+        debug_smtp = 1 if self.debug_smtp else 0
         self.mailer = SMTPMailer(
             hostname=self.hostname,
             port=self.port,
@@ -341,7 +342,7 @@ class ConsoleApp(object):
             no_tls=self.no_tls,
             force_tls=self.force_tls,
             ssl=self.ssl,
-            debug_smtp=self.debug_smtp,
+            debug_smtp=debug_smtp,
             )
         
     def main(self):
@@ -454,7 +455,7 @@ class ConsoleApp(object):
         self.no_tls = boolean(config.get(section, "no_tls"))
         self.ssl = boolean(config.get(section, "ssl"))
         self.queue_path = string_or_none(config.get(section, "queue_path"))
-        self.debug_smtp = string_or_none(config.get(section, "debug_smtp"))
+        self.debug_smtp = boolean(config.get(section, "debug_smtp"))
 
 
     def _error_usage(self):
