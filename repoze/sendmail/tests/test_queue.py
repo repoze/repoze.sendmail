@@ -411,7 +411,7 @@ class TestConsoleApp(TestCase):
     def test_ini_parse(self):
         ini_path = os.path.join(self.dir, "qp.ini")
         f = open(ini_path, "w")
-        f.write(test_ini)
+        f.write(TEST_INI)
         f.close()
 
         # Override most everything
@@ -426,6 +426,7 @@ class TestConsoleApp(TestCase):
         self.assertEqual("Rossi", app.password)
         self.assertFalse(app.force_tls)
         self.assertTrue(app.no_tls)
+        self.assertIs(app.debug_smtp, True)
 
         # Override nothing, make sure defaults come through
         f = open(ini_path, "w")
@@ -443,6 +444,8 @@ class TestConsoleApp(TestCase):
         self.assertEqual(None, app.password)
         self.assertFalse(app.force_tls)
         self.assertFalse(app.no_tls)
+        self.assertFalse(app.debug_smtp)
+        self.assertIs(app.debug_smtp, False)
 
     def test_delivery(self):
         from email.message import Message
@@ -471,7 +474,8 @@ class TestConsoleApp(TestCase):
         self.assertEqual(0, len(queued_messages))
         self.assertEqual(2, len(self.mailer.sent_messages))
 
-test_ini = """[app:qp]
+TEST_INI = """\
+[app:qp]
 interval = 33
 hostname = testhost
 port = 2525
@@ -480,6 +484,7 @@ password = Rossi
 force_tls = False
 no_tls = True
 queue_path = hammer/dont/hurt/em
+debug_smtp = True
 """
 
 

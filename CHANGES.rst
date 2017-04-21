@@ -4,7 +4,8 @@ Change history
 4.4 (unreleased)
 ----------------
 
-- TBD
+- Fix parsing of ``debug_smtp`` from queue processor config file:  it must
+  be a boolean, rather than a string, when passed to the stdlib. (issue #40).
 
 4.3 (2016-12-08)
 ----------------

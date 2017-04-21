@@ -454,7 +454,7 @@ class ConsoleApp(object):
         self.no_tls = boolean(config.get(section, "no_tls"))
         self.ssl = boolean(config.get(section, "ssl"))
         self.queue_path = string_or_none(config.get(section, "queue_path"))
-        self.debug_smtp = string_or_none(config.get(section, "debug_smtp"))
+        self.debug_smtp = boolean(config.get(section, "debug_smtp"))
 
 
     def _error_usage(self):
