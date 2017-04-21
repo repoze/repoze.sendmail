@@ -33,7 +33,7 @@ README = _read_file('README.rst')
 CHANGES = _read_file('CHANGES.rst')
 
 setup(name='repoze.sendmail',
-      version = '4.4.dev0',
+      version = '4.4',
       url='http://www.repoze.org',
       license='ZPL 2.1',
       description='Repoze Sendmail',
