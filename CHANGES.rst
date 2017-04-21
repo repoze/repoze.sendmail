@@ -4,6 +4,10 @@ Change history
 4.4 (unreleased)
 ----------------
 
+- Drop support for Python 3.3.
+
+- Add support for Python 3.6.
+
 - Fix parsing of ``debug_smtp`` from queue processor config file:  it must
   be a boolean, rather than a string, when passed to the stdlib. (issue #40).
 
