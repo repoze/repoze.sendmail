@@ -333,6 +333,7 @@ class ConsoleApp(object):
         self.script_name = argv[0]
         self._load_config()
         self._process_args(argv[1:])
+        debug_smtp = 1 if self.debug_smtp else 0
         self.mailer = SMTPMailer(
             hostname=self.hostname,
             port=self.port,
@@ -341,7 +342,7 @@ class ConsoleApp(object):
             no_tls=self.no_tls,
             force_tls=self.force_tls,
             ssl=self.ssl,
-            debug_smtp=self.debug_smtp,
+            debug_smtp=debug_smtp,
             )
         
     def main(self):
