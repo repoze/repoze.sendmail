@@ -205,6 +205,20 @@ class TestEncoding(unittest.TestCase):
 
         self.assertTrue(encodestring(body.encode('utf-8')) in encoded)
 
+    def test_encoding_raw_utf_8_body(self):
+        from repoze.sendmail._compat import b
+        from repoze.sendmail._compat import encodestring
+        utf_8_encoded = b('mo \xe2\x82\xac')
+        utf_8 = utf_8_encoded.decode('utf-8')
+        body = 'I know what you did last '+ utf_8
+        message = self._makeMessage()
+        message['Content-Transfer-Encoding'] = '8bit'
+        message.set_payload(body)
+
+        encoded = self._callFUT(message)
+
+        self.assertTrue(body.encode('utf-8') in encoded)
+
     def test_binary_body(self):
         from email.mime import application
         from email.mime import multipart
