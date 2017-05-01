@@ -177,6 +177,9 @@ class SendmailMailer(object):
                            recipients=toaddrs)
                 for arg in self.sendmail_template] + list(toaddrs)
         p = self._popen(args)
+
+        message = message.encode()
+
         stdoutdata, stderrdata = p.communicate(message)
         if p.returncode:
             raise subprocess.CalledProcessError(
