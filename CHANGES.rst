@@ -6,6 +6,12 @@ Change history
 
 - TBD
 
+4.4.2 (2019-02-20)
+------------------
+
+- Fix setting charset for attached messages in a multipart/alternative message
+  (issue #41)
+
 4.4.1 (2017-04-21)
 ------------------
 
