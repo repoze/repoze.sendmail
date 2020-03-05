@@ -1,6 +1,11 @@
 from email import utils
 from email import header
 
+try:
+  from email.policy import SMTP
+except ImportError:
+  SMTP = None
+
 from repoze.sendmail._compat import PY_2
 from repoze.sendmail._compat import text_type
 
@@ -100,7 +105,10 @@ def encode_message(message,
     The return is a byte string of the whole message.
     """
     cleanup_message(message)
-    return message.as_string().encode('ascii')
+    if SMTP: # Python 3.3+
+      return message.as_bytes(policy=SMTP)
+    else:
+      return message.as_string().encode('ascii')
 
 
 def best_charset(text):
