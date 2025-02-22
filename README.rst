@@ -17,4 +17,4 @@ from receiving notifications about events which may not have completed
 successfully.
 
 Please see `docs/index.rst` for complete documentation, or read the
-docs online at http://docs.repoze.org/sendmail
+docs online at https://repozesendmail.readthedocs.io/en/latest/narr.html
