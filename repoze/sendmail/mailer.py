@@ -97,12 +97,15 @@ class SMTPMailer(object):
                     'Mailhost does not support ESMTP but a username '
                     'is configured')
 
-        connection.sendmail(fromaddr, toaddrs, message)
+        # With multiple recipients sendmail() returns a dict that may
+        # contain an error for each recipient.
+        error_dict = connection.sendmail(fromaddr, toaddrs, message)
         try:
             connection.quit()
         except SSLError:
-            # something weird happened while quiting
+            # Something weird happened while quitting.
             connection.close()
+        return error_dict
 
 
 @implementer(IMailer)
@@ -189,4 +192,4 @@ class SendmailMailer(object):
         Expects the same call signature as subprocess.Popen.
         """
         kw['stdin'] = subprocess.PIPE
-        return subprocess.Popen(*args, **kw) 
+        return subprocess.Popen(*args, **kw)
