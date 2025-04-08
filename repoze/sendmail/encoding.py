@@ -100,7 +100,7 @@ def encode_message(message,
     The return is a byte string of the whole message.
     """
     cleanup_message(message)
-    return message.as_string().encode('ascii')
+    return message.as_string()
 
 
 def best_charset(text):
