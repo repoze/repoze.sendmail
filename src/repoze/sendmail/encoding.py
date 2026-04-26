@@ -1,9 +1,6 @@
 from email import utils
 from email import header
 
-from repoze.sendmail._compat import PY_2
-from repoze.sendmail._compat import text_type
-
 # From http://tools.ietf.org/html/rfc5322#section-3.6
 ADDR_HEADERS = ('resent-from',
                 'resent-sender',
@@ -43,9 +40,7 @@ def cleanup_message(message,
         if key.lower() in addr_headers:
             addrs = []
             for name, addr in utils.getaddresses([value]):
-                best, encoded = best_charset(name)
-                if PY_2:
-                    name = encoded
+                best, _encoded = best_charset(name)
                 name = header.Header(
                     name, charset=best, header_name=key).encode()
                 addrs.append(utils.formataddr((name, addr)))
@@ -54,26 +49,22 @@ def cleanup_message(message,
         if key.lower() in param_headers:
             for param_key, param_value in message.get_params(header=key):
                 if param_value:
-                    best, encoded = best_charset(param_value)
-                    if PY_2:
-                        param_value = encoded
+                    best, _encoded = best_charset(param_value)
                     if best == 'ascii':
                         best = None
                     message.set_param(param_key, param_value,
                                       header=key, charset=best)
         else:
-            best, encoded = best_charset(value)
-            if PY_2:
-                value = encoded
+            best, _encoded = best_charset(value)
             value = header.Header(
                 value, charset=best, header_name=key).encode()
             message.replace_header(key, value)
 
     payload = message.get_payload()
-    if payload and isinstance(payload, text_type):
+    if payload and isinstance(payload, str):
         charset = message.get_charset()
         if not charset:
-            charset, encoded = best_charset(payload)
+            charset, _encoded = best_charset(payload)
             message.set_payload(payload, charset=charset)
     elif isinstance(payload, list):
         for part in payload:
@@ -117,3 +108,5 @@ def best_charset(text):
             pass
         else:
             return charset, encoded
+    else:  # pragma: NO COVER
+        pass

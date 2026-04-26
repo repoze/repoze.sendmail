@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # repoze.sendmail documentation build configuration file, created by
 # sphinx-quickstart on Tue Apr 23 15:48:33 2013.
@@ -249,4 +248,4 @@ texinfo_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None}
+intersphinx_mapping = {'python': ('http://docs.python.org/3', None)}

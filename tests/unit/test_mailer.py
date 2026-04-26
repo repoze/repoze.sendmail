@@ -12,6 +12,7 @@
 #
 ##############################################################################
 import unittest
+from unittest import mock
 
 
 
@@ -76,6 +77,15 @@ class TestSMTPMailer(unittest.TestCase):
         mailer.force_tls = True
         self.assertRaises(RuntimeError, mailer.send,
                           fromaddr, toaddrs, msg)
+
+    def test_tls_available_but_disabled(self):
+        from email.message import Message
+        mailer, smtp = self._makeOne(extns=set())
+        fromaddr = 'me@example.com'
+        toaddrs = ('you@example.com', 'him@example.com')
+        msg = Message()
+        mailer.no_tls = True
+        mailer.send(fromaddr, toaddrs, msg)  # no raise
 
     def test_ssl_required_not_available(self):
         mailer, smtp = self._makeOne(extns=set())
@@ -295,7 +305,7 @@ def _makeSMTP(ehlo_status=200, extns=set(['starttls'])):
             self.password = password
 
         def quit(self):
-            from repoze.sendmail._compat import SSLError
+            from ssl import SSLError
             if self.fail_on_quit:
                 raise SSLError("dang")
             self.quitted = True
@@ -333,10 +343,3 @@ def _makeSMTPNoEHLO(extns):
         def ehlo(self):
             return (502, 'I don\'t understand EHLO')
     return SMTPWithNoEHLO
-
-
-def test_suite():
-    return unittest.TestSuite((
-        unittest.makeSuite(TestSMTPMailer),
-        unittest.makeSuite(TestSMTPMailerWithNoEHLO),
-    ))

@@ -1,18 +1,18 @@
-from __future__ import with_statement
 import errno
 import logging
 import os
+import pathlib
 import smtplib
 import stat
 import sys
 import time
+from configparser import ConfigParser
 
 from email.parser import Parser
 from email import header
 
 from repoze.sendmail.maildir import Maildir
 from repoze.sendmail.mailer import SMTPMailer
-from repoze.sendmail._compat import ConfigParser
 
 if sys.platform == 'win32': #pragma NO COVERAGE
     import win32file
@@ -331,7 +331,11 @@ class ConsoleApp(object):
 
     def __init__(self, argv=sys.argv):
         self.script_name = argv[0]
-        self._load_config()
+        config_path = self._find_config()
+
+        if config_path is not None:
+            self._load_config(config_path)
+
         self._process_args(argv[1:])
         self.mailer = SMTPMailer(
             hostname=self.hostname,
@@ -393,7 +397,7 @@ class ConsoleApp(object):
                 if not args:
                     log_usage = True
                 else:
-                    self._load_config(args.pop(0))
+                    self._load_config(pathlib.Path(args.pop(0)))
 
             elif arg == "--debug-smtp":
                 self.debug_smtp = True
@@ -420,16 +424,17 @@ class ConsoleApp(object):
             _log_error("--force-tls and --no-tls are mutually exclusive.")
             self._error = True
 
-    def _load_config(self, path=None):
-        if path is None:
-            # Look in etc directory relative to bin directory of current
-            # Python executable for "qp.ini".
-            exe = sys.executable
-            root = os.path.dirname(os.path.dirname(exe))
-            path = os.path.join(root, "etc", "qp.ini")
-            if not os.path.exists(path):
-                return
+    def _find_config(self):
+        # Look in etc directory relative to bin directory of current
+        # Python executable for "qp.ini".
+        exe_path = pathlib.Path(sys.executable)
+        root_path = exe_path.parent
+        qp_path = root_path / "etc" / "qp.ini"
 
+        if qp_path.exists():
+            return qp_path
+
+    def _load_config(self, path):
         section = "app:qp"
         names = [
             "hostname",

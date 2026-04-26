@@ -1,25 +1,11 @@
+import io
 import os.path
 import shutil
 import smtplib
 import sys
 from tempfile import mkdtemp
+from unittest import mock
 from unittest import TestCase
-
-# BBB Python 2 & 3 compat
-try:
-    u = unicode
-except NameError: # pragma: no cover
-    import codecs
-    u = str
-    def b(x): return codecs.latin_1_encode(x)[0]
-else:
-    b = str
-
-try:
-    from io import StringIO
-    StringIO  # pyflakes
-except ImportError: #pragma NO COVER
-    from StringIO import StringIO  # BBB Python 2 vs 3 compat
 
 from zope.interface import implementer
 
@@ -27,8 +13,8 @@ from repoze.sendmail import queue
 from repoze.sendmail.interfaces import IMailer
 from repoze.sendmail.queue import ConsoleApp
 
-from repoze.sendmail.tests.test_delivery import _makeMailerStub
-from repoze.sendmail.tests.test_delivery import MaildirStub
+from tests.unit.test_delivery import _makeMailerStub
+from tests.unit.test_delivery import MaildirStub
 
 class LoggerStub(object):
 
@@ -84,7 +70,7 @@ class TestQueueProcessor(TestCase):
         msg = ('Header: value\n'
                '\n'
                'Body\n')
-        f, t, m = self.qp._parseMessage(StringIO(u(hdr + msg)))
+        f, t, m = self.qp._parseMessage(io.StringIO(hdr + msg))
         self.assertEqual(f, 'foo@example.com')
         self.assertEqual(t, ('bar@example.com', 'baz@example.com'))
         self.assertEqual(m.as_string(), msg)
@@ -92,9 +78,9 @@ class TestQueueProcessor(TestCase):
     def test_delivery(self):
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write(b('X-Actually-From: foo@example.com\n')+
-                   b('X-Actually-To: bar@example.com, baz@example.com\n')+
-                   b('Header: value\n\nBody\n'))
+        temp.write(b'X-Actually-From: foo@example.com\n'+
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'+
+                   b'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
@@ -116,9 +102,9 @@ class TestQueueProcessor(TestCase):
         self.qp.mailer = BrokenMailerStub()
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write(b('X-Actually-From: foo@example.com\n')+
-                   b('X-Actually-To: bar@example.com, baz@example.com\n')+
-                   b('Header: value\n\nBody\n'))
+        temp.write(b'X-Actually-From: foo@example.com\n'+
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'+
+                   b'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
@@ -132,7 +118,7 @@ class TestQueueProcessor(TestCase):
         self.qp.mailer = BrokenMailerStub()
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write(b('Header: value\n\nBody\n'))
+        temp.write(b'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
@@ -146,9 +132,9 @@ class TestQueueProcessor(TestCase):
         self.qp.mailer = SMTPResponseExceptionMailerStub(451)
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write(b('X-Actually-From: foo@example.com\n')+
-                   b('X-Actually-To: bar@example.com, baz@example.com\n')+
-                   b('Header: value\n\nBody\n'))
+        temp.write(b'X-Actually-From: foo@example.com\n'+
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'+
+                   b'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
@@ -167,9 +153,9 @@ class TestQueueProcessor(TestCase):
         self.qp.mailer = SMTPResponseExceptionMailerStub(451)
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write(b('X-Actually-From: foo@example.com\n')+
-                   b('X-Actually-To: bar@example.com, baz@example.com\n')+
-                   b('Header: value\n\nBody\n'))
+        temp.write(b'X-Actually-From: foo@example.com\n'+
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'+
+                   b'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
@@ -184,9 +170,9 @@ class TestQueueProcessor(TestCase):
         self.qp.mailer = SMTPResponseExceptionMailerStub(550)
         self.filename = os.path.join(self.dir, 'message')
         temp = open(self.filename, "w+b")
-        temp.write(b('X-Actually-From: foo@example.com\n')+
-                   b('X-Actually-To: bar@example.com, baz@example.com\n')+
-                   b('Header: value\n\nBody\n'))
+        temp.write(b'X-Actually-From: foo@example.com\n'+
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'+
+                   b'Header: value\n\nBody\n')
         temp.close()
         self.qp.maildir.files.append(self.filename)
         self.qp.send_messages()
@@ -207,9 +193,9 @@ class TestQueueProcessor(TestCase):
         self.filename = os.path.join(self.dir, 'message')
 
         temp = open(self.filename, "w+b")
-        temp.write(b('X-Actually-From: foo@example.com\n')+
-                   b('X-Actually-To: bar@example.com, baz@example.com\n')+
-                   b('Header: value\n\nBody\n'))
+        temp.write(b'X-Actually-From: foo@example.com\n'+
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'+
+                   b'Header: value\n\nBody\n')
         temp.close()
 
         self.qp.maildir.files.append(self.filename)
@@ -234,9 +220,10 @@ class TestQueueProcessor(TestCase):
         self.filename = os.path.join(self.dir, 'message')
 
         temp = open(self.filename, "w+b")
-        temp.write(b('X-Actually-From: foo@example.com\n'
-                     'X-Actually-To: bar@example.com, baz@example.com\n'
-                     'Header: value\n\nBody\n'))
+        temp.write(b'X-Actually-From: foo@example.com\n'+
+                   b'X-Actually-To: bar@example.com, baz@example.com\n'+
+                   b'Header: value\n\nBody\n'
+        )
         temp.close()
 
         self.qp.maildir.files.append(self.filename)
@@ -275,7 +262,7 @@ class TestConsoleApp(TestCase):
         self.mailer = _makeMailerStub()
 
         self.save_stderr = sys.stderr
-        sys.stderr = self.stderr = StringIO()
+        sys.stderr = self.stderr = io.StringIO()
 
     def tearDown(self):
         sys.stderr = self.save_stderr
@@ -287,12 +274,8 @@ class TestConsoleApp(TestCase):
         monkey = _Monkey(queue, _log_error=logged.append)
         # py 25 compat, can't use with statement
         exc_info = ()
-        try:
-            monkey.__enter__()
+        with monkey:
             app = ConsoleApp(cmdline.split())
-        except: # pragma: no cover
-            exc_info = sys.exc_info()
-        monkey.__exit__(*exc_info)
         return app, logged
 
     def test_args_simple_ok(self):
@@ -474,6 +457,30 @@ class TestConsoleApp(TestCase):
         self.assertEqual(0, len(queued_messages))
         self.assertEqual(2, len(self.mailer.sent_messages))
 
+
+def test__find_config_from_sys_executable(tmp_path):
+    exe_path = tmp_path / "qp"
+    etc_path = tmp_path / "etc"
+    etc_path.mkdir()
+    qp_ini_path = etc_path / "qp.ini"
+    qp_ini_path.write_text(TEST_INI)
+    cmdline = ["qp"]
+
+    with mock.patch("sys.executable", str(exe_path)):
+        app = ConsoleApp(cmdline)
+
+    assert app.script_name == "qp"
+    assert not app._error
+    assert app.queue_path == "hammer/dont/hurt/em"
+    assert app.hostname == "testhost"
+    assert app.port == 2525
+    assert app.username == "Chris"
+    assert app.password == "Rossi"
+    assert not app.force_tls
+    assert app.no_tls
+    assert app.debug_smtp
+
+
 TEST_INI = """\
 [app:qp]
 interval = 33
@@ -498,8 +505,7 @@ class _Monkey(object):
     def __enter__(self):
         for k, v in self.replacements.items():
             orig = getattr(self.module, k, self)
-            if orig is not self:
-                self.orig[k] = orig
+            self.orig[k] = orig
             setattr(self.module, k, v)
 
     def __exit__(self, *exc_info):

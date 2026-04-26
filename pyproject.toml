@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project]
+name = "repoze-sendmail"
+version = "2.2dev0"
+description = "Couple sending email message with a transaction"
+readme = {file = "README.rst", content-type = "text/x-rst"}
+requires-python = ">=3.10"
+dependencies = []
+
+authors = [
+  {name = "Tres Seaver, Agendaless Consulting", email = "tseaver@agendaless.com"},
+]
+license = "LicenseRef-Repoze-BSD-derived"
+license-files = ["LICENSE.txt"]
+
+keywords = ["web", "wsgi", "middleware", "retry"]
+classifiers = [
+    "Development Status :: 6 - Mature",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Operating System :: OS Independent",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: WSGI",
+    "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
+]
+# Not supported by 'setuptools':
+# import-namespaces = ["repoze"]
+# import-names = ["repoze.sendmail"]
+
+[project.urls]
+Repository = "https://github.com/repoze/sendmail"
+Issues = "https://github.com/repoze/sendmail/issues"
+Documentation = "https://repozesendmail.readthedocs.io/en/stable/index.html"
+Changelog = "https://github.com/repoze/repoze.sendmail/blob/master/CHANGES.rst"
+
+[project.scripts]
+qp = "repoze.sendmail.queue:run_console"
+
+[dependency-groups]
+dev = [
+    "tox",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "check-manifest",
+    "build",
+    "twine",
+]
+docs = [
+    "sphinx",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+
+[tool.pytest.ini_options]
+pythonpath = "."
+minversion = "6.0"
+python_files = "test_*.py"
+testpaths = [ "tests" ]
+addopts = "--cov-reset --cov=repoze.sendmail --cov-branch --cov-fail-under=100"
+
+[tool.coverage.run]
+omit = []
+
+[tool.coverage.report]
+show_missing = true

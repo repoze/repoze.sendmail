@@ -14,6 +14,7 @@
 from email.message import Message
 import subprocess
 from smtplib import SMTP
+from ssl import SSLError
 
 try:
     import ssl
@@ -29,7 +30,6 @@ else:  # pragma NO COVER
 from zope.interface import implementer
 from repoze.sendmail.encoding import encode_message
 from repoze.sendmail.interfaces import IMailer
-from repoze.sendmail._compat import SSLError
 
 
 @implementer(IMailer)

@@ -92,6 +92,8 @@ class MailDataManager(object):
                 raise ValueError("Item is in the former transaction. "
                         "It must be removed before it can be added "
                         "to a new transaction")
+            else:
+                pass  # txn assigned, but self is not bound
 
         if self not in _after._resources:
             _after.join(self)

@@ -20,8 +20,8 @@ class TestMailDataManager(unittest.TestCase):
         from repoze.sendmail.delivery import MailDataManager
         return MailDataManager
 
-    def _makeOne(self, callable=object, args=(), onAbort=None):
-        return self._getTargetClass()(callable, args, onAbort)
+    def _makeOne(self, callable=object, args=(), onAbort=None, **kw):
+        return self._getTargetClass()(callable, args, onAbort, **kw)
 
     def test_class_conforms_to_IDataManager(self):
         from transaction.interfaces import IDataManager
@@ -54,6 +54,15 @@ class TestMailDataManager(unittest.TestCase):
         self.assertTrue(mdm.transaction is txn)
 
     def test_join_transaction_conflict(self):
+        txn1 = DummyTransaction()
+        txn2 = DummyTransaction()
+        mdm = self._makeOne(object)
+        # Assign the tm, but without actually joining
+        mdm.transaction = txn1
+        mdm.join_transaction(txn2)
+        self.assertTrue(mdm.transaction is txn2)
+
+    def test_join_transaction_w_new_txn_wo_in_old_txn_resources(self):
         mdm = self._makeOne(object)
         txn1 = DummyTransaction()
         txn2 = DummyTransaction()
@@ -150,7 +159,7 @@ class TestMailDataManager(unittest.TestCase):
         self.assertRaises(ValueError, mdm.savepoint)
 
     def test_savepoint_w_transaction(self):
-        from ..delivery import MailDataSavepoint
+        from repoze.sendmail.delivery import MailDataSavepoint
         mdm = self._makeOne()
         txn = DummyTransaction()
         mdm.join_transaction(txn)
@@ -241,7 +250,7 @@ class TestMailDataManager(unittest.TestCase):
         self.assertRaises(ValueError, mdm.tpc_finish, txn)
 
     def test_tpc_finish_ok(self):
-        from ..delivery import MailDataManagerState
+        from repoze.sendmail.delivery import MailDataManagerState
         _called = []
         def _callable(*args):
             _called.append(args)
@@ -273,7 +282,7 @@ class TestMailDataManager(unittest.TestCase):
         self.assertRaises(ValueError, mdm.tpc_abort, txn)
 
     def test_tpc_abort_already_finished(self):
-        from ..delivery import MailDataManagerState
+        from repoze.sendmail.delivery import MailDataManagerState
         mdm = self._makeOne()
         txn = DummyTransaction()
         mdm.join_transaction(txn)
@@ -282,7 +291,7 @@ class TestMailDataManager(unittest.TestCase):
         self.assertRaises(ValueError, mdm.tpc_abort, txn)
 
     def test_tpc_abort_begun_ok(self):
-        from ..delivery import MailDataManagerState
+        from repoze.sendmail.delivery import MailDataManagerState
         mdm = self._makeOne()
         txn = DummyTransaction()
         mdm.join_transaction(txn)
@@ -292,7 +301,7 @@ class TestMailDataManager(unittest.TestCase):
         self.assertEqual(mdm.tpc_phase, 0)
 
     def test_tpc_abort_voted_ok(self):
-        from ..delivery import MailDataManagerState
+        from repoze.sendmail.delivery import MailDataManagerState
         mdm = self._makeOne()
         txn = DummyTransaction()
         mdm.join_transaction(txn)
@@ -369,8 +378,8 @@ class TestDirectMailDelivery(unittest.TestCase):
         from repoze.sendmail.delivery import DirectMailDelivery
         return DirectMailDelivery
 
-    def _makeOne(self, mailer=None):
-        return self._getTargetClass()(mailer)
+    def _makeOne(self, mailer=None, **kw):
+        return self._getTargetClass()(mailer, **kw)
 
     def test_class_conforms_to_IMailDelivery(self):
         from zope.interface.verify import verifyClass
@@ -386,6 +395,13 @@ class TestDirectMailDelivery(unittest.TestCase):
         mailer = _makeMailerStub()
         delivery = self._makeOne(mailer)
         self.assertEqual(delivery.mailer, mailer)
+
+    def test_ctor_w_tm(self):
+        tm = object()
+        mailer = _makeMailerStub()
+        delivery = self._makeOne(mailer, transaction_manager=tm)
+        self.assertEqual(delivery.mailer, mailer)
+        assert delivery.transaction_manager is tm
 
     def test_send(self):
         from repoze.sendmail.delivery import DirectMailDelivery
@@ -504,8 +520,8 @@ class TestQueuedMailDelivery(unittest.TestCase):
         from repoze.sendmail.delivery import QueuedMailDelivery
         return QueuedMailDelivery
 
-    def _makeOne(self, queuePath='/tmp'):
-        return self._getTargetClass()(queuePath)
+    def _makeOne(self, queuePath='/tmp', **kw):
+        return self._getTargetClass()(queuePath, **kw)
 
     def _makeMessage(self):
         from email.message import Message
@@ -532,10 +548,15 @@ class TestQueuedMailDelivery(unittest.TestCase):
         delivery = self._makeOne('/path/to/mailbox')
         self.assertEqual(delivery.queuePath, '/path/to/mailbox')
 
+    def test_ctor_w_tme(self):
+        tm = object()
+        delivery = self._makeOne('/path/to/mailbox', transaction_manager=tm)
+        self.assertEqual(delivery.queuePath, '/path/to/mailbox')
+        assert delivery.transaction_manager is tm
+
     def test_send(self):
         import transaction
         from repoze.sendmail.delivery import QueuedMailDelivery
-        from repoze.sendmail._compat import text_type
         delivery = QueuedMailDelivery('/path/to/mailbox')
         fromaddr = 'jim@example.com'
         toaddrs = ('guido@example.com',
@@ -550,8 +571,8 @@ class TestQueuedMailDelivery(unittest.TestCase):
         self.assertEqual(len(MaildirMessageStub.commited_messages), 1)
         self.assertEqual(MaildirMessageStub.aborted_messages, [])
         message = MaildirMessageStub.commited_messages[0]
-        self.assertEqual(text_type(message['X-Actually-From']), fromaddr)
-        self.assertEqual(text_type(
+        self.assertEqual(str(message['X-Actually-From']), fromaddr)
+        self.assertEqual(str(
             message['X-Actually-To']), ','.join(toaddrs))
 
         MaildirMessageStub.commited_messages = []
@@ -603,10 +624,9 @@ class TestQueuedMailDeliveryWithMaildir(unittest.TestCase):
         import os
         from email.mime import base
         import transaction
-        from repoze.sendmail._compat import b
         delivery = self._makeOne(self.maildir_path)
 
-        non_ascii = b('LaPe\xc3\xb1a').decode('utf-8')
+        non_ascii = b'LaPe\xc3\xb1a'.decode('utf-8')
         fromaddr = non_ascii + ' <jim@example.com>'
         toaddrs = (non_ascii + ' <guido@recip.com>',)
         message = base.MIMEBase('text', 'plain')
