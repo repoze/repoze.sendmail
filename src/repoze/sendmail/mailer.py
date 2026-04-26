@@ -11,31 +11,29 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-from email.message import Message
+import smtplib
 import subprocess
-from smtplib import SMTP
+from email.message import Message
+from importlib import util as importlib_util
 from ssl import SSLError
 
-try:
-    import ssl
-except ImportError:  # pragma NO COVER
-    HAVE_SSL = False
-    SMTP_SSL = None
-else:  # pragma NO COVER
-    HAVE_SSL = True
-    ssl  # pyflakes
-    del ssl
-    from smtplib import SMTP_SSL
-
 from zope.interface import implementer
+
 from repoze.sendmail.encoding import encode_message
 from repoze.sendmail.interfaces import IMailer
+
+HAVE_SSL = importlib_util.find_spec("ssl")
+
+if HAVE_SSL:
+    SMTP_SSL = smtplib.SMTP_SSL
+else:  # pragma NO COVER
+    SMTP_SSL = None
 
 
 @implementer(IMailer)
 class SMTPMailer(object):
 
-    smtp = SMTP  # allow replacement for testing.
+    smtp = smtplib.SMTP  # allow replacement for testing.
     smtp_ssl = SMTP_SSL # allow replacement for testing.
 
     def __init__(self, hostname='localhost', port=25,
