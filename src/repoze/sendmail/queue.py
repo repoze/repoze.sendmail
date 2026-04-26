@@ -16,7 +16,9 @@ from repoze.sendmail.mailer import SMTPMailer
 
 if sys.platform == 'win32': #pragma NO COVERAGE
     import win32file
-    _os_link = lambda src, dst: win32file.CreateHardLink(dst, src, None)
+
+    def _os_link(src, dst):
+        return win32file.CreateHardLink(dst, src, None)
 else:
     _os_link = os.link
 
@@ -270,7 +272,7 @@ class QueueProcessor(object):
                           fromaddr, ", ".join(toaddrs))
 
         # Catch errors and log them here
-        except:
+        except:  # noqa E722
             if fromaddr != '' or toaddrs != ():
                 self.log.error(
                     "Error while sending mail from %s to %s.",
@@ -369,7 +371,7 @@ class ConsoleApp(object):
             elif arg == "--port":
                 try:
                     self.port = int(args.pop(0))
-                except:
+                except (IndexError, ValueError):
                     log_usage = True
 
             elif arg == "--username":

@@ -15,7 +15,6 @@
 Read/write access to `Maildir` folders.
 """
 import contextlib
-import errno
 import os
 import pathlib
 import random
@@ -152,7 +151,8 @@ class Maildir:
         else:  # pragma NO COVER use os.open, receive fd
             fd, unique = _open_unique_filename(self.subdir_tmp)
             with os.fdopen(fd, 'w') as f:
-                writer = Generator(f)
+                writer = email_generator.Generator(f)
+                writer.flatten(message)
 
         return MaildirTransactionalMessage(
             self.subdir_tmp / unique,

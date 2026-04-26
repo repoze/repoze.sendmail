@@ -1,5 +1,4 @@
 from email.message import Message
-import unittest
 
 import transaction
 
@@ -85,7 +84,7 @@ def test_mailer_send_w_txn_savepoint():
         assert m._payload in bodies_expected
 
     ## ok, can we do multiple savepoints ?
-    active_transaction = transaction.manager.get()
+    transaction.manager.get()
 
     mailer.sent_messages = []
     transaction.begin()
@@ -113,7 +112,7 @@ def sample_message( body="This is just an example"):
     message['From'] = fromaddr
     message['To'] = 'some-zope-coders:;'
     message['Date'] = 'Date: Mon, 19 May 2003 10:17:36 -0400'
-    message['Message-Id'] = ext_msgid = '<20030519.1234@example.org>'
+    message['Message-Id'] = '<20030519.1234@example.org>'
     message['Subject'] = 'example'
     message.set_payload(body)
     return message

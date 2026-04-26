@@ -1,12 +1,8 @@
 import io
 import os.path
-import shutil
 import smtplib
-import sys
 from email import message as email_message # Message
-from tempfile import mkdtemp
 from unittest import mock
-from unittest import TestCase
 
 import pytest
 import transaction

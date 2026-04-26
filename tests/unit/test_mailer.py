@@ -12,12 +12,9 @@
 #
 ##############################################################################
 import email
-import functools
 import subprocess
 import ssl
-import unittest
 from email import message as email_message
-from unittest import mock
 
 import pytest
 

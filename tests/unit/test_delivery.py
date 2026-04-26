@@ -12,8 +12,6 @@
 #
 ##############################################################################
 import os
-import shutil
-import tempfile
 import email.message
 from email.mime import base
 from unittest import mock
@@ -43,7 +41,7 @@ def test_mdm_instance_conforms_to_IDataManager():
 
 def test_mdm_ctor():
     mdm = _makeMDM(object, (1, 2))
-    assert mdm.callable == object
+    assert mdm.callable is object
     assert mdm.args == (1, 2)
 
 def test_mdm_join_transaction_implicit():
@@ -489,7 +487,7 @@ def test_dmd_alternate_transaction_manager():
     message["Subject"] = "example"
     message.set_payload("This is just an example\n")
 
-    msgid = delivery.send(fromaddr, toaddrs, message)
+    delivery.send(fromaddr, toaddrs, message)
 
     transaction.commit()
     assert len(mailer.sent_messages) == 0
@@ -505,7 +503,9 @@ def test_dmd_alternate_transaction_manager():
     )
 
     mailer.sent_messages = []
-    msgid = delivery.send(fromaddr, toaddrs, message)
+
+    delivery.send(fromaddr, toaddrs, message)
+
     tm.get().abort()
     assert len(mailer.sent_messages) == 0
 

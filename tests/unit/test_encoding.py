@@ -13,7 +13,6 @@
 ##############################################################################
 import base64
 import quopri
-import unittest
 from email import header as email_header
 from email import message as email_message
 from email.mime import application as email_mime_application

@@ -11,10 +11,7 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-import os
-import pathlib
 import time
-import unittest
 from email import message as email_message
 from unittest import mock
 
@@ -147,7 +144,6 @@ def test__unique_hostname_w_globals_set(tt, rrr):
 def test__open_unique_filename_w_oserror(ufn, ppo, tmp_path):
     ppo.side_effect = PermissionError("test")
     ufn.return_value = "not-allowed"
-    not_allowed = tmp_path / "not-allowed"
 
     with pytest.raises(PermissionError):
         maildir_module._open_unique_filename(tmp_path, max_count=2)
