@@ -25,7 +25,6 @@ TEST_RANDINT = 47
 TEST_TIMESTAMP = time.time()
 
 
-
 @pytest.fixture
 def valid_maildir(tmp_path):
     for sub in ["cur", "new", "tmp"]:
@@ -58,9 +57,11 @@ def hostname_pid_not_set():
     ):
         yield
 
+
 def test__check_maildir_w_already(valid_maildir):
     path, is_maildir = maildir_module._check_maildir(
-        valid_maildir, create=False,
+        valid_maildir,
+        create=False,
     )
 
     assert is_maildir
@@ -92,7 +93,8 @@ def test__check_maildir_w_file(tmp_path, w_create):
     exp_path.write_text("I am not a maildir")
 
     found, is_maildir = maildir_module._check_maildir(
-        exp_path, create=w_create,
+        exp_path,
+        create=w_create,
     )
 
     assert not is_maildir
@@ -120,6 +122,7 @@ def test__unique_hostname_w_globals_not_set(
     assert found == (
         f"{TEST_TIMESTAMP}.{TEST_PID}.{TEST_HOSTNAME}.{TEST_RANDINT}"
     )
+
 
 @mock.patch("random.randrange")
 @mock.patch("time.time")
@@ -155,7 +158,7 @@ def test__open_unique_filename_w_names_taken(ufn, tmp_path):
     taken = tmp_path / "taken"
     taken.write_text("TAKEN")
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(maildir_module.NoTempfileNamesAvailable):
         maildir_module._open_unique_filename(tmp_path, max_count=2)
 
 
@@ -190,7 +193,7 @@ def test_maildir_ctor_w_hit(chkmd, tmp_path):
 def test_maildir_ctor_w_miss(chkmd, tmp_path):
     chkmd.return_value = tmp_path, False
 
-    with pytest.raises(ValueError):
+    with pytest.raises(maildir_module.NotAMaildir):
         maildir_module.Maildir(tmp_path, create=False)
 
     chkmd.assert_called_once_with(tmp_path, create=False)
@@ -250,6 +253,7 @@ def test_maildir_add_ok(
     assert exp_filename.is_file()
     assert "this is a test" in exp_filename.read_text()
 
+
 def test_mdtxmsg_abort(valid_maildir):
     pending = valid_maildir / "tmp" / "1234500002.4242.myhostname"
     pending.touch()
@@ -272,8 +276,9 @@ def test_mdtxmsg_abort(valid_maildir):
 
     tx_msg.abort()  # no-op if aborted
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(maildir_module.TransactionAborted):
         tx_msg.commit()
+
 
 def test_mdtxmsg_commit(valid_maildir):
     pending = valid_maildir / "tmp" / "1234500002.4242.myhostname"
@@ -288,15 +293,16 @@ def test_mdtxmsg_commit(valid_maildir):
 
     assert not tx_msg._aborted
     assert tx_msg._committed
-    
+
     assert not pending.exists()
     assert committed.read_text() == "commit me"
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(maildir_module.TransactionCommitted):
         tx_msg.abort()
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(maildir_module.TransactionCommitted):
         tx_msg.commit()
+
 
 def test_mdtxmsg_delete(valid_maildir):
     pending = valid_maildir / "tmp" / "1234500002.4242.myhostname"

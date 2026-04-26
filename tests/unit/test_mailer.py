@@ -12,8 +12,8 @@
 #
 ##############################################################################
 import email
-import subprocess
 import ssl
+import subprocess
 from email import message as email_message
 
 import pytest
@@ -25,18 +25,21 @@ SMTP_OTHER_PORT = 2225
 SMTP_USER_NAME = "phreddy"
 SMTP_PASSWORD = "m3rcur7"
 
-FROM_ADDR = 'me@example.com'
-TO_ADDRS = ('you@example.com', 'him@example.com')
-HEADERS = 'Headers: headers'
-BODY = 'bodybodybody\n-- \nsig\n'
+FROM_ADDR = "me@example.com"
+TO_ADDRS = ("you@example.com", "him@example.com")
+HEADERS = "Headers: headers"
+BODY = "bodybodybody\n-- \nsig\n"
 
 # Fixture casees
 # - SMTPMailer()
 # - SMTPMailer("localhost", port)
 
 
-def _makeSMTP(ehlo_status=200, extns=set(['starttls'])):
-    class SMTP(object):
+EXTN_ONLY_STARTTLS = frozenset(["starttls"])
+
+
+def _makeSMTP(ehlo_status=200, extns=EXTN_ONLY_STARTTLS):
+    class SMTP:
         is_factory = True
         fail_on_quit = False
         _inst = []
@@ -76,7 +79,7 @@ def _makeSMTP(ehlo_status=200, extns=set(['starttls'])):
 
         def ehlo(self):
             self.does_esmtp = True
-            return (self.ehlo_status, 'Hello, I am your stupid MTA mock')
+            return (self.ehlo_status, "Hello, I am your stupid MTA mock")
 
         helo = ehlo
 
@@ -88,17 +91,18 @@ def _makeSMTP(ehlo_status=200, extns=set(['starttls'])):
     return SMTP
 
 
-def _makeSMTPNoEHLO(extns={'starttls'}):
+def _makeSMTPNoEHLO(extns=EXTN_ONLY_STARTTLS):
     SMTP = _makeSMTP(None, extns)
 
     class SMTPWithNoEHLO(SMTP):
         does_esmtp = False
 
         def helo(self):
-            return (200, 'Hello, I am your stupid MTA mock')
+            return (200, "Hello, I am your stupid MTA mock")
 
         def ehlo(self):
-            return (502, 'I don\'t understand EHLO')
+            return (502, "I don't understand EHLO")
+
     return SMTPWithNoEHLO
 
 
@@ -146,7 +150,7 @@ def test_smtpmailer_smtp_factory_ssl_required_not_available():
     mailer = mailer_module.SMTPMailer(ssl=True)
     mailer.smtp_ssl = None
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(mailer_module.SSL_NotAvailable):
         mailer.smtp_factory()
 
 
@@ -167,6 +171,7 @@ def test_smtpmailer_smtp_factory_without_debug():
 
     assert not connection.debuglevel
 
+
 def test_smtpmailer_smtp_factory_with_debug():
     mailer = mailer_module.SMTPMailer(debug_smtp=True)
     mailer.smtp = _makeSMTP()
@@ -180,8 +185,8 @@ def test_smtpmailer_send_w_non_message(smtp_factory_func):
     mailer = mailer_module.SMTPMailer()
     mailer.smtp = smtp_factory_func()
 
-    with pytest.raises(ValueError):
-        mailer.send(FROM_ADDR, TO_ADDRS, b'')
+    with pytest.raises(mailer_module.NotAnEmailMessage):
+        mailer.send(FROM_ADDR, TO_ADDRS, b"")
 
 
 def test_smtpmailer_send_fail_ehlo():
@@ -190,7 +195,7 @@ def test_smtpmailer_send_fail_ehlo():
     mailer = mailer_module.SMTPMailer()
     mailer.smtp = _makeSMTP(ehlo_status=100, extns=set())
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(mailer_module.EHLO_Error):
         mailer.send(FROM_ADDR, TO_ADDRS, msg)
 
 
@@ -199,7 +204,7 @@ def test_smtpmailer_send_tls_required_not_available(smtp_factory_func):
     mailer = mailer_module.SMTPMailer(force_tls=True)
     mailer.smtp = smtp_factory_func(extns=set())
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(mailer_module.TLS_NotAvailable):
         mailer.send(FROM_ADDR, TO_ADDRS, msg)
 
 
@@ -212,27 +217,27 @@ def test_smtpmailer_send_tls_available_but_disabled(smtp_factory_func):
 
 
 def test_smtpmailer_send_auth_w_ehlo():
-    msgtext = HEADERS + '\n\n' + BODY
+    msgtext = HEADERS + "\n\n" + BODY
     msg = email.message_from_string(msgtext)
 
     mailer = mailer_module.SMTPMailer()
     mailer.smtp = _makeSMTP()
-    mailer.username = 'foo'
-    mailer.password = 'evil'
-    mailer.hostname = 'spamrelay'
+    mailer.username = "foo"
+    mailer.password = "evil"
+    mailer.hostname = "spamrelay"
     mailer.port = 31337
 
     mailer.send(FROM_ADDR, TO_ADDRS, msg)
 
     (inst,) = mailer.smtp._inst
-    assert inst.username == 'foo'
-    assert inst.password == 'evil'
-    assert inst.hostname == 'spamrelay'
-    assert inst.port == '31337'
+    assert inst.username == "foo"
+    assert inst.password == "evil"
+    assert inst.hostname == "spamrelay"
+    assert inst.port == "31337"
     assert inst.fromaddr == FROM_ADDR
     assert inst.toaddrs == TO_ADDRS
-    assert BODY.encode('ascii') in inst.msgtext
-    assert HEADERS.encode('ascii') in inst.msgtext
+    assert BODY.encode("ascii") in inst.msgtext
+    assert HEADERS.encode("ascii") in inst.msgtext
     assert inst.quitted
     assert inst.closed
 
@@ -242,17 +247,17 @@ def test_smtpmailer_send_auth_wo_ehlo():
 
     mailer = mailer_module.SMTPMailer()
     mailer.smtp = _makeSMTPNoEHLO()
-    mailer.username = 'foo'
-    mailer.password = 'evil'
-    mailer.hostname = 'spamrelay'
+    mailer.username = "foo"
+    mailer.password = "evil"
+    mailer.hostname = "spamrelay"
     mailer.port = 31337
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(mailer_module.ESMTP_NotSupported):
         mailer.send(FROM_ADDR, TO_ADDRS, msg)
 
 
 def test_smtpmailer_send_fail_inside_quit(smtp_factory_func):
-    msgtext = HEADERS + '\n\n' + BODY
+    msgtext = HEADERS + "\n\n" + BODY
     msg = email.message_from_string(msgtext)
 
     mailer = mailer_module.SMTPMailer()
@@ -267,38 +272,37 @@ def test_smtpmailer_send_fail_inside_quit(smtp_factory_func):
     (inst,) = mailer.smtp._inst
     assert inst.fromaddr == FROM_ADDR
     assert inst.toaddrs == TO_ADDRS
-    assert BODY.encode('ascii') in inst.msgtext
-    assert HEADERS.encode('ascii') in inst.msgtext
+    assert BODY.encode("ascii") in inst.msgtext
+    assert HEADERS.encode("ascii") in inst.msgtext
     assert not inst.quitted
     assert inst.closed
 
 
 class SendmailMailerStub(mailer_module.SendmailMailer):
-
     popens = ()
 
     def __init__(self, *args, **kw):
-        self.returncode = kw.pop('returncode', 0)
-        super(SendmailMailerStub, self).__init__(*args, **kw)
+        self.returncode = kw.pop("returncode", 0)
+        super().__init__(*args, **kw)
 
     def _popen(self, *args, **kw):
-        kw['returncode'] = self.returncode
+        kw["returncode"] = self.returncode
         p = PopenStub(*args, **kw)
-        self.popens += (p, )
+        self.popens += (p,)
         return p
 
 
 def test_sendmailmailer_send_w_non_message():
     mailer = SendmailMailerStub()
 
-    with pytest.raises(ValueError):
-        mailer.send(FROM_ADDR, TO_ADDRS, b'')
+    with pytest.raises(mailer_module.NotAnEmailMessage):
+        mailer.send(FROM_ADDR, TO_ADDRS, b"")
 
 
 def test_sendmailmailer_send_commandline_recipients():
     msg = email_message.Message()
-    msg['Headers'] = 'headers'
-    msg.set_payload('bodybodybody\n-- \nsig\n')
+    msg["Headers"] = "headers"
+    msg.set_payload("bodybodybody\n-- \nsig\n")
     mailer = SendmailMailerStub()
 
     mailer.send(FROM_ADDR, TO_ADDRS, msg)
@@ -310,17 +314,17 @@ def test_sendmailmailer_send_commandline_recipients():
         "-f",
         "me@example.com",
         "you@example.com",
-        "him@example.com"
+        "him@example.com",
     ]
 
 
 def test_sendmailmailer_send_header_recipients():
     msg = email_message.Message()
-    msg['To'] = ','.join(TO_ADDRS)
-    msg.set_payload('bodybodybody\n-- \nsig\n')
+    msg["To"] = ",".join(TO_ADDRS)
+    msg.set_payload("bodybodybody\n-- \nsig\n")
 
     mailer = SendmailMailerStub(
-        sendmail_app='/usr/local/sbin/sendmail',
+        sendmail_app="/usr/local/sbin/sendmail",
         sendmail_template=["{sendmail_app}", "-t", "-f", "{sender}"],
         returncode=1,
     )
@@ -329,17 +333,19 @@ def test_sendmailmailer_send_header_recipients():
         mailer.send(FROM_ADDR, None, msg)
 
     assert mailer.popens[0].args[0] == [
-        "/usr/local/sbin/sendmail", "-t", "-f", "me@example.com",
+        "/usr/local/sbin/sendmail",
+        "-t",
+        "-f",
+        "me@example.com",
     ]
 
 
-class PopenStub(object):
-
+class PopenStub:
     def __init__(self, *args, **kw):
         self.args = args
         self.kw = kw
         self.inputs = []
-        self.returncode = kw.get('returncode', 0)
+        self.returncode = kw.get("returncode", 0)
 
     def communicate(self, input):
         # 'input' must be bytes.  See:
@@ -347,4 +353,4 @@ class PopenStub(object):
         #                                    #subprocess.Popen.communicate
         assert isinstance(input, bytes)
         self.inputs.append(input)
-        return '', ''
+        return "", ""

@@ -30,15 +30,61 @@ else:  # pragma NO COVER
     SMTP_SSL = None
 
 
+class NotAnEmailMessage(ValueError):
+    def __init__(self):
+        super().__init__("Message must be instance of email.message.Message")
+
+
+class SSL_NotAvailable(RuntimeError):
+    def __init__(self):
+        super().__init__("No SSL available, cannot send via SSL")
+
+
+class TLS_NotAvailable(RuntimeError):
+    def __init__(self):
+        super().__init__("TLS is not available but TLS is required")
+
+
+class EHLO_Error(RuntimeError):
+    def __init__(self, code, response):
+        super().__init__(
+            f"Error sending EHLO to the SMTP server "
+            f"(code={code}, response={response})"
+        )
+
+
+class ESMTP_NotSupported(RuntimeError):
+    def __init__(self):
+        super().__init__(
+            "Mailhost does not support ESMTP but a username is configured"
+        )
+
+
+class SendmailCommandReturnedNonZero(subprocess.CalledProcessError):
+    def __init__(self, returncode, args):
+        self.returncode = returncode
+        super().__init__(
+            "Could not excecute sendmail properly",
+            args,
+        )
+
+
 @implementer(IMailer)
-class SMTPMailer(object):
-
+class SMTPMailer:
     smtp = smtplib.SMTP  # allow replacement for testing.
-    smtp_ssl = SMTP_SSL # allow replacement for testing.
+    smtp_ssl = SMTP_SSL  # allow replacement for testing.
 
-    def __init__(self, hostname='localhost', port=25,
-                 username=None, password=None,
-                 no_tls=False, force_tls=False, ssl=False, debug_smtp=False):
+    def __init__(
+        self,
+        hostname="localhost",
+        port=25,
+        username=None,
+        password=None,
+        no_tls=False,
+        force_tls=False,
+        ssl=False,
+        debug_smtp=False,
+    ):
         self.hostname = hostname
         self.port = port
         self.username = username
@@ -54,7 +100,7 @@ class SMTPMailer(object):
         timeout = 10
         if self.ssl:
             if self.smtp_ssl is None:
-                raise RuntimeError('No SSL available, cannot send via SSL')
+                raise SSL_NotAvailable()
             connection = self.smtp_ssl(hostname, port, timeout=timeout)
         else:
             connection = self.smtp(hostname, port, timeout=timeout)
@@ -63,8 +109,8 @@ class SMTPMailer(object):
 
     def send(self, fromaddr, toaddrs, message):
         if not isinstance(message, Message):
-            raise ValueError(
-               'Message must be instance of email.message.Message')
+            raise NotAnEmailMessage()
+
         message = encode_message(message)
 
         connection = self.smtp_factory()
@@ -74,14 +120,12 @@ class SMTPMailer(object):
         if code < 200 or code >= 300:
             code, response = connection.helo()
             if code < 200 or code >= 300:
-                raise RuntimeError(
-                        'Error sending HELO to the SMTP server '
-                        '(code=%s, response=%s)' % (code, response))
+                raise EHLO_Error(code, response)
 
         # encryption support
-        have_tls = connection.has_extn('starttls')
+        have_tls = connection.has_extn("starttls")
         if not have_tls and self.force_tls:
-            raise RuntimeError('TLS is not available but TLS is required')
+            raise TLS_NotAvailable()
 
         if have_tls and HAVE_SSL and not self.no_tls:
             connection.starttls()
@@ -91,9 +135,7 @@ class SMTPMailer(object):
             if self.username is not None and self.password is not None:
                 connection.login(self.username, self.password)
         elif self.username:
-            raise RuntimeError(
-                    'Mailhost does not support ESMTP but a username '
-                    'is configured')
+            raise ESMTP_NotSupported()
 
         connection.sendmail(fromaddr, toaddrs, message)
         try:
@@ -104,7 +146,7 @@ class SMTPMailer(object):
 
 
 @implementer(IMailer)
-class SendmailMailer(object):
+class SendmailMailer:
     """
     Provides for /usr/sbin/sendmail mailing functionality
 
@@ -151,9 +193,9 @@ class SendmailMailer(object):
 
 
     """
-    sendmail_app = '/usr/sbin/sendmail'
-    sendmail_template = [
-        "{sendmail_app}", "-t", "-i", "-f", "{sender}"]
+
+    sendmail_app = "/usr/sbin/sendmail"
+    sendmail_template = ["{sendmail_app}", "-t", "-i", "-f", "{sender}"]
 
     def __init__(self, sendmail_app=None, sendmail_template=None):
         """see class docstring for details on accepted kwargs"""
@@ -164,27 +206,30 @@ class SendmailMailer(object):
 
     def send(self, fromaddr=None, toaddrs=None, message=None):
         if not isinstance(message, Message):
-            raise ValueError(
-               'Message must be instance of email.message.Message')
+            raise NotAnEmailMessage()
+
         message = encode_message(message)
         if toaddrs is None:
             toaddrs = []
 
-        args = [arg.format(sendmail_app=self.sendmail_app,
-                           sender=fromaddr,
-                           recipients=toaddrs)
-                for arg in self.sendmail_template] + list(toaddrs)
+        args = [
+            arg.format(
+                sendmail_app=self.sendmail_app,
+                sender=fromaddr,
+                recipients=toaddrs,
+            )
+            for arg in self.sendmail_template
+        ] + list(toaddrs)
         p = self._popen(args)
         stdoutdata, stderrdata = p.communicate(message)
         if p.returncode:
-            raise subprocess.CalledProcessError(
-                "Could not excecute sendmail properly", args)
+            raise SendmailCommandReturnedNonZero(p.returncode, args)
 
-    def _popen(self, *args, **kw): # pragma NO COVER
+    def _popen(self, *args, **kw):  # pragma NO COVER
         """
         Invoke the actual sendmail subprocess.
 
         Expects the same call signature as subprocess.Popen.
         """
-        kw['stdin'] = subprocess.PIPE
-        return subprocess.Popen(*args, **kw) 
+        kw["stdin"] = subprocess.PIPE
+        return subprocess.Popen(*args, **kw)

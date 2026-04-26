@@ -14,6 +14,7 @@
 """
 Read/write access to `Maildir` folders.
 """
+
 import contextlib
 import os
 import pathlib
@@ -22,18 +23,42 @@ import socket
 import time
 from email import generator as email_generator
 
-
 HOSTNAME = None
 PID = None
-RANDMAX = 0x7fffffff
+RANDMAX = 0x7FFFFFFF
+
+
+class NotAMaildir(ValueError):
+    def __init__(self, path):
+        self.path = path
+        super().__init__(f"{path} is not a Maildir folder")
+
+
+class NoTempfileNamesAvailable(RuntimeError):
+    def __init__(self, subdir_tmp):
+        self.subdir_tmp = subdir_tmp
+        super().__init__(
+            f"Failed to create unique file name in {subdir_tmp}, "
+            f"are we under a DoS attack?"
+        )
+
+
+class TransactionAborted(RuntimeError):
+    def __init__(self):
+        super().__init__("Cannot commit--already aborted.")
+
+
+class TransactionCommitted(RuntimeError):
+    def __init__(self):
+        super().__init__("Cannot commit--already  committed.")
 
 
 def _check_maildir(path, create):
     path = pathlib.Path(path)
 
-    subdir_cur = path / 'cur'
-    subdir_new = path / 'new'
-    subdir_tmp = path / 'tmp'
+    subdir_cur = path / "cur"
+    subdir_new = path / "new"
+    subdir_tmp = path / "tmp"
 
     if create and not path.exists():
         path.mkdir()
@@ -43,9 +68,7 @@ def _check_maildir(path, create):
         is_maildir = True
     else:
         is_maildir = (
-            subdir_cur.exists() and
-            subdir_new.exists() and
-            subdir_tmp.exists()
+            subdir_cur.exists() and subdir_new.exists() and subdir_tmp.exists()
         )
 
     return path, is_maildir
@@ -74,14 +97,12 @@ def _open_unique_filename(subdir_tmp, max_count=1000, sleep_interval=0.1):
         unique = _unique_filename()
         filename = subdir_tmp / unique
         try:
-            if 1:   # use pathlib.Path, retrn stream
+            if 1:  # use pathlib.Path, retrn stream
                 return filename.open("x"), unique
-            else:   # pragma NO COVER use 'os.open', return fd
+            else:  # pragma NO COVER use 'os.open', return fd
                 return (
                     os.open(
-                        filename,
-                        os.O_CREAT | os.O_EXCL | os.O_WRONLY,
-                        0o600
+                        filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600
                     ),
                     unique,
                 )
@@ -90,10 +111,7 @@ def _open_unique_filename(subdir_tmp, max_count=1000, sleep_interval=0.1):
             counter += 1
             time.sleep(sleep_interval)
 
-    raise RuntimeError(
-        f"Failed to create unique file name"
-        f" in {subdir_tmp}, are we under a DoS attack?"
-    )
+    raise NoTempfileNamesAvailable(subdir_tmp)
 
 
 class Maildir:
@@ -104,21 +122,21 @@ class Maildir:
         path, is_maildir = _check_maildir(path, create=create)
 
         if not is_maildir:
-            raise ValueError('%s is not a Maildir folder' % path)
+            raise NotAMaildir(path)
 
         self.path = path
 
     @property
     def subdir_cur(self):
-        return self.path / 'cur'
+        return self.path / "cur"
 
     @property
     def subdir_new(self):
-        return self.path / 'new'
+        return self.path / "new"
 
     @property
     def subdir_tmp(self):
-        return self.path / 'tmp'
+        return self.path / "tmp"
 
     def __iter__(self):
         "See `repoze.sendmail.interfaces.IMaildir`"
@@ -132,8 +150,7 @@ class Maildir:
         # Sort by modification time so earlier messages are sent before
         # later messages during queue processing.
         msgs_sorted = [
-            (str(m), m.stat().st_mtime)
-            for m in new_messages + cur_messages
+            (str(m), m.stat().st_mtime) for m in new_messages + cur_messages
         ]
         msgs_sorted.sort(key=lambda x: x[1])
         return iter([m[0] for m in msgs_sorted])
@@ -150,7 +167,7 @@ class Maildir:
 
         else:  # pragma NO COVER use os.open, receive fd
             fd, unique = _open_unique_filename(self.subdir_tmp)
-            with os.fdopen(fd, 'w') as f:
+            with os.fdopen(fd, "w") as f:
                 writer = email_generator.Generator(f)
                 writer.flatten(message)
 
@@ -160,7 +177,7 @@ class Maildir:
         )
 
 
-class MaildirTransactionalMessage(object):
+class MaildirTransactionalMessage:
     """See `repoze.sendmail.interfaces.ITransactionalMessage`"""
 
     def __init__(self, pending_path, committed_path):
@@ -171,9 +188,9 @@ class MaildirTransactionalMessage(object):
 
     def commit(self):
         if self._aborted:
-            raise RuntimeError('Cannot commit--already aborted.')
+            raise TransactionAborted()
         if self._committed:
-            raise RuntimeError('Cannot commit--already committed.')
+            raise TransactionCommitted()
 
         os.rename(self._pending_path, self._committed_path)
         self._committed = True
@@ -182,13 +199,15 @@ class MaildirTransactionalMessage(object):
         if self._aborted:
             return
         if self._committed:
-            raise RuntimeError('Cannot abort--already committed.')
+            raise TransactionCommitted()
 
         self._aborted = True
         os.remove(self._pending_path)
 
     def __del__(self):
-        if (not self._aborted and
-            not self._committed and
-            os.path.exists(self._pending_path)):
+        if (
+            not self._aborted
+            and not self._committed
+            and os.path.exists(self._pending_path)
+        ):
             os.remove(self._pending_path)

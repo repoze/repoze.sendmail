@@ -1,25 +1,29 @@
-from email import utils
 from email import header
+from email import utils
 
 # From http://tools.ietf.org/html/rfc5322#section-3.6
-ADDR_HEADERS = ('resent-from',
-                'resent-sender',
-                'resent-to',
-                'resent-cc',
-                'resent-bcc',
-                'from',
-                'sender',
-                'reply-to',
-                'to',
-                'cc',
-                'bcc')
+ADDR_HEADERS = (
+    "resent-from",
+    "resent-sender",
+    "resent-to",
+    "resent-cc",
+    "resent-bcc",
+    "from",
+    "sender",
+    "reply-to",
+    "to",
+    "cc",
+    "bcc",
+)
 
-PARAM_HEADERS = ('content-type',
-                 'content-disposition')
+PARAM_HEADERS = ("content-type", "content-disposition")
 
 
-def cleanup_message(message,
-                   addr_headers=ADDR_HEADERS, param_headers=PARAM_HEADERS):
+def cleanup_message(
+    message,
+    addr_headers=ADDR_HEADERS,
+    param_headers=PARAM_HEADERS,
+):
     """
     Cleanup a `Message` handling header and payload charsets.
 
@@ -42,22 +46,25 @@ def cleanup_message(message,
             for name, addr in utils.getaddresses([value]):
                 best, _encoded = best_charset(name)
                 name = header.Header(
-                    name, charset=best, header_name=key).encode()
+                    name, charset=best, header_name=key
+                ).encode()
                 addrs.append(utils.formataddr((name, addr)))
-            value = ', '.join(addrs)
+            value = ", ".join(addrs)
             message.replace_header(key, value)
         if key.lower() in param_headers:
             for param_key, param_value in message.get_params(header=key):
                 if param_value:
                     best, _encoded = best_charset(param_value)
-                    if best == 'ascii':
+                    if best == "ascii":
                         best = None
-                    message.set_param(param_key, param_value,
-                                      header=key, charset=best)
+                    message.set_param(
+                        param_key, param_value, header=key, charset=best
+                    )
         else:
             best, _encoded = best_charset(value)
             value = header.Header(
-                value, charset=best, header_name=key).encode()
+                value, charset=best, header_name=key
+            ).encode()
             message.replace_header(key, value)
 
     payload = message.get_payload()
@@ -73,8 +80,9 @@ def cleanup_message(message,
     return message
 
 
-def encode_message(message,
-                   addr_headers=ADDR_HEADERS, param_headers=PARAM_HEADERS):
+def encode_message(
+    message, addr_headers=ADDR_HEADERS, param_headers=PARAM_HEADERS
+):
     """
     Encode a `Message` handling headers and payloads.
 
@@ -91,7 +99,7 @@ def encode_message(message,
     The return is a byte string of the whole message.
     """
     cleanup_message(message)
-    return message.as_string().encode('ascii')
+    return message.as_string().encode("ascii")
 
 
 def best_charset(text):
@@ -101,7 +109,7 @@ def best_charset(text):
     Prefers `ascii` or `iso-8859-1` and falls back to `utf-8`.
     """
     encoded = text
-    for charset in 'ascii', 'iso-8859-1', 'utf-8':
+    for charset in "ascii", "iso-8859-1", "utf-8":
         try:
             encoded = text.encode(charset)
         except UnicodeError:

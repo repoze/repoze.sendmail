@@ -19,7 +19,7 @@ Sending e-mail from and applications works as follows:
   Applications may also instantiate a particular delivery class directly.
 
 - The application feeds a message to the delivery instance, geting back a
-  unique message ID. 
+  unique message ID.
 
 - The deliver registers with the transaction system to make sure the
   message is only sent when the transaction commits successfully.  Among
@@ -29,7 +29,8 @@ Sending e-mail from and applications works as follows:
   the filesystem). A separate process or thread watches the queue and
   delivers messages asynchronously.  Since the queue is located in the
   filesystem, it survives application restarts or crashes and the mail is not
-  lost.  The queue processor can implement batching to keep the server load low.
+  lost.  The queue processor can implement batching to keep the server
+  load low.
 
 - A direct delivery delivers messages synchronously via SMPT during the
   transaction commit..
@@ -43,11 +44,12 @@ Sending e-mail from and applications works as follows:
     - 'SendmailMailer` sends all messages using the `sendmail` command.
 """
 
-from zope.interface import Attribute, Interface
+from zope.interface import Attribute
+from zope.interface import Interface
+
 
 class IMailDelivery(Interface):
-    """Send an email to a group of people.
-    """
+    """Send an email to a group of people."""
 
     transaction_manager = Attribute("The transaction manager to use.")
 
@@ -67,9 +69,10 @@ class IMailDelivery(Interface):
         Messages are actually sent during transaction commit.
         """
 
+
 class IMailer(Interface):
-    """Handles synchronous mail delivery.
-    """
+    """Handles synchronous mail delivery."""
+
     def send(fromaddr, toaddrs, message):
         """Send an email message.
 
