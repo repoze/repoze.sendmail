@@ -11,101 +11,153 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-from __future__ import with_statement
-
 """
 Read/write access to `Maildir` folders.
 """
-
-import os
+import contextlib
 import errno
+import os
+import pathlib
+import random
 import socket
 import time
-import random
-from email.generator import Generator
+from email import generator as email_generator
 
-class Maildir(object):
+
+HOSTNAME = None
+PID = None
+RANDMAX = 0x7fffffff
+
+
+def _check_maildir(path, create):
+    path = pathlib.Path(path)
+
+    subdir_cur = path / 'cur'
+    subdir_new = path / 'new'
+    subdir_tmp = path / 'tmp'
+
+    if create and not path.exists():
+        path.mkdir()
+        subdir_cur.mkdir()
+        subdir_new.mkdir()
+        subdir_tmp.mkdir()
+        is_maildir = True
+    else:
+        is_maildir = (
+            subdir_cur.exists() and
+            subdir_new.exists() and
+            subdir_tmp.exists()
+        )
+
+    return path, is_maildir
+
+
+def _unique_filename():
+    global HOSTNAME
+    global PID
+
+    if HOSTNAME is None:
+        HOSTNAME = socket.gethostname()
+
+    if PID is None:
+        PID = os.getpid()
+
+    timestamp = time.time()
+    randint = random.randrange(RANDMAX)
+
+    return f"{timestamp}.{PID}.{HOSTNAME}.{randint}"
+
+
+def _open_unique_filename(subdir_tmp, max_count=1000, sleep_interval=0.1):
+    # Return 'fd' from open, on success, plus the 'unique' path suffix
+    counter = 0
+    while counter < max_count:
+        unique = _unique_filename()
+        filename = subdir_tmp / unique
+        try:
+            if 1:   # use pathlib.Path, retrn stream
+                return filename.open("x"), unique
+            else:   # pragma NO COVER use 'os.open', return fd
+                return (
+                    os.open(
+                        filename,
+                        os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                        0o600
+                    ),
+                    unique,
+                )
+        except FileExistsError:
+            # NOTE: maildir.html (see above) says I should sleep for 2
+            counter += 1
+            time.sleep(sleep_interval)
+
+    raise RuntimeError(
+        f"Failed to create unique file name"
+        f" in {subdir_tmp}, are we under a DoS attack?"
+    )
+
+
+class Maildir:
     """See `repoze.sendmail.interfaces.IMaildir`"""
 
     def __init__(self, path, create=False):
         """See `repoze.sendmail.interfaces.IMaildirFactory`"""
+        path, is_maildir = _check_maildir(path, create=create)
+
+        if not is_maildir:
+            raise ValueError('%s is not a Maildir folder' % path)
+
         self.path = path
 
-        subdir_cur = os.path.join(path, 'cur')
-        subdir_new = os.path.join(path, 'new')
-        subdir_tmp = os.path.join(path, 'tmp')
+    @property
+    def subdir_cur(self):
+        return self.path / 'cur'
 
-        if create and not os.access(path, os.F_OK):
-            os.mkdir(path)
-            os.mkdir(subdir_cur)
-            os.mkdir(subdir_new)
-            os.mkdir(subdir_tmp)
-            maildir = True
-        else:
-            maildir = (os.path.isdir(subdir_cur) and os.path.isdir(subdir_new)
-                       and os.path.isdir(subdir_tmp))
-        if not maildir:
-            raise ValueError('%s is not a Maildir folder' % path)
+    @property
+    def subdir_new(self):
+        return self.path / 'new'
+
+    @property
+    def subdir_tmp(self):
+        return self.path / 'tmp'
 
     def __iter__(self):
         "See `repoze.sendmail.interfaces.IMaildir`"
-        join = os.path.join
-        subdir_cur = join(self.path, 'cur')
-        subdir_new = join(self.path, 'new')
         # http://www.qmail.org/man/man5/maildir.html says:
         #     "It is a good idea for readers to skip all filenames in new
         #     and cur starting with a dot.  Other than this, readers
         #     should not attempt to parse filenames."
-        new_messages = [join(subdir_new, x) for x in os.listdir(subdir_new)
-                        if not x.startswith('.')]
-        cur_messages = [join(subdir_cur, x) for x in os.listdir(subdir_cur)
-                        if not x.startswith('.')]
+        new_messages = list(self.subdir_new.glob("*"))
+        cur_messages = list(self.subdir_cur.glob("*"))
 
         # Sort by modification time so earlier messages are sent before
         # later messages during queue processing.
-        msgs_sorted = [(m, os.path.getmtime(m)) for m
-                      in new_messages + cur_messages]
+        msgs_sorted = [
+            (str(m), m.stat().st_mtime)
+            for m in new_messages + cur_messages
+        ]
         msgs_sorted.sort(key=lambda x: x[1])
         return iter([m[0] for m in msgs_sorted])
 
     def add(self, message):
         "See `repoze.sendmail.interfaces.IMaildir`"
-        join = os.path.join
-        subdir_tmp = join(self.path, 'tmp')
-        subdir_new = join(self.path, 'new')
-        pid = os.getpid()
-        host = socket.gethostname()
-        randmax = 0x7fffffff
-        counter = 0
-        while True:
-            timestamp = int(time.time())
-            unique = '%d.%d.%s.%d' % (timestamp, pid, host,
-                                      random.randrange(randmax))
-            filename = join(subdir_tmp, unique)
-            try:
-                fd = os.open(filename,
-                             os.O_CREAT|os.O_EXCL|os.O_WRONLY,
-                             0o600
-                             )
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
-                # File exists
-                counter += 1
-                if counter >= 1000:
-                    raise RuntimeError("Failed to create unique file name"
-                                       " in %s, are we under a DoS attack?"
-                                       % subdir_tmp)
-                # NOTE: maildir.html (see above) says I should sleep for 2
-                time.sleep(0.1)
-            else:
-                break
 
-        with os.fdopen(fd, 'w') as f:
-            writer = Generator(f)
-            writer.flatten(message)
+        if 1:  # use pathlib, receive stream
+            stream, unique = _open_unique_filename(self.subdir_tmp)
 
-        return MaildirTransactionalMessage(filename, join(subdir_new, unique))
+            with contextlib.closing(stream) as f:
+                writer = email_generator.Generator(f)
+                writer.flatten(message)
+
+        else:  # pragma NO COVER use os.open, receive fd
+            fd, unique = _open_unique_filename(self.subdir_tmp)
+            with os.fdopen(fd, 'w') as f:
+                writer = Generator(f)
+
+        return MaildirTransactionalMessage(
+            self.subdir_tmp / unique,
+            self.subdir_new / unique,
+        )
 
 
 class MaildirTransactionalMessage(object):

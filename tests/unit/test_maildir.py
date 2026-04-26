@@ -11,278 +11,307 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-
+import os
+import pathlib
+import time
 import unittest
+from email import message as email_message
+from unittest import mock
+
+import pytest
+
+import repoze.sendmail.maildir as maildir_module
+
+TEST_HOSTNAME = "test.example.com"
+TEST_PID = 123456
+TEST_RANDINT = 47
+TEST_TIMESTAMP = time.time()
 
 
-class TestMaildir(unittest.TestCase):
 
-    def setUp(self):
-        import repoze.sendmail.maildir as maildir_module
-        self.maildir_module = maildir_module
-        self.old_os_module = maildir_module.os
-        self.old_time_module = maildir_module.time
-        self.old_socket_module = maildir_module.socket
-        maildir_module.os = self.fake_os_module = FakeOsModule()
-        maildir_module.time = FakeTimeModule()
-        maildir_module.socket = FakeSocketModule()
+@pytest.fixture
+def valid_maildir(tmp_path):
+    for sub in ["cur", "new", "tmp"]:
+        (tmp_path / sub).mkdir()
 
-    def tearDown(self):
-        self.maildir_module.os = self.old_os_module
-        self.maildir_module.time = self.old_time_module
-        self.maildir_module.socket = self.old_socket_module
-        self.fake_os_module._stat_never_fails = False
-        self.fake_os_module._all_files_exist = False
+    return tmp_path
 
-    def test_factory(self):
-        from repoze.sendmail.maildir import Maildir
 
-        # Case 1: normal maildir
-        Maildir('/path/to/maildir')
+@pytest.fixture
+def populated_maildir(valid_maildir):
+    (valid_maildir / "new" / "1").write_text("new #1")
+    (valid_maildir / "new" / "2").write_text("new #2")
+    (valid_maildir / "cur" / "2").write_text("current #2")
+    (valid_maildir / "cur" / "1").write_text("current #1")
+    (valid_maildir / "tmp" / "1234500000.4242.myhostname.*").write_text(
+        "temp #1234500000"
+    )
+    (valid_maildir / "tmp" / "1234500001.4242.myhostname.*").write_text(
+        "temp #1234500001"
+    )
+    return valid_maildir
 
-        # Case 2a: directory does not exist, create = False
-        self.assertRaises(ValueError, Maildir, '/path/to/nosuchfolder', False)
 
-        # Case 2b: directory does not exist, create = True
-        Maildir('/path/to/nosuchfolder', True)
-        dirs = list(self.fake_os_module._made_directories)
-        dirs.sort()
-        self.assertEqual(dirs, ['/path/to/nosuchfolder',
-                                '/path/to/nosuchfolder/cur',
-                                '/path/to/nosuchfolder/new',
-                                '/path/to/nosuchfolder/tmp'])
+@pytest.fixture
+def hostname_pid_not_set():
+    with mock.patch.multiple(
+        "repoze.sendmail.maildir",
+        HOSTNAME=None,
+        PID=None,
+    ):
+        yield
 
-        # Case 3: it is a file, not a directory
-        self.assertRaises(ValueError, Maildir, '/path/to/regularfile', False)
-        self.assertRaises(ValueError, Maildir, '/path/to/regularfile', True)
+def test__check_maildir_w_already(valid_maildir):
+    path, is_maildir = maildir_module._check_maildir(
+        valid_maildir, create=False,
+    )
 
-        # Case 4: it is a directory, but not a maildir
-        self.assertRaises(ValueError, Maildir, '/path/to/emptydirectory', False)
-        self.assertRaises(ValueError, Maildir, '/path/to/emptydirectory', True)
+    assert is_maildir
+    assert path == valid_maildir
 
-    def test_iteration(self):
-        from repoze.sendmail.maildir import Maildir
-        m = Maildir('/path/to/maildir')
-        messages = list(m)
-        self.assertEqual(messages, ['/path/to/maildir/new/1', 
-                                    '/path/to/maildir/new/2',
-                                    '/path/to/maildir/cur/2',
-                                    '/path/to/maildir/cur/1'])
 
-    def test_add(self):
-        from email.message import Message
-        from repoze.sendmail.maildir import Maildir
-        m = Maildir('/path/to/maildir')
-        tx_message = m.add(Message())
-        self.assertTrue(tx_message._pending_path,
-                     '/path/to/maildir/tmp/1234500002.4242.myhostname.')
+def test__check_maildir_w_empty_wo_create(tmp_path):
+    found, is_maildir = maildir_module._check_maildir(tmp_path, create=False)
 
-    def test_add_no_good_filenames(self):
-        from email.message import Message
-        from repoze.sendmail.maildir import Maildir
-        self.fake_os_module._all_files_exist = True
-        m = Maildir('/path/to/maildir')
-        self.assertRaises(RuntimeError, m.add, Message())
+    assert not is_maildir
+    assert found == tmp_path
 
-    def test_add_os_error(self):
-        from email.message import Message
-        from repoze.sendmail.maildir import Maildir
-        self.fake_os_module._exception = OSError('test')
-        m = Maildir('/path/to/maildir')
-        self.assertRaises(OSError, m.add, Message())
 
-    def test_tx_msg_abort(self):
-        from repoze.sendmail.maildir import MaildirTransactionalMessage
-        filename1 = '/path/to/maildir/tmp/1234500002.4242.myhostname'
-        filename2 = '/path/to/maildir/new/1234500002.4242.myhostname'
-        tx_msg = MaildirTransactionalMessage(filename1, filename2)
-        self.assertEqual(tx_msg._pending_path, filename1)
+def test__check_maildir_w_empty_w_create(tmp_path):
+    exp_path = tmp_path / "maildir"
 
-        tx_msg.abort()
-        self.assertEqual(tx_msg._aborted, True)
-        self.assertEqual(tx_msg._committed, False)
-        self.assertTrue(filename1 in self.fake_os_module._removed_files)
+    path, is_maildir = maildir_module._check_maildir(exp_path, create=True)
 
-        tx_msg.abort()
-        self.assertRaises(RuntimeError, tx_msg.commit)
+    assert is_maildir
+    assert path == exp_path
+    assert (exp_path / "cur").is_dir()
+    assert (exp_path / "new").is_dir()
+    assert (exp_path / "tmp").is_dir()
 
-    def test_tx_msg_commit(self):
-        from repoze.sendmail.maildir import MaildirTransactionalMessage
-        filename1 = '/path/to/maildir/tmp/1234500002.4242.myhostname'
-        filename2 = '/path/to/maildir/new/1234500002.4242.myhostname'
-        tx_msg = MaildirTransactionalMessage(filename1, filename2)
-        self.assertEqual(tx_msg._pending_path, filename1)
 
+@pytest.mark.parametrize("w_create", [True, False])
+def test__check_maildir_w_file(tmp_path, w_create):
+    exp_path = tmp_path / "maildir"
+    exp_path.write_text("I am not a maildir")
+
+    found, is_maildir = maildir_module._check_maildir(
+        exp_path, create=w_create,
+    )
+
+    assert not is_maildir
+    assert found == exp_path
+
+
+@mock.patch("socket.gethostname")
+@mock.patch("os.getpid")
+@mock.patch("random.randrange")
+@mock.patch("time.time")
+def test__unique_hostname_w_globals_not_set(
+    tt,
+    rrr,
+    ogp,
+    sgh,
+    hostname_pid_not_set,
+):
+    tt.return_value = TEST_TIMESTAMP
+    rrr.return_value = TEST_RANDINT
+    ogp.return_value = TEST_PID
+    sgh.return_value = TEST_HOSTNAME
+
+    found = maildir_module._unique_filename()
+
+    assert found == (
+        f"{TEST_TIMESTAMP}.{TEST_PID}.{TEST_HOSTNAME}.{TEST_RANDINT}"
+    )
+
+@mock.patch("random.randrange")
+@mock.patch("time.time")
+def test__unique_hostname_w_globals_set(tt, rrr):
+    tt.return_value = TEST_TIMESTAMP
+    rrr.return_value = TEST_RANDINT
+
+    with mock.patch.multiple(
+        "repoze.sendmail.maildir",
+        HOSTNAME=TEST_HOSTNAME,
+        PID=TEST_PID,
+    ):
+        found = maildir_module._unique_filename()
+
+    assert found == (
+        f"{TEST_TIMESTAMP}.{TEST_PID}.{TEST_HOSTNAME}.{TEST_RANDINT}"
+    )
+
+
+@mock.patch("pathlib.Path.open")
+@mock.patch("repoze.sendmail.maildir._unique_filename")
+def test__open_unique_filename_w_oserror(ufn, ppo, tmp_path):
+    ppo.side_effect = PermissionError("test")
+    ufn.return_value = "not-allowed"
+    not_allowed = tmp_path / "not-allowed"
+
+    with pytest.raises(PermissionError):
+        maildir_module._open_unique_filename(tmp_path, max_count=2)
+
+
+@mock.patch("repoze.sendmail.maildir._unique_filename")
+def test__open_unique_filename_w_names_taken(ufn, tmp_path):
+    ufn.return_value = "taken"
+    taken = tmp_path / "taken"
+    taken.write_text("TAKEN")
+
+    with pytest.raises(RuntimeError):
+        maildir_module._open_unique_filename(tmp_path, max_count=2)
+
+
+@mock.patch("repoze.sendmail.maildir._unique_filename")
+def test__open_unique_filename_w_ok(ufn, tmp_path):
+    ufn.return_value = "not-taken"
+    not_taken = tmp_path / "not-taken"
+    assert not not_taken.is_file()
+
+    stream, unique = maildir_module._open_unique_filename(tmp_path)
+
+    print("now-taken", file=stream, end="", flush=True)
+
+    assert not_taken.read_text() == "now-taken"
+
+
+@mock.patch("repoze.sendmail.maildir._check_maildir")
+def test_maildir_ctor_w_hit(chkmd, tmp_path):
+    chkmd.return_value = tmp_path, True
+
+    found = maildir_module.Maildir(tmp_path)
+
+    assert found.path == tmp_path
+    chkmd.assert_called_once_with(tmp_path, create=False)
+
+    assert found.subdir_cur == tmp_path / "cur"
+    assert found.subdir_new == tmp_path / "new"
+    assert found.subdir_tmp == tmp_path / "tmp"
+
+
+@mock.patch("repoze.sendmail.maildir._check_maildir")
+def test_maildir_ctor_w_miss(chkmd, tmp_path):
+    chkmd.return_value = tmp_path, False
+
+    with pytest.raises(ValueError):
+        maildir_module.Maildir(tmp_path, create=False)
+
+    chkmd.assert_called_once_with(tmp_path, create=False)
+
+
+@mock.patch("repoze.sendmail.maildir._check_maildir")
+def test_maildir_ctor_w_empty_w_create(chkmd, tmp_path):
+    exp_path = tmp_path / "maildir"
+    chkmd.return_value = exp_path, True
+
+    found = maildir_module.Maildir(exp_path, create=True)
+
+    assert found.path == exp_path
+    chkmd.assert_called_once_with(exp_path, create=True)
+
+
+def test_maildir___iter___w_empty(valid_maildir):
+    maildir = maildir_module.Maildir(valid_maildir)
+
+    found = list(maildir)
+
+    assert found == []
+
+
+def test_maildir___iter___w_populated(populated_maildir):
+    maildir = maildir_module.Maildir(populated_maildir)
+    expected_paths = [
+        populated_maildir / sub / name
+        for sub, name in [
+            ("new", "1"),
+            ("new", "2"),
+            ("cur", "2"),
+            ("cur", "1"),
+        ]
+    ]
+
+    found = list(maildir)
+
+    assert found == [str(exp) for exp in expected_paths]
+
+
+@mock.patch("repoze.sendmail.maildir._unique_filename")
+def test_maildir_add_ok(
+    ufn,
+    valid_maildir,
+):
+    ufn.return_value = "unique"
+    exp_filename = valid_maildir / "tmp" / "unique"
+    maildir = maildir_module.Maildir(valid_maildir)
+    msg = email_message.Message()
+    msg.add_header("x-testing", "this is a test")
+
+    tx_message = maildir.add(msg)
+
+    assert tx_message._pending_path == exp_filename
+    assert tx_message._committed_path == (valid_maildir / "new" / "unique")
+    assert exp_filename.is_file()
+    assert "this is a test" in exp_filename.read_text()
+
+def test_mdtxmsg_abort(valid_maildir):
+    pending = valid_maildir / "tmp" / "1234500002.4242.myhostname"
+    pending.touch()
+    committed = valid_maildir / "new" / "1234500002.4242.myhostname"
+
+    tx_msg = maildir_module.MaildirTransactionalMessage(pending, committed)
+
+    assert tx_msg._pending_path == pending
+    assert pending.exists()
+
+    assert tx_msg._committed_path == committed
+    assert not committed.exists()
+
+    tx_msg.abort()
+
+    assert tx_msg._aborted
+    assert not tx_msg._committed
+
+    assert not pending.exists()
+
+    tx_msg.abort()  # no-op if aborted
+
+    with pytest.raises(RuntimeError):
         tx_msg.commit()
-        self.assertEqual(tx_msg._aborted, False)
-        self.assertEqual(tx_msg._committed, True)
-        self.assertTrue((filename1, filename2)
-                       in self.fake_os_module._renamed_files)
 
-        self.assertRaises(RuntimeError, tx_msg.abort)
-        self.assertRaises(RuntimeError, tx_msg.commit)
+def test_mdtxmsg_commit(valid_maildir):
+    pending = valid_maildir / "tmp" / "1234500002.4242.myhostname"
+    pending.write_text("commit me")
+    committed = valid_maildir / "new" / "1234500002.4242.myhostname"
+    tx_msg = maildir_module.MaildirTransactionalMessage(pending, committed)
 
-    def test_mx_msg_delete(self):
-        from repoze.sendmail.maildir import MaildirTransactionalMessage
-        filename1 = '/path/to/maildir/tmp/1234500002.4242.myhostname'
-        filename2 = '/path/to/maildir/new/1234500002.4242.myhostname'
-        self.fake_os_module.path.files[filename1] = 1
-        tx_msg = MaildirTransactionalMessage(filename1, filename2)
-        tx_msg.debug = True
-        tx_msg.__del__()
-        self.assertEqual(self.fake_os_module._removed_files, (filename1,))
+    assert pending.is_file()
+    assert not committed.exists()
 
+    tx_msg.commit()
 
-class FakeSocketModule(object):
+    assert not tx_msg._aborted
+    assert tx_msg._committed
+    
+    assert not pending.exists()
+    assert committed.read_text() == "commit me"
 
-    def gethostname(self):
-        return 'myhostname'
+    with pytest.raises(RuntimeError):
+        tx_msg.abort()
 
-class FakeTimeModule(object):
+    with pytest.raises(RuntimeError):
+        tx_msg.commit()
 
-    _timer = 1234500000
+def test_mdtxmsg_delete(valid_maildir):
+    pending = valid_maildir / "tmp" / "1234500002.4242.myhostname"
+    pending.write_text("commit me")
+    committed = valid_maildir / "new" / "1234500002.4242.myhostname"
+    tx_msg = maildir_module.MaildirTransactionalMessage(pending, committed)
 
-    def time(self):
-        return self._timer
+    assert pending.is_file()
+    assert not committed.exists()
 
-    def sleep(self, n):
-        self._timer += n
+    tx_msg.__del__()
 
-class FakeOsPathModule(object):
-
-    def __init__(self, files, dirs):
-        self.files = dict(files)
-        self.dirs = dict(dirs)
-        mtimes = {}
-        for t,f in enumerate(files):
-            mtimes[f] = 9999 - t
-        self._mtimes = mtimes
-
-    def join(self, *args):
-        return '/'.join(args)
-
-    def isdir(self, dir):
-        return dir in self.dirs
-
-    def getmtime(self, f):
-        return self._mtimes.get(f, 10000)
-
-    def exists(self, path):
-        return path in self.dirs or path in self.files
-
-def _stat_files():
-    import stat
-    return [
-        ('/path/to/maildir', stat.S_IFDIR),
-        ('/path/to/maildir/new', stat.S_IFDIR),
-        ('/path/to/maildir/new/1', stat.S_IFREG),
-        ('/path/to/maildir/new/2', stat.S_IFREG),
-        ('/path/to/maildir/cur', stat.S_IFDIR),
-        ('/path/to/maildir/cur/1', stat.S_IFREG),
-        ('/path/to/maildir/cur/2', stat.S_IFREG),
-        ('/path/to/maildir/tmp', stat.S_IFDIR),
-        ('/path/to/maildir/tmp/1', stat.S_IFREG),
-        ('/path/to/maildir/tmp/2', stat.S_IFREG),
-        ('/path/to/maildir/tmp/1234500000.4242.myhostname.*', stat.S_IFREG),
-        ('/path/to/maildir/tmp/1234500001.4242.myhostname.*', stat.S_IFREG),
-        ('/path/to/regularfile', stat.S_IFREG),
-        ('/path/to/emptydirectory', stat.S_IFDIR),
-    ]
-
-def _listdir_files():
-    return [
-        ('/path/to/maildir/new', ['1', '2', '.svn']),
-        ('/path/to/maildir/cur', ['2', '1', '.tmp']),
-        ('/path/to/maildir/tmp', ['1', '2', '.ignore']),
-    ]
-
-class FakeOsModule(object):
-
-    F_OK = 0
-
-    path = FakeOsPathModule(_stat_files(), _listdir_files())
-
-    _made_directories = ()
-    _removed_files = ()
-    _renamed_files = ()
-
-    _all_files_exist = False
-    _exception = None
-
-    def __init__(self):
-        import os
-        self._descriptors = {}
-        self.O_CREAT = os.O_CREAT
-        self.O_EXCL = os.O_EXCL
-        self.O_WRONLY = os.O_WRONLY
-        self.O_RDWR = os.O_RDWR
-
-    def access(self, path, mode):
-        modes = dict(_stat_files())
-        if self._all_files_exist:
-            return True
-        if path in modes:
-            return True
-        if path.rsplit('.', 1)[0] + '.*' in modes:
-            return True
-        return False
-
-    def listdir(self, path):
-        listdir = dict(_listdir_files())
-        return listdir.get(path, [])
-
-    def mkdir(self, path):
-        self._made_directories += (path, )
-
-    def getpid(self):
-        return 4242
-
-    def remove(self, path):
-        self._removed_files += (path, )
-
-    def rename(self, old, new):
-        self._renamed_files += ((old, new), )
-
-    def open(self, filename, flags, mode=0o777):
-        import errno
-        if self._exception is not None:
-            raise self._exception
-        if (flags & self.O_EXCL and flags & self.O_CREAT
-            and self.access(filename, 0)):
-            raise OSError(errno.EEXIST, 'file already exists')
-        if not flags & self.O_CREAT and not self.access(filename, 0):
-            raise OSError('file not found') #pragma NO COVERAGE defensive
-        fd = max(list(self._descriptors.keys()) + [2]) + 1
-        self._descriptors[fd] = filename, flags, mode
-        return fd
-
-    def fdopen(self, fd, mode='r'):
-        filename, flags, permissions = self._descriptors[fd]
-        if mode == 'w':
-            assert flags & self.O_WRONLY
-            assert not flags & self.O_RDWR
-        else: #pragma NO COVERAGE defensive programming
-            raise AssertionError("don't know how to verify if flags match"
-                                 " mode %r" % mode)
-        return FakeFile(filename, mode)
-
-
-class FakeFile(object):
-
-    def __init__(self, filename, mode):
-        self._filename = filename
-        self._mode = mode
-        self._written = ''
-        self._closed = False
-
-    def close(self):
-        self._closed = True
-
-    def write(self, data):
-        self._written += data
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        self.close()
+    assert not pending.exists()
+    assert not committed.exists()
