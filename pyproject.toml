@@ -42,8 +42,8 @@ classifiers = [
 # import-names = ["repoze.sendmail"]
 
 [project.urls]
-Repository = "https://github.com/repoze/sendmail"
-Issues = "https://github.com/repoze/sendmail/issues"
+Repository = "https://github.com/repoze/repoze.sendmail"
+Issues = "https://github.com/repoze/repoze.sendmail/issues"
 Documentation = "https://repozesendmail.readthedocs.io/en/stable/index.html"
 Changelog = "https://github.com/repoze/repoze.sendmail/blob/master/CHANGES.rst"
 
