@@ -1,1 +1,9 @@
+prune docs
+prune .github
+exclude .travis.yml
 include *.txt
+include *.rst
+include buildout.cfg
+include tox.ini
+recursive-include tests *.py
+recursive-include tests *.zcml
