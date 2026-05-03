@@ -17,26 +17,67 @@ Mail Delivery utility implementation
 This module contains various implementations of Mail Deliveries.
 """
 
-from email.message import Message
 from email.header import Header
+from email.message import Message
 from email.parser import Parser
 from email.utils import formatdate
 from email.utils import make_msgid
 
+import transaction
+from transaction.interfaces import IDataManagerSavepoint
+from transaction.interfaces import ISavepointDataManager
 from zope.interface import implementer
+
+from repoze.sendmail import encoding
 from repoze.sendmail.interfaces import IMailDelivery
 from repoze.sendmail.maildir import Maildir
-from repoze.sendmail import encoding
-import transaction
-from transaction.interfaces import ISavepointDataManager
-from transaction.interfaces import IDataManagerSavepoint
 
 
-class MailDataManagerState(object):
+class NotAnEmailMessage(ValueError):
+    def __init__(self):
+        super().__init__("Message must be email.message.Message")
+
+
+class NotInATransaction(ValueError):
+    def __init__(self):
+        super().__init__("Not in a transaction")
+
+
+class InAnotherTransaction(ValueError):
+    def __init__(self):
+        super().__init__(
+            "Item is in the former transaction. It must be removed "
+            "before it can be added to a new transaction"
+        )
+
+
+class SubtransactionNotAllowed(ValueError):
+    def __init__(self):
+        super().__init__("Subtransactions not supported")
+
+
+class TPC_InProgress(ValueError):
+    def __init__(self):
+        super().__init__("TPC in progress")
+
+
+class TPC_PhaseError(ValueError):
+    def __init__(self, tpc_phase):
+        self.tpc_phase = tpc_phase
+        super().__init__(f"TPC phase error: {tpc_phase}")
+
+
+class TPC_Finished(ValueError):
+    def __init__(self):
+        super().__init__("TPC already finished")
+
+
+class MailDataManagerState:
     """MailDataManagerState consolidates all the possible MDM and TPC states.
     Most of these are not needed and were removed from the actual logic.
     This was modeled loosely after the Zope.Sqlaclhemy extension.
     """
+
     INIT = 0
     NO_WORK = 1
     COMMITTED = 2
@@ -50,19 +91,25 @@ class MailDataManagerState(object):
 
 
 @implementer(ISavepointDataManager)
-class MailDataManager(object):
+class MailDataManager:
     """When creating a MailDataManager, we expect to :
-        1. NOT be in a transaction on creation
-        2. DO be joined into a transaction afterwards
+    1. NOT be in a transaction on creation
+    2. DO be joined into a transaction afterwards
 
-        __init__ is given a `callable` function and `args` to pass into it.
+    __init__ is given a `callable` function and `args` to pass into it.
 
-        If everything goes as planned, during the tpc_finish phase we call:
+    If everything goes as planned, during the tpc_finish phase we call:
 
-            self.callable(*self.args)
+        self.callable(*self.args)
     """
-    def __init__(self, callable, args=(), onAbort=None,
-                 transaction_manager=None):
+
+    def __init__(
+        self,
+        callable,
+        args=(),
+        onAbort=None,
+        transaction_manager=None,
+    ):
         self.callable = callable
         self.args = args
         self.onAbort = onAbort
@@ -89,9 +136,9 @@ class MailDataManager(object):
 
         if _before is not None and _before is not _after:
             if self in _before._resources:
-                raise ValueError("Item is in the former transaction. "
-                        "It must be removed before it can be added "
-                        "to a new transaction")
+                raise InAnotherTransaction()
+            else:
+                pass  # txn assigned, but self is not bound
 
         if self not in _after._resources:
             _after.join(self)
@@ -100,24 +147,25 @@ class MailDataManager(object):
 
     def _finish(self, final_state):
         if self.transaction is None:
-            raise ValueError("Not in a transaction")
+            raise NotInATransaction()
+
         self.state = final_state
         self.tpc_phase = 0
 
     def commit(self, trans):
         if self.transaction is None:
-            raise ValueError("Not in a transaction")
+            raise NotInATransaction()
         if self.transaction is not trans:
-            raise ValueError("In a different transaction")
+            raise InAnotherTransaction()
         # OK to call ``commit`` w/ TPC underway
 
     def abort(self, trans):
         if self.transaction is None:
-            raise ValueError("Not in a transaction")
+            raise NotInATransaction()
         if self.transaction is not trans:
-            raise ValueError("In a different transaction")
+            raise InAnotherTransaction()
         if self.tpc_phase != 0:
-            raise ValueError("TPC in progress")
+            raise TPC_InProgress()
         if self.onAbort:
             self.onAbort()
 
@@ -131,55 +179,55 @@ class MailDataManager(object):
         actually do anything. `transaction` does it all.
         """
         if self.transaction is None:
-            raise ValueError("Not in a transaction")
+            raise NotInATransaction()
         return MailDataSavepoint(self)
 
     def tpc_begin(self, trans, subtransaction=False):
         if self.transaction is None:
-            raise ValueError("Not in a transaction")
+            raise NotInATransaction()
         if self.transaction is not trans:
-            raise ValueError("In a different transaction")
+            raise InAnotherTransaction()
         if self.tpc_phase != 0:
-            raise ValueError("TPC in progress")
+            raise TPC_InProgress()
         if subtransaction:
-            raise ValueError("Subtransactions not supported")
+            raise SubtransactionNotAllowed()
         self.tpc_phase = 1
 
     def tpc_vote(self, trans):
         if self.transaction is None:
-            raise ValueError("Not in a transaction")
+            raise NotInATransaction()
         if self.transaction is not trans:
-            raise ValueError("In a different transaction")
+            raise InAnotherTransaction()
         if self.tpc_phase != 1:
-            raise ValueError("TPC phase error: %d" % self.tpc_phase)
+            raise TPC_PhaseError(self.tpc_phase)
         self.tpc_phase = 2
 
     def tpc_finish(self, trans):
         if self.transaction is None:
-            raise ValueError("Not in a transaction")
+            raise NotInATransaction()
         if self.transaction is not trans:
-            raise ValueError("In a different transaction")
+            raise InAnotherTransaction()
         if self.tpc_phase != 2:
-            raise ValueError("TPC phase error: %d" % self.tpc_phase)
+            raise TPC_PhaseError(self.tpc_phase)
         self.callable(*self.args)
         self._finish(MailDataManagerState.TPC_FINISHED)
 
     def tpc_abort(self, trans):
         if self.transaction is None:
-            raise ValueError("Not in a transaction")
+            raise NotInATransaction()
         if self.transaction is not trans:
-            raise ValueError("In a different transaction")
+            raise InAnotherTransaction()
         if self.tpc_phase == 0:
-            raise ValueError("TPC phase error: %d" % self.tpc_phase)
+            raise TPC_PhaseError(self.tpc_phase)
         if self.state is MailDataManagerState.TPC_FINISHED:
-            raise ValueError("TPC already finished")
+            raise TPC_Finished()
         self._finish(MailDataManagerState.TPC_ABORTED)
 
 
 @implementer(IDataManagerSavepoint)
 class MailDataSavepoint:
-    """Don't actually do anything; transaction does it all.
-    """
+    """Don't actually do anything; transaction does it all."""
+
     def __init__(self, mail_data_manager):
         pass
 
@@ -187,7 +235,7 @@ class MailDataSavepoint:
         pass
 
 
-class AbstractMailDelivery(object):
+class AbstractMailDelivery:
     """Base class for mail delivery.
 
     Calling ``send`` will create a managed message -- the result of
@@ -198,23 +246,28 @@ class AbstractMailDelivery(object):
 
     The managed message is immediately joined into the current transaction.
     """
+
     def send(self, fromaddr, toaddrs, message):
         if not isinstance(message, Message):
-            raise ValueError('Message must be email.message.Message')
+            raise NotAnEmailMessage()
+
         encoding.cleanup_message(message)
-        messageid = message['Message-Id']
+        messageid = message["Message-Id"]
+
         if messageid is None:
-            messageid = message['Message-Id'] = make_msgid('repoze.sendmail')
-        if message['Date'] is None:
-            message['Date'] = formatdate()
+            messageid = message["Message-Id"] = make_msgid("repoze.sendmail")
+
+        if message["Date"] is None:
+            message["Date"] = formatdate()
+
         managedMessage = self.createDataManager(fromaddr, toaddrs, message)
         managedMessage.join_transaction()
+
         return messageid
 
 
 @implementer(IMailDelivery)
 class DirectMailDelivery(AbstractMailDelivery):
-
     def __init__(self, mailer, transaction_manager=None):
         self.mailer = mailer
         if transaction_manager is None:
@@ -222,14 +275,15 @@ class DirectMailDelivery(AbstractMailDelivery):
         self.transaction_manager = transaction_manager
 
     def createDataManager(self, fromaddr, toaddrs, message):
-        return MailDataManager(self.mailer.send,
-                               args=(fromaddr, toaddrs, message),
-                               transaction_manager=self.transaction_manager)
+        return MailDataManager(
+            self.mailer.send,
+            args=(fromaddr, toaddrs, message),
+            transaction_manager=self.transaction_manager,
+        )
 
 
 @implementer(IMailDelivery)
 class QueuedMailDelivery(AbstractMailDelivery):
-
     queuePath = property(lambda self: self._queuePath)
     processor_thread = None
 
@@ -241,12 +295,15 @@ class QueuedMailDelivery(AbstractMailDelivery):
 
     def createDataManager(self, fromaddr, toaddrs, message):
         message = copy_message(message)
-        message['X-Actually-From'] = Header(fromaddr, 'utf-8')
-        message['X-Actually-To'] = Header(','.join(toaddrs), 'utf-8')
+        message["X-Actually-From"] = Header(fromaddr, "utf-8")
+        message["X-Actually-To"] = Header(",".join(toaddrs), "utf-8")
         maildir = Maildir(self.queuePath, True)
         tx_message = maildir.add(message)
-        return MailDataManager(tx_message.commit, onAbort=tx_message.abort,
-                               transaction_manager=self.transaction_manager)
+        return MailDataManager(
+            tx_message.commit,
+            onAbort=tx_message.abort,
+            transaction_manager=self.transaction_manager,
+        )
 
 
 def copy_message(message):
