@@ -1,8 +1,12 @@
 Change history
 ~~~~~~~~~~~~~~
 
-4.5 (unreleased)
+4.5 (2026-05-04)
 ----------------
+
+- ci: publish to PyPI on release
+
+  Use 'pypi' environment and Trusted Publisher
 
 - Drop ``pkg_resources`` namespace support.
 
